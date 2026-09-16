@@ -18,9 +18,23 @@
 .canal-url {
     display: inline-block; background: rgba(0,0,0,0.25);
     padding: 6px 14px; border-radius: 8px;
-    font-family: monospace; font-size: 0.9rem; margin-top: 8px;
+    font-family: monospace; font-size: 0.9rem;
     letter-spacing: 0.02em;
+    color: #fff; text-decoration: none;
 }
+.canal-url:hover { background: rgba(0,0,0,0.4); }
+.canal-adresses { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.canal-copier {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; border-radius: 8px; padding: 6px 12px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.canal-copier:hover { background: rgba(255,255,255,0.3); }
+.canal-reseau {
+    margin-top: 8px; font-size: 0.82rem; opacity: 0.9;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.canal-reseau a { color: #fff; font-family: monospace; text-decoration: underline; }
 .stats-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .stat-mini { background: var(--surface); border-radius: 10px; padding: 14px 16px; border-left: 4px solid; }
 .stat-mini .n { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -89,11 +103,53 @@
     <div>
         <h2>Boutique en ligne <%= config.actif ? '· Active' : '· Inactive' %></h2>
         <p>Vos clients peuvent commander depuis leur téléphone. Retrait sur place ou livraison, paiement à la récupération.</p>
-        <a href="/commander/" target="_blank" class="canal-url">
-            <i class="bi bi-box-arrow-up-right"></i> <%= parametres && parametres.entreprise_nom ? '' : '' %>votre-domaine.cm/commander
-        </a>
+        <div class="canal-adresses">
+            <a href="<%= url_canal %>" target="_blank" class="canal-url">
+                <i class="bi bi-box-arrow-up-right"></i> <%= url_canal.replace(/^https?:\/\//, '') %>
+            </a>
+            <button type="button" class="canal-copier" data-url="<%= url_canal %>" title="Copier l'adresse">
+                <i class="bi bi-clipboard"></i> Copier
+            </button>
+        </div>
+        <% if (url_reseau) { %>
+            <div class="canal-reseau">
+                <i class="bi bi-phone"></i> Depuis un téléphone du même réseau Wi-Fi :
+                <a href="<%= url_reseau %>" target="_blank"><%= url_reseau.replace(/^https?:\/\//, '') %></a>
+                <button type="button" class="canal-copier" data-url="<%= url_reseau %>" title="Copier l'adresse réseau">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
+        <% } %>
     </div>
 </div>
+
+<script>
+// Copie de l'adresse du canal. navigator.clipboard n'existe qu'en contexte
+// sécurisé (https ou localhost) : sur l'adresse réseau en http, on retombe
+// sur la méthode historique.
+document.querySelectorAll('.canal-copier').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const url = btn.dataset.url;
+        const fini = function() {
+            const avant = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Copié';
+            setTimeout(function() { btn.innerHTML = avant; }, 1800);
+        };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(url).then(fini).catch(function() {});
+            return;
+        }
+        const zone = document.createElement('textarea');
+        zone.value = url;
+        zone.style.position = 'fixed';
+        zone.style.opacity = '0';
+        document.body.appendChild(zone);
+        zone.select();
+        try { document.execCommand('copy'); fini(); } catch (e) {}
+        document.body.removeChild(zone);
+    });
+});
+</script>
 
 <div class="stats-strip">
     <div class="stat-mini" style="border-color: var(--gold);"><div class="n" style="color: var(--gold);"><%= stats.total %></div><div class="lbl">Commandes reçues</div></div>

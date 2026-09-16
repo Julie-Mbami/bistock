@@ -1,4 +1,5 @@
 const express = require('express');
+const os = require('os');
 const bcrypt = require('bcryptjs');
 const PDFDocument = require('pdfkit');
 const db = require('../src/db');
@@ -304,10 +305,27 @@ router.get('/canal-web/', (req, res) => {
     en_prep: db.prepare("SELECT COUNT(*) AS n FROM commande_client_web WHERE statut IN ('CONFIRMEE', 'PRETE')").get().n,
     traitees: db.prepare("SELECT COUNT(*) AS n FROM commande_client_web WHERE statut IN ('RECUPEREE', 'LIVREE')").get().n,
   };
+  // Adresse réelle du canal, telle que le navigateur a joint l'application.
+  // Si on y accède en local (localhost), on propose en plus l'adresse réseau :
+  // c'est celle à communiquer aux clients et à ouvrir depuis un téléphone.
+  const hote = req.get('host') || 'localhost';
+  const urlCanal = `${req.protocol}://${hote}/commander/`;
+  let urlReseau = null;
+  if (/^(localhost|127\.0\.0\.1|\[::1\])(:|$)/i.test(hote)) {
+    const port = hote.includes(':') ? hote.split(':').pop() : null;
+    for (const cartes of Object.values(os.networkInterfaces())) {
+      const carte = (cartes || []).find(c => c.family === 'IPv4' && !c.internal);
+      if (carte) {
+        urlReseau = `${req.protocol}://${carte.address}${port ? ':' + port : ''}/commander/`;
+        break;
+      }
+    }
+  }
   res.render('admin/canal_web', {
     title: 'Canal de commande en ligne',
     page_title: 'Canal de commande en ligne',
     config, toutesActivites, stats,
+    url_canal: urlCanal, url_reseau: urlReseau,
   });
 });
 
