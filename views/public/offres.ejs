@@ -1,0 +1,135 @@
+<%- include('layout_header') %>
+
+<style>
+.offres-hero {
+    background: linear-gradient(135deg, var(--marron) 0%, #4A2F1E 100%);
+    color: var(--or-clair);
+    padding: 40px 20px 32px; text-align: center;
+    position: relative; overflow: hidden;
+}
+.offres-hero .inner { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
+.offres-hero .eyebrow { color: var(--or); font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; font-size: 0.72rem; margin-bottom: 8px; display: block; }
+.offres-hero h1 { font-size: 2rem; color: #fff; margin: 0 0 6px; }
+.offres-hero p { color: rgba(255,255,255,0.75); font-size: 1rem; }
+
+.offres-grid {
+    max-width: 1200px; margin: -30px auto 60px; padding: 0 20px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;
+    position: relative; z-index: 2;
+}
+.offre-card {
+    background: #fff; border-radius: 20px; padding: 22px 20px;
+    box-shadow: var(--shadow); position: relative; overflow: hidden;
+    border: 2px solid transparent;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.offre-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.offre-card.type-pct { border-color: #FBBF24; }
+.offre-card.type-fixe { border-color: #EF4444; }
+.offre-card.type-livraison { border-color: #10B981; }
+.offre-card .badge-type {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+    margin-bottom: 12px;
+}
+.badge-type.pct { background: #FEF3C7; color: #92400E; }
+.badge-type.fixe { background: #FEE2E2; color: #991B1B; }
+.badge-type.livraison { background: #D1FAE5; color: #065F46; }
+.offre-card h3 { margin: 0 0 6px; font-size: 1.15rem; color: var(--marron); font-weight: 800; }
+.offre-card .desc { color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 14px; }
+.offre-card .valeur {
+    font-size: 2rem; font-weight: 900; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #DC2626, #7C2D12);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin: 8px 0;
+}
+.offre-card .details { border-top: 1px solid #F1F5F9; padding-top: 12px; font-size: 0.82rem; color: var(--text-muted); }
+.offre-card .details p { margin: 4px 0; display: flex; gap: 8px; align-items: flex-start; }
+.offre-card .details i { color: var(--or); flex-shrink: 0; margin-top: 2px; }
+.offre-card .code {
+    display: inline-block; background: #1E293B; color: #FBBF24;
+    padding: 6px 14px; border-radius: 8px; font-weight: 800;
+    font-family: monospace; letter-spacing: 0.05em; font-size: 0.9rem;
+    margin-top: 10px;
+}
+.offre-card .cta {
+    display: block; text-align: center; margin-top: 14px;
+    padding: 10px 16px; background: var(--marron); color: var(--or-clair);
+    border-radius: 12px; font-weight: 700; text-decoration: none;
+    font-size: 0.9rem; transition: background 0.15s;
+}
+.offre-card .cta:hover { background: #6B4423; }
+.no-offres {
+    max-width: 500px; margin: 60px auto; text-align: center;
+    padding: 40px 20px; color: var(--text-muted);
+}
+.no-offres i { font-size: 3rem; opacity: 0.4; display: block; margin-bottom: 16px; }
+</style>
+
+<div class="offres-hero">
+    <div class="inner">
+        <span class="eyebrow">Offres & Promotions</span>
+        <h1>Nos offres du moment</h1>
+        <p>Profitez de nos meilleures réductions et livraisons offertes — durée limitée !</p>
+    </div>
+</div>
+
+<% if (promos.length) { %>
+<div class="offres-grid">
+    <% promos.forEach(function(p) {
+        let typeCls = 'type-pct', badgeCls = 'pct', badgeLabel = 'Réduction', valeur = '';
+        if (p.type === 'POURCENTAGE') { valeur = '−' + p.valeur + '%'; }
+        else if (p.type === 'MONTANT_FIXE') { typeCls = 'type-fixe'; badgeCls = 'fixe'; badgeLabel = 'Remise'; valeur = '−' + Math.round(p.valeur).toLocaleString('fr-FR').replace(/,/g, ' ') + ' FCFA'; }
+        else if (p.type === 'LIVRAISON_OFFERTE') { typeCls = 'type-livraison'; badgeCls = 'livraison'; badgeLabel = 'Livraison'; valeur = '🚚 Offerte'; }
+    %>
+    <div class="offre-card <%= typeCls %>">
+        <span class="badge-type <%= badgeCls %>"><%= badgeLabel %></span>
+        <h3><%= p.nom %></h3>
+        <div class="desc"><%= p.description || 'Profitez de cette offre exclusive.' %></div>
+        <div class="valeur"><%= valeur %></div>
+
+        <div class="details">
+            <% if (p.produit_nom) { %>
+                <p><i class="bi bi-tag"></i> Sur <strong><%= p.produit_nom %></strong></p>
+            <% } else if (p.categorie_nom) { %>
+                <p><i class="bi bi-tag"></i> Sur toute la catégorie <strong><%= p.categorie_nom %></strong></p>
+            <% } %>
+            <% if (p.panier_min > 0) { %>
+                <p><i class="bi bi-basket"></i> Panier minimum : <strong><%= Math.round(p.panier_min).toLocaleString('fr-FR').replace(/,/g, ' ') %> FCFA</strong></p>
+            <% } %>
+            <% if (p.date_fin) { %>
+                <p><i class="bi bi-calendar-x"></i> Valable jusqu'au <strong><%= p.date_fin %></strong></p>
+            <% } %>
+            <% if (p.heure_debut && p.heure_fin) { %>
+                <p><i class="bi bi-clock"></i> De <strong><%= p.heure_debut %></strong> à <strong><%= p.heure_fin %></strong></p>
+            <% } %>
+            <% if (p.jours_semaine) { %>
+                <p><i class="bi bi-calendar-week"></i> Les <strong><%= p.jours_semaine.split(',').map(function(j){ const l = {MON:'lun', TUE:'mar', WED:'mer', THU:'jeu', FRI:'ven', SAT:'sam', SUN:'dim'}; return l[j.trim()] || j; }).join(', ') %></strong></p>
+            <% } %>
+        </div>
+
+        <% if (p.code) { %>
+            <div style="text-align: center; margin-top: 14px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Code à saisir au checkout</span>
+                <span class="code"><%= p.code %></span>
+            </div>
+        <% } else { %>
+            <div style="text-align: center; margin-top: 14px; padding: 8px; background: rgba(16,185,129,0.08); border-radius: 8px;">
+                <span style="font-size: 0.82rem; color: #065F46; font-weight: 700;"><i class="bi bi-check-circle-fill"></i> Application automatique</span>
+            </div>
+        <% } %>
+
+        <a href="/commander/" class="cta">Commander maintenant <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <% }); %>
+</div>
+<% } else { %>
+<div class="no-offres">
+    <i class="bi bi-tag"></i>
+    <h3>Aucune offre en ce moment</h3>
+    <p>Repassez bientôt — de nouvelles promotions arrivent régulièrement !</p>
+    <a href="/commander/" class="btn btn-primary" style="margin-top: 16px;">Voir notre menu</a>
+</div>
+<% } %>
+
+<%- include('layout_footer') %>

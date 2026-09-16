@@ -1,0 +1,37 @@
+{
+  "name": "bistock",
+  "version": "1.0.0",
+  "description": "Bistock (Billing & Stock) — Logiciel de facturation et de gestion de stock multi-activités (Node.js/Express/SQLite).",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node scripts/dev_watch.js",
+    "init-db": "node scripts/init_db.js",
+    "seed": "node scripts/seed_data.js",
+    "seed:test": "node scripts/seed_test.js",
+    "seed:caisses": "node scripts/seed_caisses_coherent.js",
+    "capturer": "node scripts/capturer_ecrans.js",
+    "guide": "node scripts/generer_guide.js",
+    "guide:complet": "node scripts/capturer_ecrans.js && node scripts/generer_guide.js",
+    "migrate": "node scripts/migrate.js",
+    "setup": "node scripts/init_db.js && node scripts/seed_data.js && node scripts/seed_test.js",
+    "purge:prod": "node scripts/purge_prod.js",
+    "purge:prod:go": "node scripts/purge_prod.js --confirm"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "multer": "^1.4.5-lts.1",
+    "node-sqlite3-wasm": "^0.8.24",
+    "pdfkit": "^0.15.0",
+    "puppeteer": "^25.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

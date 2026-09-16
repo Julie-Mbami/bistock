@@ -1,0 +1,99 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Historique des ventes</h1>
+        <p class="page-subtitle"><%= ventes.length %> ventes affichées · <%= nb_impayees %> impayée<%= h.pluralize(nb_impayees) %> · reste à encaisser <strong><%= h.formatNombre(total_reste) %> <%= devise %></strong></p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row mb-2">
+            <input type="hidden" name="preset" value="<%= periode.preset %>">
+            <% if (periode.preset === 'personnalise') { %>
+                <input type="hidden" name="debut" value="<%= periode.debut %>">
+                <input type="hidden" name="fin" value="<%= periode.fin %>">
+            <% } %>
+            <div class="col-md-4 mb-2"><input type="text" name="q" value="<%= q %>" class="form-control" placeholder="N° vente ou client..."></div>
+            <div class="col-md-3 mb-2">
+                <select name="statut" class="form-select">
+                    <option value="">Tous statuts</option>
+                    <option value="paye" <%= statut_filtre === 'paye' ? 'selected' : '' %>>Payées</option>
+                    <option value="partiel" <%= statut_filtre === 'partiel' ? 'selected' : '' %>>Partielles</option>
+                    <option value="impaye" <%= statut_filtre === 'impaye' ? 'selected' : '' %>>Impayées</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-2">
+                <select name="mode" class="form-select">
+                    <option value="">Tous modes</option>
+                    <% modes_paiement.forEach(function(m) { %>
+                        <option value="<%= m[0] %>" <%= mode_filtre === m[0] ? 'selected' : '' %>><%= m[1] %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="col-md-2 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;">Filtrer</button></div>
+        </form>
+        <div style="margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap;">
+            <a href="?<%= new URLSearchParams(Object.fromEntries(Object.entries({q,statut:statut_filtre,mode:mode_filtre,preset:periode.preset}).filter(e => e[1]))).toString() %>" class="btn btn-sm <%= !locals.origine_filtre ? 'btn-primary' : 'btn-outline-primary' %>">Toutes origines</a>
+            <a href="?<%= new URLSearchParams(Object.fromEntries(Object.entries({q,statut:statut_filtre,mode:mode_filtre,preset:periode.preset,origine:'CAISSE'}).filter(e => e[1]))).toString() %>" class="btn btn-sm <%= locals.origine_filtre === 'CAISSE' ? 'btn-primary' : 'btn-outline-primary' %>"><i class="bi bi-shop"></i> Caisse</a>
+            <a href="?<%= new URLSearchParams(Object.fromEntries(Object.entries({q,statut:statut_filtre,mode:mode_filtre,preset:periode.preset,origine:'WEB'}).filter(e => e[1]))).toString() %>" class="btn btn-sm <%= locals.origine_filtre === 'WEB' ? 'btn-primary' : 'btn-outline-primary' %>" style="<%= locals.origine_filtre === 'WEB' ? '' : 'color: var(--gold-dark); border-color: var(--gold);' %>"><i class="bi bi-basket-fill"></i> En ligne</a>
+        </div>
+        <div style="padding: 8px 0 12px; border-top: 1px dashed var(--border);">
+            <%- include('../partials/filtre_periode', { periode, autresFiltres: { q, statut: statut_filtre, mode: mode_filtre } }) %>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>N°</th><th>Date</th><th>Client</th><th>Caissier</th>
+                    <th style="text-align: right;">Montant</th>
+                    <th style="text-align: center;">Paiement</th>
+                    <th style="text-align: center;">Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% ventes.forEach(function(v) { %>
+                <tr>
+                    <td>
+                        <a href="/ventes/<%= v.id %>"><code><%= v.numero %></code></a>
+                        <% if (v.origine === 'WEB') { %>
+                            <span style="display: inline-block; padding: 1px 6px; margin-left: 4px; background: var(--gold-50, #FEF3C7); color: var(--gold-dark, #92400E); border-radius: 4px; font-size: 0.65rem; font-weight: 800; vertical-align: middle;"><i class="bi bi-basket-fill"></i> EN LIGNE</span>
+                        <% } %>
+                    </td>
+                    <td class="text-muted small"><%= h.formatDate(v.date_vente, true) %></td>
+                    <td>
+                        <%= v.web_client_nom || v.client_nom || '—' %>
+                        <% if (v.web_code) { %>
+                            <br><small class="text-muted"><code style="font-size: 0.72rem;"><%= v.web_code %></code></small>
+                        <% } %>
+                    </td>
+                    <td class="text-muted small"><%= v.caissier_prenom || v.caissier_username %></td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;"><%= h.formatNombre(v.montant_net) %> <%= devise %></td>
+                    <td style="text-align: center;">
+                        <span style="background: <%= v.mode_paiement_style.fond %>; color: <%= v.mode_paiement_style.couleur %>; padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 600;">
+                            <%= v.mode_paiement_style.label %>
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <% if (v.statut_paiement === 'PAYE') { %><span class="badge badge-ok">Payée</span>
+                        <% } else if (v.statut_paiement === 'PARTIEL') { %><span class="badge badge-alerte">Partiel</span>
+                        <% } else { %><span class="badge badge-rupture">Impayée</span><% } %>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="/ventes/<%= v.id %>" class="btn btn-sm btn-outline-secondary" title="Détail"><i class="bi bi-eye"></i></a>
+                        <a href="/ventes/<%= v.id %>/ticket.pdf" target="_blank" class="btn btn-sm btn-outline-primary" title="Ticket 80mm"><i class="bi bi-receipt"></i></a>
+                        <a href="/ventes/<%= v.id %>/facture.pdf" target="_blank" class="btn btn-sm btn-outline-primary" title="Facture A4"><i class="bi bi-file-pdf"></i></a>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!ventes.length) { %>
+                <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucune vente.</td></tr>
+            <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

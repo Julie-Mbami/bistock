@@ -1,0 +1,54 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Inventaires physiques</h1>
+        <p class="page-subtitle"><%= nb_en_cours %> en cours · <%= nb_valides %> validés</p>
+    </div>
+    <a href="/stocks/inventaires/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvel inventaire</a>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Référence</th><th>Libellé</th><th>Catégorie</th><th>Statut</th>
+                    <th style="text-align: center;">Progression</th>
+                    <th style="text-align: center;">Écarts</th>
+                    <th>Créé par</th><th>Date</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% inventaires.forEach(function(i) { %>
+                <tr>
+                    <td><code><%= i.reference %></code></td>
+                    <td><%= i.libelle %></td>
+                    <td class="text-muted"><%= i.categorie_nom || 'Toutes' %></td>
+                    <td>
+                        <% if (i.statut === 'EN_COURS') { %><span class="badge badge-alerte">En cours</span>
+                        <% } else if (i.statut === 'VALIDE') { %><span class="badge badge-ok">Validé</span>
+                        <% } else { %><span class="badge bg-secondary">Annulé</span><% } %>
+                    </td>
+                    <td style="text-align: center;">
+                        <div class="progress" style="height: 6px; width: 100px; margin: 0 auto;">
+                            <div class="progress-bar bg-primary" style="width: <%= i.progression_pct %>%"></div>
+                        </div>
+                        <small class="text-muted"><%= i.nb_comptees %> / <%= i.nb_lignes %></small>
+                    </td>
+                    <td style="text-align: center;">
+                        <% if (i.nb_ecarts) { %><span class="badge badge-alerte"><%= i.nb_ecarts %></span><% } else { %>—<% } %>
+                    </td>
+                    <td><%= i.cree_par_prenom || i.cree_par_username %></td>
+                    <td class="text-muted"><%= h.formatDate(i.date_creation) %></td>
+                    <td><a href="/stocks/inventaires/<%= i.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                </tr>
+            <% }); %>
+            <% if (!inventaires.length) { %>
+                <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucun inventaire.</td></tr>
+            <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

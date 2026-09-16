@@ -1,0 +1,309 @@
+<%- include('../partials/header') %>
+<style>
+.autocomplete-wrap { position: relative; }
+.autocomplete-dropdown {
+    position: fixed;  /* fixé pour échapper aux overflow: hidden des parents */
+    background: #fff; border: 1px solid var(--border-strong);
+    border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    max-height: 320px; overflow-y: auto; z-index: 10000;
+    display: none;
+    min-width: 320px;
+}
+.autocomplete-dropdown.show { display: block; }
+.autocomplete-item {
+    padding: 8px 12px; cursor: pointer; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .autocomplete-item.hl { background: var(--navy-50); }
+.autocomplete-item .item-nom { font-weight: 500; color: var(--text); }
+.autocomplete-item .item-meta { font-size: 0.72rem; color: var(--text-muted); }
+.autocomplete-item .item-badge {
+    padding: 1px 8px; border-radius: 9999px; font-size: 0.65rem;
+    font-weight: 700; text-transform: uppercase;
+}
+.autocomplete-item.libre { background: var(--gold-50); }
+.autocomplete-item.libre:hover, .autocomplete-item.libre.hl { background: var(--gold-100); }
+.autocomplete-empty { padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+</style>
+
+<div class="page-header">
+    <div><h1 class="page-title">Nouvel achat</h1></div>
+    <a href="/achats/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<form method="post" id="form-achat">
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Informations générales</h5>
+            <p class="text-muted small">Un même bon d'achat peut regrouper des lignes de <strong>plusieurs fournisseurs</strong> et <strong>plusieurs factures</strong>. Chaque ligne indique son propre fournisseur et sa propre facture.</p>
+            <div class="row mt-3">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Notes générales (optionnel)</label>
+                    <input type="text" class="form-control" name="notes" placeholder="Ex : Achats de la semaine du 3 juillet">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fournisseur / facture pour toutes les nouvelles lignes (pratique si toutes du même)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select class="form-select form-select-sm" id="default-fournisseur">
+                            <option value="">— Choisir un fournisseur par défaut —</option>
+                            <% fournisseurs.forEach(function(f) { %>
+                                <option value="<%= f.id %>"><%= f.raison_sociale %> <small>(<%= f.activite_nom %>)</small></option>
+                            <% }); %>
+                        </select>
+                        <input type="text" class="form-control form-control-sm" id="default-facture" placeholder="N° facture par défaut" style="max-width: 180px;">
+                    </div>
+                    <small class="text-muted">Ce n'est qu'un raccourci : chaque ligne peut être personnalisée après.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0;">Produits achetés</h5>
+                <button type="button" class="btn btn-sm btn-primary" onclick="ajouterLigne()"><i class="bi bi-plus-lg"></i> Ajouter une ligne</button>
+            </div>
+            <p class="text-muted small mt-2">
+                <i class="bi bi-info-circle"></i>
+                Tapez la désignation : les produits existants dans les catalogues apparaissent en suggestion. Chaque ligne indique son <strong>fournisseur</strong> et sa <strong>facture</strong>.
+            </p>
+
+            <div class="table-responsive mt-3">
+                <table class="table table-sm" id="table-lignes" style="min-width: 1200px;">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 220px;">Fournisseur *</th>
+                            <th style="width: 140px;">N° facture *</th>
+                            <th style="min-width: 260px;">Désignation *</th>
+                            <th style="width: 80px;">Unité</th>
+                            <th style="width: 80px; text-align: right;">Qté *</th>
+                            <th style="width: 110px; text-align: right;">P.U.</th>
+                            <th style="width: 120px; text-align: right;">Sous-total</th>
+                            <th style="width: 150px;">Activité ?</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lignes-body"></tbody>
+                    <tfoot>
+                        <tr><td colspan="6" style="text-align: right; font-weight: 700;">TOTAL</td>
+                            <td style="text-align: right; font-weight: 700; font-size: 1.05rem;" id="total-affichage">0 <%= devise %></td>
+                            <td colspan="2"></td></tr>
+                    </tfoot>
+                </table>
+            </div>
+            <input type="hidden" name="lignes" id="lignes-json" value="[]">
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin: 20px 0;">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg"></i> Enregistrer l'achat</button>
+        <a href="/achats/" class="btn btn-outline-secondary btn-lg">Annuler</a>
+    </div>
+</form>
+
+<script>
+const ACTIVITES = <%- JSON.stringify(activites) %>;
+const FOURNISSEURS = <%- JSON.stringify(fournisseurs) %>;
+const PRODUITS_CAT = <%- JSON.stringify(produitsAutocomplete) %>;
+const DEVISE = '<%= devise %>';
+let compteur = 0;
+
+function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n)); }
+
+function normaliser(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+
+function creerDropdown(input, tr) {
+    const dd = document.createElement('div');
+    dd.className = 'autocomplete-dropdown';
+    // Attacher au body pour échapper aux overflow: hidden des parents
+    document.body.appendChild(dd);
+    let currentIdx = -1;
+    let filtres = [];
+
+    function positionner() {
+        const rect = input.getBoundingClientRect();
+        dd.style.top = (rect.bottom + 2) + 'px';
+        dd.style.left = rect.left + 'px';
+        dd.style.width = Math.max(rect.width, 320) + 'px';
+    }
+
+    function afficher() {
+        positionner();
+        const q = normaliser(input.value);
+        filtres = PRODUITS_CAT.filter(p => normaliser(p.designation).includes(q) || normaliser(p.reference).includes(q));
+        if (filtres.length === 0 && !input.value.trim()) {
+            filtres = PRODUITS_CAT.slice(0, 20); // pré-affichage des 20 premiers si champ vide
+        }
+        dd.innerHTML = '';
+        if (filtres.length === 0) {
+            dd.innerHTML = `<div class="autocomplete-empty"><i class="bi bi-info-circle"></i> Aucun produit trouvé. Votre saisie sera enregistrée comme <strong>libellé libre</strong>.</div>`;
+        } else {
+            filtres.slice(0, 30).forEach((p, i) => {
+                const it = document.createElement('div');
+                it.className = 'autocomplete-item';
+                if (i === currentIdx) it.classList.add('hl');
+                it.innerHTML = `
+                    <div>
+                        <div class="item-nom">${p.designation}</div>
+                        <div class="item-meta"><code>${p.reference}</code> · ${p.activite_nom} · ${p.unite}</div>
+                    </div>
+                    <span class="item-badge" style="background: var(--navy-50); color: var(--navy);">${p.activite_code}</span>
+                `;
+                it.addEventListener('mousedown', function(e) { e.preventDefault(); selectionner(p); });
+                dd.appendChild(it);
+            });
+            // Ligne "libellé libre" à la fin si input non vide et pas de match exact
+            if (input.value.trim() && !filtres.find(p => normaliser(p.designation) === normaliser(input.value))) {
+                const libre = document.createElement('div');
+                libre.className = 'autocomplete-item libre';
+                libre.innerHTML = `
+                    <div>
+                        <div class="item-nom"><i class="bi bi-plus-circle"></i> Utiliser "<strong>${input.value}</strong>" comme libellé libre</div>
+                        <div class="item-meta">Nestor pourra choisir un produit du catalogue lors de la distribution</div>
+                    </div>
+                `;
+                libre.addEventListener('mousedown', function(e) { e.preventDefault(); dd.classList.remove('show'); afficherHint(tr, null); });
+                dd.appendChild(libre);
+            }
+        }
+        dd.classList.add('show');
+    }
+
+    function selectionner(p) {
+        input.value = p.designation;
+        tr.querySelector('.ligne-unite').value = p.unite;
+        // Pré-remplir le prix d'achat depuis le catalogue si le champ est encore à 0 (ne pas écraser une saisie manuelle)
+        const prixInput = tr.querySelector('.ligne-prix');
+        if (p.prix_achat > 0 && (parseFloat(prixInput.value) || 0) === 0) {
+            prixInput.value = p.prix_achat;
+        }
+        // L'activité pressentie reste sur « Nestor arbitrera » par défaut
+        // (Mme Sandra peut toujours la changer manuellement si elle veut affecter directement)
+        dd.classList.remove('show');
+        afficherHint(tr, p);
+        recalculer();
+    }
+
+    input.addEventListener('focus', afficher);
+    input.addEventListener('input', function() { currentIdx = -1; afficher(); });
+    input.addEventListener('blur', function() { setTimeout(() => dd.classList.remove('show'), 200); });
+    // Repositionner sur scroll/resize
+    window.addEventListener('scroll', function() { if (dd.classList.contains('show')) positionner(); }, true);
+    window.addEventListener('resize', function() { if (dd.classList.contains('show')) positionner(); });
+    input.addEventListener('keydown', function(e) {
+        const items = dd.querySelectorAll('.autocomplete-item');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); currentIdx = Math.min(currentIdx + 1, items.length - 1); items.forEach((it, i) => it.classList.toggle('hl', i === currentIdx)); items[currentIdx].scrollIntoView({block: 'nearest'}); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); currentIdx = Math.max(currentIdx - 1, 0); items.forEach((it, i) => it.classList.toggle('hl', i === currentIdx)); items[currentIdx].scrollIntoView({block: 'nearest'}); }
+        else if (e.key === 'Enter' && currentIdx >= 0) { e.preventDefault(); items[currentIdx].dispatchEvent(new Event('mousedown')); }
+        else if (e.key === 'Escape') { dd.classList.remove('show'); }
+    });
+}
+
+function afficherHint(tr, produit) {
+    const hint = tr.querySelector('.ligne-hint');
+    if (produit) {
+        hint.style.display = 'block';
+        hint.innerHTML = `<i class="bi bi-check-circle-fill" style="color: var(--success);"></i> <span style="color: var(--success);">Produit du catalogue</span> · ${produit.activite_nom} · <code>${produit.reference}</code>`;
+    } else if (tr.querySelector('.ligne-designation').value.trim()) {
+        hint.style.display = 'block';
+        hint.innerHTML = `<i class="bi bi-plus-circle" style="color: var(--gold-dark);"></i> <span style="color: var(--gold-dark);">Libellé libre</span>`;
+    } else {
+        hint.style.display = 'none';
+    }
+}
+
+function ajouterLigne() {
+    compteur++;
+    const idx = compteur;
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    // Récupérer les valeurs par défaut du bloc supérieur
+    const defaultFourn = document.getElementById('default-fournisseur').value;
+    const defaultFacture = document.getElementById('default-facture').value;
+    tr.innerHTML = `
+        <td>
+            <select class="form-select form-select-sm ligne-fournisseur">
+                <option value="">— Fournisseur —</option>
+                ${FOURNISSEURS.map(f => `<option value="${f.id}" ${defaultFourn == f.id ? 'selected' : ''}>${f.raison_sociale}</option>`).join('')}
+            </select>
+        </td>
+        <td><input type="text" class="form-control form-control-sm ligne-facture" placeholder="N° facture" value="${defaultFacture || ''}"></td>
+        <td>
+            <div class="autocomplete-wrap">
+                <input type="text" class="form-control form-control-sm ligne-designation"
+                       autocomplete="off"
+                       placeholder="Rechercher ou saisir librement...">
+            </div>
+            <small class="ligne-hint" style="display: none; font-size: 0.72rem; margin-top: 3px;"></small>
+        </td>
+        <td><input type="text" class="form-control form-control-sm ligne-unite" placeholder="unité" value="unité"></td>
+        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm ligne-qte" value="1" style="text-align: right;"></td>
+        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm ligne-prix" value="0" style="text-align: right;"></td>
+        <td style="text-align: right; font-weight: 600;" class="ligne-total">0</td>
+        <td>
+            <select class="form-select form-select-sm ligne-activite">
+                <option value="">— Nestor arbitrera —</option>
+                ${ACTIVITES.map(a => `<option value="${a.id}">${a.nom}</option>`).join('')}
+            </select>
+        </td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="retirerLigne(${idx})" title="Retirer"><i class="bi bi-x"></i></button></td>
+    `;
+    document.getElementById('lignes-body').appendChild(tr);
+    const inputDesig = tr.querySelector('.ligne-designation');
+    creerDropdown(inputDesig, tr);
+    tr.querySelectorAll('input, select').forEach(i => i.addEventListener('input', recalculer));
+    tr.querySelectorAll('input, select').forEach(i => i.addEventListener('change', recalculer));
+    inputDesig.addEventListener('blur', function() {
+        const p = PRODUITS_CAT.find(x => x.designation === this.value);
+        afficherHint(tr, p);
+    });
+    recalculer();
+}
+
+function retirerLigne(idx) {
+    const tr = document.querySelector(`tr[data-idx="${idx}"]`);
+    if (tr) tr.remove();
+    recalculer();
+}
+
+function recalculer() {
+    let total = 0;
+    const collected = [];
+    document.querySelectorAll('#lignes-body tr').forEach(tr => {
+        const fournisseur_id = tr.querySelector('.ligne-fournisseur').value || null;
+        const numero_facture_fournisseur = tr.querySelector('.ligne-facture').value.trim();
+        const designation = tr.querySelector('.ligne-designation').value.trim();
+        const unite = tr.querySelector('.ligne-unite').value.trim();
+        const qte = parseFloat(tr.querySelector('.ligne-qte').value) || 0;
+        const prix = parseFloat(tr.querySelector('.ligne-prix').value) || 0;
+        const activite_pressentie_id = tr.querySelector('.ligne-activite').value || null;
+        const st = qte * prix;
+        tr.querySelector('.ligne-total').textContent = fmt(st);
+        total += st;
+        if (designation && qte > 0) collected.push({
+            fournisseur_id, numero_facture_fournisseur,
+            designation, unite, quantite: qte, prix_unitaire: prix, activite_pressentie_id,
+        });
+    });
+    document.getElementById('total-affichage').textContent = fmt(total) + ' ' + DEVISE;
+    document.getElementById('lignes-json').value = JSON.stringify(collected);
+}
+
+document.getElementById('form-achat').addEventListener('submit', function(e) {
+    recalculer();
+    const lignes = JSON.parse(document.getElementById('lignes-json').value);
+    if (!lignes.length) { e.preventDefault(); toastError('Ajoutez au moins une ligne avec fournisseur, facture, désignation et quantité.'); return; }
+    for (const l of lignes) {
+        if (!l.fournisseur_id) { e.preventDefault(); toastError('Chaque ligne doit avoir un fournisseur.'); return; }
+        if (!l.numero_facture_fournisseur) { e.preventDefault(); toastError('Chaque ligne doit avoir un n° de facture.'); return; }
+        if (!l.designation || l.quantite <= 0) { e.preventDefault(); toastError('Chaque ligne doit avoir une désignation et une quantité > 0.'); return; }
+    }
+});
+
+ajouterLigne();
+</script>
+<%- include('../partials/footer') %>

@@ -1,0 +1,75 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Utilisateurs</h1>
+        <p class="page-subtitle"><%= utilisateurs.length %> utilisateur<%= utilisateurs.length > 1 ? 's' : '' %> · cliquez sur une ligne pour gérer activités et permissions</p>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="/comptes/utilisateurs/import" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Import Excel</a>
+        <a href="/comptes/utilisateurs/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvel utilisateur</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Nom complet</th>
+                    <th>Rôle</th>
+                    <th>Activité principale</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% utilisateurs.forEach(function(u) { %>
+                <tr style="cursor: pointer;" onclick="if (!event.target.closest('a,button,form')) location='/admin/utilisateurs/<%= u.id %>'">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                                <%= (u.first_name || u.username || '?')[0].toUpperCase() %>
+                            </div>
+                            <code><%= u.username %></code>
+                        </div>
+                    </td>
+                    <td>
+                        <strong><%= (u.titre ? u.titre + ' ' : '') + ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || '—' %></strong>
+                        <% if (u.email) { %><br><small class="text-muted"><%= u.email %></small><% } %>
+                    </td>
+                    <td>
+                        <% var roleClass = { DG: 'badge-rupture', SECRETARIAT: 'badge-alerte', DISTRIBUTION: 'bg-info', GESTIONNAIRE: 'bg-primary', CAISSIER: 'badge-ok' }[u.role] || 'bg-secondary'; %>
+                        <span class="badge <%= roleClass %>"><%= h.ROLE_LABEL[u.role] || u.role %></span>
+                    </td>
+                    <td>
+                        <% if (u.activite_nom) { %>
+                            <span style="padding: 2px 10px; border-radius: 9999px; background: <%= u.activite_couleur %>15; color: <%= u.activite_couleur %>; font-weight: 600; font-size: 0.78rem;"><%= u.activite_nom %></span>
+                        <% } else { %>
+                            <span class="text-muted small">Transversal</span>
+                        <% } %>
+                    </td>
+                    <td>
+                        <% if (u.is_active) { %><span class="badge badge-ok">● Actif</span>
+                        <% } else { %><span class="badge badge-rupture">● Inactif</span><% } %>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="/admin/utilisateurs/<%= u.id %>" class="btn btn-sm btn-outline-primary" title="Détail / Permissions"><i class="bi bi-shield-check"></i></a>
+                        <a href="/comptes/utilisateurs/<%= u.id %>/modifier" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                        <form action="/comptes/utilisateurs/<%= u.id %>/supprimer" method="post" style="display: inline;"
+                              data-confirm="Voulez-vous vraiment supprimer l'utilisateur <strong><%= u.username %></strong> ? Cette action est irréversible."
+                              data-confirm-title="Supprimer l'utilisateur" data-confirm-danger="true" data-confirm-ok="Supprimer">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!utilisateurs.length) { %>
+                <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucun utilisateur.</td></tr>
+            <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

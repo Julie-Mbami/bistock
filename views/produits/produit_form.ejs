@@ -1,0 +1,482 @@
+<%- include('../partials/header') %>
+<style>
+.autocomplete-box { position: relative; }
+.autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; max-height: 280px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.08); }
+.autocomplete-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.autocomplete-item:hover { background: rgba(202, 138, 4, 0.08); }
+.autocomplete-item .titre { font-weight: 600; color: var(--text); }
+.autocomplete-item .sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.type-preview { background: linear-gradient(135deg, rgba(30, 58, 138, 0.06), rgba(202, 138, 4, 0.04)); border-left: 4px solid var(--gold); padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
+.type-preview .badge-type { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; margin-right: 8px; }
+.input-group-btn { display: flex; gap: 4px; }
+.input-group-btn .form-select { flex: 1; }
+</style>
+
+<div class="page-header">
+    <div><h1 class="page-title"><%= page_title %></h1></div>
+    <a href="/produits/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<!-- Encart pédagogique : type déduit en temps réel -->
+<div class="type-preview" id="type-preview" style="display: none;">
+    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Ce produit sera classé comme :</span>
+        <span class="badge-type" id="type-badge">—</span>
+        <span id="type-desc" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <% if (erreurs && erreurs.length) { %>
+            <div class="alert alert-danger">
+                <ul style="margin: 0;"><% erreurs.forEach(function(e) { %><li><%= e %></li><% }); %></ul>
+            </div>
+        <% } %>
+        <form method="post" enctype="multipart/form-data" id="form-produit">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Référence *</label>
+                    <input type="text" class="form-control" name="reference" value="<%= produit.reference || '' %>" required>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Désignation *</label>
+                    <% if (mode === 'creer') { %>
+                    <div class="autocomplete-box">
+                        <input type="text" class="form-control" name="designation" id="input-designation" value="<%= produit.designation || '' %>" required autocomplete="off" oninput="rechercherProduits()">
+                        <div class="autocomplete-list" id="ac-list" style="display: none;"></div>
+                    </div>
+                    <div id="warning-doublon" style="display: none; margin-top: 6px; padding: 8px 12px; background: rgba(220, 38, 38, 0.08); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 0.85rem; color: var(--danger);">
+                        <i class="bi bi-exclamation-triangle"></i> Un produit portant ce nom existe déjà. Utilisez la loupe pour vérifier.
+                    </div>
+                    <% } else { %>
+                    <input type="text" class="form-control" name="designation" id="input-designation" value="<%= produit.designation || '' %>" required>
+                    <% } %>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Catégorie *</label>
+                    <div class="input-group-btn">
+                        <select class="form-select" name="categorie_id" id="input-categorie" required onchange="mettreAJourTypePreview()">
+                            <option value="">Choisir...</option>
+                            <% categories.forEach(function(c) { %>
+                                <option value="<%= c.id %>" <%= String(produit.categorie_id) === String(c.id) ? 'selected' : '' %>><%= c.nom %></option>
+                            <% }); %>
+                        </select>
+                        <button type="button" class="btn btn-outline-success" onclick="ouvrirModaleCategorie()" title="Créer une nouvelle catégorie"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Fournisseur</label>
+                    <div class="input-group-btn">
+                        <select class="form-select" name="fournisseur_id" id="input-fournisseur">
+                            <option value="">Aucun</option>
+                            <% fournisseurs.forEach(function(f) { %>
+                                <option value="<%= f.id %>" <%= String(produit.fournisseur_id) === String(f.id) ? 'selected' : '' %>><%= f.raison_sociale %></option>
+                            <% }); %>
+                        </select>
+                        <button type="button" class="btn btn-outline-success" onclick="ouvrirModaleFournisseur()" title="Créer un nouveau fournisseur"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Prix d'achat</label>
+                    <input type="number" step="0.01" min="0" class="form-control" name="prix_achat" value="<%= produit.prix_achat || 0 %>" oninput="mettreAJourTypePreview()">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Prix de vente *</label>
+                    <input type="number" step="0.01" min="0" class="form-control" name="prix_vente" id="input-prix-vente" value="<%= produit.prix_vente || 0 %>" required oninput="mettreAJourTypePreview()">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Stock initial</label>
+                    <input type="number" min="0" class="form-control" name="stock_actuel" value="<%= produit.stock_actuel || 0 %>" <%= mode === 'modifier' ? 'readonly' : '' %>>
+                    <% if (mode === 'modifier') { %><small class="text-muted">Utilisez « Mouvements de stock » pour ajuster</small><% } %>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Unité</label>
+                    <input type="text" class="form-control" name="unite" value="<%= produit.unite || 'pièce' %>">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Stock minimum</label>
+                    <input type="number" min="0" class="form-control" name="stock_minimum" value="<%= produit.stock_minimum || 5 %>" oninput="mettreAJourTypePreview()">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Stock maximum</label>
+                    <input type="number" min="0" class="form-control" name="stock_maximum" value="<%= produit.stock_maximum || 100 %>" oninput="mettreAJourTypePreview()">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Image</label>
+                    <input type="file" class="form-control" name="image" accept="image/*">
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="3"><%= produit.description || '' %></textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="actif" id="actif" <%= produit.actif ? 'checked' : '' %>>
+                        <label class="form-check-label" for="actif">Produit actif (visible en caisse)</label>
+                    </div>
+                </div>
+            </div>
+            <% if (mode === 'modifier') { %>
+            <!-- Suppléments (visibles uniquement en modification, après création du produit) -->
+            <div style="margin-top: 20px; padding-top: 18px; border-top: 2px dashed var(--border);">
+                <h5 style="color: var(--gold-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-plus-square-fill"></i> Suppléments disponibles (canal en ligne)
+                </h5>
+                <p class="text-muted small">Les clients pourront cocher ces options en commandant ce produit. Chaque supplément ajoute son prix au total.</p>
+                <div id="supplements-liste">
+                    <% (typeof supplements !== 'undefined' ? supplements : []).forEach(function(s) { %>
+                        <div class="supp-row" style="display: grid; grid-template-columns: 1fr 130px 90px 40px; gap: 8px; align-items: center; margin-bottom: 6px;">
+                            <input type="hidden" name="supplement_id[]" value="<%= s.id %>">
+                            <input type="hidden" name="supplement_actif_val[]" value="<%= s.actif %>" class="supp-actif">
+                            <input type="text" class="form-control form-control-sm" name="supplement_nom[]" value="<%= s.nom %>" placeholder="Ex: Fromage supplémentaire" required>
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" name="supplement_prix[]" value="<%= s.prix %>" min="0" step="50" placeholder="Prix" required>
+                                <span class="input-group-text">F</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary supp-toggle" onclick="basculerSuppActif(this)" title="Actif / Inactif">
+                                <i class="bi <%= s.actif ? 'bi-eye-fill' : 'bi-eye-slash' %>"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.supp-row').remove()" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    <% }); %>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="ajouterSupplement()">
+                    <i class="bi bi-plus-lg"></i> Ajouter un supplément
+                </button>
+            </div>
+            <template id="tpl-supp">
+                <div class="supp-row" style="display: grid; grid-template-columns: 1fr 130px 90px 40px; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <input type="hidden" name="supplement_id[]" value="">
+                    <input type="hidden" name="supplement_actif_val[]" value="1" class="supp-actif">
+                    <input type="text" class="form-control form-control-sm" name="supplement_nom[]" placeholder="Ex: Fromage supplémentaire" required>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" name="supplement_prix[]" min="0" step="50" value="0" required>
+                        <span class="input-group-text">F</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary supp-toggle" onclick="basculerSuppActif(this)"><i class="bi bi-eye-fill"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.supp-row').remove()"><i class="bi bi-trash"></i></button>
+                </div>
+            </template>
+            <script>
+                function ajouterSupplement() {
+                    const tpl = document.getElementById('tpl-supp');
+                    const clone = tpl.content.cloneNode(true);
+                    document.getElementById('supplements-liste').appendChild(clone);
+                }
+                function basculerSuppActif(btn) {
+                    const row = btn.closest('.supp-row');
+                    const hidden = row.querySelector('.supp-actif');
+                    const icone = btn.querySelector('i');
+                    const nouveau = hidden.value === '1' ? '0' : '1';
+                    hidden.value = nouveau;
+                    icone.className = nouveau === '1' ? 'bi bi-eye-fill' : 'bi bi-eye-slash';
+                    row.style.opacity = nouveau === '1' ? '1' : '0.5';
+                }
+                // Init : mettre à jour l'opacité selon actif au chargement
+                document.querySelectorAll('.supp-row').forEach(row => {
+                    const actif = row.querySelector('.supp-actif').value === '1';
+                    row.style.opacity = actif ? '1' : '0.5';
+                });
+            </script>
+            <% } %>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+                <a href="/produits/" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODALE : nouvelle catégorie -->
+<div id="modale-categorie" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #fff; border-radius: 8px; width: min(500px, 90vw);">
+        <div style="padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--success); color: #fff;">
+            <h5 style="margin: 0;"><i class="bi bi-plus-circle"></i> Nouvelle catégorie</h5>
+        </div>
+        <div style="padding: 20px;">
+            <div class="mb-3">
+                <label class="form-label">Nom de la catégorie <span style="color: var(--danger);">*</span></label>
+                <div class="autocomplete-box">
+                    <input type="text" id="cat-nom" class="form-control" placeholder="Ex : Boissons, Emballages, Pâtisseries..." autofocus autocomplete="off" oninput="rechercherCategorie()">
+                    <div class="autocomplete-list" id="cat-ac-list" style="display: none;"></div>
+                </div>
+                <div id="cat-doublon" style="display: none; margin-top: 6px; padding: 8px 12px; background: rgba(220, 38, 38, 0.08); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 0.85rem; color: var(--danger);">
+                    <i class="bi bi-exclamation-triangle"></i> Une catégorie portant ce nom existe déjà. La création sera bloquée.
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Description (facultatif)</label>
+                <input type="text" id="cat-desc" class="form-control" placeholder="Précisions">
+            </div>
+        </div>
+        <div style="padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-outline-secondary" onclick="fermerModale('modale-categorie')">Annuler</button>
+            <button type="button" class="btn btn-success" onclick="creerCategorie()"><i class="bi bi-check-lg"></i> Créer et sélectionner</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE : nouveau fournisseur -->
+<div id="modale-fournisseur" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #fff; border-radius: 8px; width: min(600px, 90vw);">
+        <div style="padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--success); color: #fff;">
+            <h5 style="margin: 0;"><i class="bi bi-plus-circle"></i> Nouveau fournisseur</h5>
+        </div>
+        <div style="padding: 20px;">
+            <div class="row">
+                <div class="col-md-12 mb-2">
+                    <label class="form-label">Raison sociale <span style="color: var(--danger);">*</span></label>
+                    <div class="autocomplete-box">
+                        <input type="text" id="four-raison" class="form-control" placeholder="Ex : Grands Moulins CMR" autofocus autocomplete="off" oninput="rechercherFournisseur()">
+                        <div class="autocomplete-list" id="four-ac-list" style="display: none;"></div>
+                    </div>
+                    <div id="four-doublon" style="display: none; margin-top: 6px; padding: 8px 12px; background: rgba(220, 38, 38, 0.08); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 0.85rem; color: var(--danger);">
+                        <i class="bi bi-exclamation-triangle"></i> Un fournisseur portant cette raison sociale existe déjà. La création sera bloquée.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Contact (personne)</label>
+                    <input type="text" id="four-contact" class="form-control">
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Téléphone</label>
+                    <input type="text" id="four-tel" class="form-control" placeholder="+237 6XX XXX XXX">
+                </div>
+                <div class="col-md-12 mb-2">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="four-email" class="form-control">
+                </div>
+                <div class="col-md-8 mb-2">
+                    <label class="form-label">Adresse</label>
+                    <input type="text" id="four-adresse" class="form-control">
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Délai livraison (j)</label>
+                    <input type="number" id="four-delai" class="form-control" value="7" min="0">
+                </div>
+            </div>
+        </div>
+        <div style="padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-outline-secondary" onclick="fermerModale('modale-fournisseur')">Annuler</button>
+            <button type="button" class="btn btn-success" onclick="creerFournisseur()"><i class="bi bi-check-lg"></i> Créer et sélectionner</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const MODE = '<%= mode %>';
+
+// ========== AUTOCOMPLÉTION DÉSIGNATION (mode création uniquement) ==========
+let acTimer = null;
+async function rechercherProduits() {
+    if (MODE !== 'creer') return;
+    const q = document.querySelector('#input-designation').value.trim();
+    const list = document.querySelector('#ac-list');
+    const warning = document.querySelector('#warning-doublon');
+    if (q.length < 2) { list.style.display = 'none'; warning.style.display = 'none'; return; }
+    clearTimeout(acTimer);
+    acTimer = setTimeout(async () => {
+        const res = await fetch('/produits/api/rechercher?q=' + encodeURIComponent(q));
+        const items = await res.json();
+        if (!items.length) { list.style.display = 'none'; warning.style.display = 'none'; return; }
+        // Exact match ?
+        const exact = items.find(p => p.designation.toLowerCase() === q.toLowerCase());
+        warning.style.display = exact ? 'block' : 'none';
+        list.innerHTML = items.map(p => `
+            <div class="autocomplete-item" onclick="location.href='/produits/${p.id}'">
+                <div class="titre">${escapeHtml(p.designation)} ${p.designation.toLowerCase() === q.toLowerCase() ? '<span style=\"color:var(--danger); font-size:0.75rem;\">⚠ EXISTE DÉJÀ</span>' : ''}</div>
+                <div class="sub">${escapeHtml(p.reference)} · ${escapeHtml(p.categorie_nom || '')} · Stock : ${p.stock_actuel} ${escapeHtml(p.unite || '')}</div>
+            </div>
+        `).join('');
+        list.style.display = 'block';
+    }, 200);
+}
+function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-box')) {
+        const l = document.querySelector('#ac-list');
+        if (l) l.style.display = 'none';
+    }
+});
+
+// ========== APERÇU DU TYPE EN TEMPS RÉEL ==========
+const TYPES = {
+    PRODUIT_FINI: { label: '🔥 Produit fini', couleur: '#CA8A04', bg: '#FEF3C7', desc: 'Fabriqué en cuisine (aura une fiche technique)' },
+    INGREDIENT:   { label: '🧺 Ingrédient',    couleur: '#059669', bg: '#ECFDF5', desc: 'Sera utilisé dans les recettes (créez une fiche technique pour un plat qui l\'utilise)' },
+    REVENTE:      { label: '🥤 Revente directe', couleur: '#2563EB', bg: '#EFF6FF', desc: 'Vendu tel quel (boisson, canette...)' },
+    CONSOMMABLE:  { label: '📦 Consommable',   couleur: '#64748B', bg: '#F1F5F9', desc: 'Ni vendu ni utilisé en cuisine (nappe, vaisselle...)' },
+};
+
+function deduireTypeProduit() {
+    const prixVente = Number(document.querySelector('#input-prix-vente')?.value || 0);
+    // Un produit "sans stock" (stock max = 0) et avec prix vente > 0 est un produit fini à fabriquer
+    const stockMax = Number(document.querySelector('input[name="stock_maximum"]')?.value || 0);
+    if (prixVente > 0 && stockMax === 0) return 'PRODUIT_FINI';
+    if (prixVente > 0) return 'REVENTE';
+    return 'CONSOMMABLE'; // ingrédient possible mais on ne le sait pas encore
+}
+
+function mettreAJourTypePreview() {
+    const type = deduireTypeProduit();
+    const info = TYPES[type];
+    const preview = document.querySelector('#type-preview');
+    const badge = document.querySelector('#type-badge');
+    const desc = document.querySelector('#type-desc');
+    badge.style.background = info.bg;
+    badge.style.color = info.couleur;
+    badge.textContent = info.label;
+    desc.textContent = info.desc;
+    preview.style.display = 'block';
+}
+mettreAJourTypePreview();
+
+// ========== AUTOCOMPLÉTION ANTI-DOUBLON DANS LES MODALES ==========
+let catTimer = null, fourTimer = null;
+let catExisteDeja = false, fourExisteDeja = false;
+
+async function rechercherCategorie() {
+    const q = document.querySelector('#cat-nom').value.trim();
+    const list = document.querySelector('#cat-ac-list');
+    const warn = document.querySelector('#cat-doublon');
+    if (q.length < 2) { list.style.display = 'none'; warn.style.display = 'none'; catExisteDeja = false; return; }
+    clearTimeout(catTimer);
+    catTimer = setTimeout(async () => {
+        const res = await fetch('/produits/api/rechercher-categorie?q=' + encodeURIComponent(q));
+        const items = await res.json();
+        if (!items.length) { list.style.display = 'none'; warn.style.display = 'none'; catExisteDeja = false; return; }
+        const exact = items.find(c => c.nom.toLowerCase() === q.toLowerCase());
+        catExisteDeja = !!exact;
+        warn.style.display = exact ? 'block' : 'none';
+        list.innerHTML = items.map(c => `
+            <div class="autocomplete-item" onclick="selectionnerCategorieExistante(${c.id}, '${escapeHtml(c.nom).replace(/'/g, "\\'")}')">
+                <div class="titre">${escapeHtml(c.nom)} ${c.nom.toLowerCase() === q.toLowerCase() ? '<span style=\"color:var(--danger); font-size:0.75rem;\">⚠ EXISTE DÉJÀ</span>' : ''}</div>
+                <div class="sub">${c.nb_produits} produit(s) déjà rattaché(s)${c.description ? ' · ' + escapeHtml(c.description) : ''}</div>
+            </div>
+        `).join('');
+        list.style.display = 'block';
+    }, 200);
+}
+function selectionnerCategorieExistante(id, nom) {
+    // La catégorie existe déjà : on l'ajoute au select principal et on ferme la modale
+    const sel = document.querySelector('#input-categorie');
+    if (!Array.from(sel.options).some(o => Number(o.value) === Number(id))) {
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = nom;
+        sel.appendChild(opt);
+    }
+    sel.value = id;
+    fermerModale('modale-categorie');
+}
+
+async function rechercherFournisseur() {
+    const q = document.querySelector('#four-raison').value.trim();
+    const list = document.querySelector('#four-ac-list');
+    const warn = document.querySelector('#four-doublon');
+    if (q.length < 2) { list.style.display = 'none'; warn.style.display = 'none'; fourExisteDeja = false; return; }
+    clearTimeout(fourTimer);
+    fourTimer = setTimeout(async () => {
+        const res = await fetch('/produits/api/rechercher-fournisseur?q=' + encodeURIComponent(q));
+        const items = await res.json();
+        if (!items.length) { list.style.display = 'none'; warn.style.display = 'none'; fourExisteDeja = false; return; }
+        const exact = items.find(f => f.raison_sociale.toLowerCase() === q.toLowerCase());
+        fourExisteDeja = !!exact;
+        warn.style.display = exact ? 'block' : 'none';
+        list.innerHTML = items.map(f => `
+            <div class="autocomplete-item" onclick="selectionnerFournisseurExistant(${f.id}, '${escapeHtml(f.raison_sociale).replace(/'/g, "\\'")}')">
+                <div class="titre">${escapeHtml(f.raison_sociale)} ${f.raison_sociale.toLowerCase() === q.toLowerCase() ? '<span style=\"color:var(--danger); font-size:0.75rem;\">⚠ EXISTE DÉJÀ</span>' : ''}</div>
+                <div class="sub">${f.nb_produits} produit(s)${f.contact ? ' · ' + escapeHtml(f.contact) : ''}${f.telephone ? ' · ' + escapeHtml(f.telephone) : ''}</div>
+            </div>
+        `).join('');
+        list.style.display = 'block';
+    }, 200);
+}
+function selectionnerFournisseurExistant(id, raison) {
+    const sel = document.querySelector('#input-fournisseur');
+    if (!Array.from(sel.options).some(o => Number(o.value) === Number(id))) {
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = raison;
+        sel.appendChild(opt);
+    }
+    sel.value = id;
+    fermerModale('modale-fournisseur');
+}
+
+// ========== MODALES CATÉGORIE / FOURNISSEUR ==========
+function ouvrirModaleCategorie() {
+    document.querySelector('#cat-nom').value = '';
+    document.querySelector('#cat-desc').value = '';
+    document.querySelector('#modale-categorie').style.display = 'flex';
+    setTimeout(() => document.querySelector('#cat-nom').focus(), 100);
+}
+function ouvrirModaleFournisseur() {
+    ['four-raison', 'four-contact', 'four-tel', 'four-email', 'four-adresse'].forEach(id => document.querySelector('#' + id).value = '');
+    document.querySelector('#four-delai').value = 7;
+    document.querySelector('#modale-fournisseur').style.display = 'flex';
+    setTimeout(() => document.querySelector('#four-raison').focus(), 100);
+}
+function fermerModale(id) { document.querySelector('#' + id).style.display = 'none'; }
+document.querySelectorAll('#modale-categorie, #modale-fournisseur').forEach(m => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.style.display = 'none'; });
+});
+
+async function creerCategorie() {
+    const nom = document.querySelector('#cat-nom').value.trim();
+    if (!nom) { alert('Nom obligatoire'); return; }
+    if (catExisteDeja) {
+        alert('Une catégorie « ' + nom + ' » existe déjà. Cliquez sur la suggestion pour la sélectionner à la place de créer un doublon.');
+        return;
+    }
+    const res = await fetch('/produits/api/categorie-rapide', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom, description: document.querySelector('#cat-desc').value }),
+    });
+    const d = await res.json();
+    if (!res.ok) { alert('Erreur : ' + (d.erreur || 'inconnue')); return; }
+    // Ajouter au select et sélectionner
+    const sel = document.querySelector('#input-categorie');
+    if (!Array.from(sel.options).some(o => Number(o.value) === Number(d.id))) {
+        const opt = document.createElement('option');
+        opt.value = d.id; opt.textContent = d.nom;
+        sel.appendChild(opt);
+    }
+    sel.value = d.id;
+    fermerModale('modale-categorie');
+    if (d.deja_existant) alert('Une catégorie de ce nom existait déjà, elle a été sélectionnée.');
+}
+
+async function creerFournisseur() {
+    const raison = document.querySelector('#four-raison').value.trim();
+    if (!raison) { alert('Raison sociale obligatoire'); return; }
+    if (fourExisteDeja) {
+        alert('Un fournisseur « ' + raison + ' » existe déjà. Cliquez sur la suggestion pour le sélectionner à la place de créer un doublon.');
+        return;
+    }
+    const res = await fetch('/produits/api/fournisseur-rapide', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            raison_sociale: raison,
+            contact: document.querySelector('#four-contact').value,
+            telephone: document.querySelector('#four-tel').value,
+            email: document.querySelector('#four-email').value,
+            adresse: document.querySelector('#four-adresse').value,
+            delai_livraison_jours: document.querySelector('#four-delai').value,
+        }),
+    });
+    const d = await res.json();
+    if (!res.ok) { alert('Erreur : ' + (d.erreur || 'inconnue')); return; }
+    const sel = document.querySelector('#input-fournisseur');
+    if (!Array.from(sel.options).some(o => Number(o.value) === Number(d.id))) {
+        const opt = document.createElement('option');
+        opt.value = d.id; opt.textContent = d.raison_sociale;
+        sel.appendChild(opt);
+    }
+    sel.value = d.id;
+    fermerModale('modale-fournisseur');
+    if (d.deja_existant) alert('Un fournisseur de ce nom existait déjà, il a été sélectionné.');
+}
+</script>
+<%- include('../partials/footer') %>

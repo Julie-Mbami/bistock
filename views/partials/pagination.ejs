@@ -1,0 +1,51 @@
+<%
+// Partial pagination réutilisable.
+// - Affiche toujours le compteur "X résultats" tant qu'il y a au moins 1 ligne
+// - N'affiche les boutons Précédent / pages / Suivant que s'il y a plus d'une page
+if (typeof pagination !== 'undefined' && pagination && pagination.total > 0) {
+%>
+<div class="pagination-wrapper" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; flex-wrap: wrap; border-top: 1px solid var(--border); background: var(--surface);">
+    <div class="text-muted small" style="flex: 1; min-width: 140px;">
+        <strong><%= h.formatNombre(pagination.debut) %>–<%= h.formatNombre(pagination.fin) %></strong>
+        <span style="opacity: 0.7;"> sur </span>
+        <strong><%= h.formatNombre(pagination.total) %></strong>
+        résultat<%= pagination.total > 1 ? 's' : '' %>
+        <% if (pagination.nbPages > 1) { %>
+            · page <strong><%= pagination.page %></strong> / <%= pagination.nbPages %>
+        <% } %>
+    </div>
+
+    <% if (pagination.nbPages > 1) { %>
+    <ul class="pagination pagination-sm" style="margin: 0;">
+        <li class="page-item <%= pagination.hasPrev ? '' : 'disabled' %>">
+            <a class="page-link" href="<%= pagination.hasPrev ? pagination.urlPage(pagination.page - 1) : '#' %>" aria-label="Précédent">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        <%
+            // Ellipses intelligentes : 1ère + dernière + fenêtre ±2 autour de la courante
+            const P = pagination.page, NP = pagination.nbPages;
+            const pages = [];
+            for (let i = 1; i <= NP; i++) {
+                if (i === 1 || i === NP || Math.abs(i - P) <= 2) pages.push(i);
+                else if (pages[pages.length - 1] !== '...') pages.push('...');
+            }
+        %>
+        <% pages.forEach(function(p) { %>
+            <% if (p === '...') { %>
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            <% } else { %>
+                <li class="page-item <%= p === pagination.page ? 'active' : '' %>">
+                    <a class="page-link" href="<%= pagination.urlPage(p) %>"><%= p %></a>
+                </li>
+            <% } %>
+        <% }); %>
+        <li class="page-item <%= pagination.hasNext ? '' : 'disabled' %>">
+            <a class="page-link" href="<%= pagination.hasNext ? pagination.urlPage(pagination.page + 1) : '#' %>" aria-label="Suivant">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+    <% } %>
+</div>
+<% } %>

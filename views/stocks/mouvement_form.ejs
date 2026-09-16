@@ -1,0 +1,185 @@
+<%- include('../partials/header') %>
+<style>
+/* Grille de cards pour le type de mouvement */
+.type-mvt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+}
+.type-mvt-card {
+    cursor: pointer;
+    padding: 14px 10px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    text-align: center;
+    transition: all 0.15s ease;
+    margin: 0;
+    position: relative;
+}
+.type-mvt-card input[type="radio"] {
+    position: absolute; opacity: 0; pointer-events: none;
+}
+.type-mvt-card .type-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 6px;
+    font-size: 1.3rem;
+    transition: all 0.15s ease;
+}
+.type-mvt-card .type-label {
+    font-weight: 700; color: var(--text); font-size: 0.88rem;
+    line-height: 1.15;
+}
+.type-mvt-card .type-sub {
+    font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;
+    line-height: 1.2;
+}
+.type-mvt-card:hover {
+    border-color: #94a3b8; background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+/* Couleurs par catégorie */
+.type-mvt-card[data-color="green"] .type-icon { background: #ECFDF5; color: #059669; }
+.type-mvt-card[data-color="red"] .type-icon { background: #FEF2F2; color: #DC2626; }
+.type-mvt-card[data-color="blue"] .type-icon { background: #EFF6FF; color: #2563EB; }
+.type-mvt-card[data-color="orange"] .type-icon { background: #FFF7ED; color: #EA580C; }
+.type-mvt-card[data-color="purple"] .type-icon { background: #F5F3FF; color: #7C3AED; }
+.type-mvt-card[data-color="pink"] .type-icon { background: #FDF2F8; color: #DB2777; }
+
+/* État sélectionné : couleur intensifiée */
+.type-mvt-card.selected {
+    border-color: currentColor;
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.08);
+}
+.type-mvt-card[data-color="green"].selected { border-color: #059669; background: #ECFDF5; }
+.type-mvt-card[data-color="green"].selected .type-icon { background: #059669; color: #fff; }
+.type-mvt-card[data-color="red"].selected { border-color: #DC2626; background: #FEF2F2; }
+.type-mvt-card[data-color="red"].selected .type-icon { background: #DC2626; color: #fff; }
+.type-mvt-card[data-color="blue"].selected { border-color: #2563EB; background: #EFF6FF; }
+.type-mvt-card[data-color="blue"].selected .type-icon { background: #2563EB; color: #fff; }
+.type-mvt-card[data-color="orange"].selected { border-color: #EA580C; background: #FFF7ED; }
+.type-mvt-card[data-color="orange"].selected .type-icon { background: #EA580C; color: #fff; }
+.type-mvt-card[data-color="purple"].selected { border-color: #7C3AED; background: #F5F3FF; }
+.type-mvt-card[data-color="purple"].selected .type-icon { background: #7C3AED; color: #fff; }
+.type-mvt-card[data-color="pink"].selected { border-color: #DB2777; background: #FDF2F8; }
+.type-mvt-card[data-color="pink"].selected .type-icon { background: #DB2777; color: #fff; }
+
+/* Chips motif suggéré */
+.motifs-suggestion { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.motif-chip {
+    background: #EFF6FF; color: #1E40AF; border: 1px solid #DBEAFE;
+    border-radius: 20px; padding: 4px 12px; font-size: 0.78rem;
+    font-weight: 500; cursor: pointer; transition: all 0.15s;
+}
+.motif-chip:hover { background: #2563EB; color: #fff; border-color: #2563EB; }
+</style>
+
+<div class="page-header">
+    <div><h1 class="page-title">Nouveau mouvement de stock</h1></div>
+    <a href="/stocks/mouvements/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">Type de mouvement <span style="color: var(--danger);">*</span></label>
+                <div class="type-mvt-grid" id="type-grid">
+                    <label class="type-mvt-card" data-value="ENTREE" data-color="green" data-motifs="Réception fournisseur|Retour de production|Initialisation stock">
+                        <input type="radio" name="type" value="ENTREE" <%= mvt.type === 'ENTREE' ? 'checked' : '' %>>
+                        <div class="type-icon"><i class="bi bi-box-arrow-in-down"></i></div>
+                        <div class="type-label">Entrée</div>
+                        <div class="type-sub">Réception, arrivage</div>
+                    </label>
+                    <label class="type-mvt-card" data-value="SORTIE" data-color="red" data-motifs="Vente|Consommation cuisine|Prélèvement">
+                        <input type="radio" name="type" value="SORTIE" <%= mvt.type === 'SORTIE' ? 'checked' : '' %>>
+                        <div class="type-icon"><i class="bi bi-box-arrow-up"></i></div>
+                        <div class="type-label">Sortie</div>
+                        <div class="type-sub">Vente, consommation</div>
+                    </label>
+                    <label class="type-mvt-card" data-value="AJUST_P" data-color="blue" data-motifs="Correction inventaire|Erreur de saisie précédente|Ajustement comptable">
+                        <input type="radio" name="type" value="AJUST_P" <%= mvt.type === 'AJUST_P' ? 'checked' : '' %>>
+                        <div class="type-icon"><i class="bi bi-plus-circle-fill"></i></div>
+                        <div class="type-label">Ajustement +</div>
+                        <div class="type-sub">Correction positive</div>
+                    </label>
+                    <label class="type-mvt-card" data-value="AJUST_M" data-color="orange" data-motifs="Correction inventaire|Erreur de saisie précédente|Ajustement comptable">
+                        <input type="radio" name="type" value="AJUST_M" <%= mvt.type === 'AJUST_M' ? 'checked' : '' %>>
+                        <div class="type-icon"><i class="bi bi-dash-circle-fill"></i></div>
+                        <div class="type-label">Ajustement –</div>
+                        <div class="type-sub">Correction négative</div>
+                    </label>
+                    <label class="type-mvt-card" data-value="RETOUR" data-color="purple" data-motifs="Retour client|Produit non conforme|Retour fournisseur">
+                        <input type="radio" name="type" value="RETOUR" <%= mvt.type === 'RETOUR' ? 'checked' : '' %>>
+                        <div class="type-icon"><i class="bi bi-arrow-return-left"></i></div>
+                        <div class="type-label">Retour</div>
+                        <div class="type-sub">Retour client</div>
+                    </label>
+                    <label class="type-mvt-card" data-value="PERTE" data-color="pink" data-motifs="Périmé|Casse au transport|Gaspillage|Vol constaté">
+                        <input type="radio" name="type" value="PERTE" <%= mvt.type === 'PERTE' ? 'checked' : '' %>>
+                        <div class="type-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                        <div class="type-label">Perte / casse</div>
+                        <div class="type-sub">Périmé, cassé, vol</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label" style="font-weight: 600;">Produit <span style="color: var(--danger);">*</span></label>
+                    <select class="form-select" name="produit_id" required>
+                        <option value="">Choisir un produit...</option>
+                        <% produits.forEach(function(p) { %>
+                            <option value="<%= p.id %>"><%= p.designation %> — Stock actuel : <%= p.stock_actuel %> <%= p.unite %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" style="font-weight: 600;">Quantité <span style="color: var(--danger);">*</span></label>
+                    <input type="number" min="1" step="0.01" class="form-control form-control-lg" style="text-align: right; font-weight: 700;" name="quantite" value="<%= mvt.quantite || 1 %>" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" style="font-weight: 600;">Motif</label>
+                    <input type="text" class="form-control" name="motif" id="motif-input" placeholder="Précisez la raison...">
+                    <div class="motifs-suggestion" id="motifs-suggestions"></div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" style="font-weight: 600;">Référence document</label>
+                    <input type="text" class="form-control" name="reference_doc" placeholder="N° de bon, facture, distribution...">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer le mouvement</button>
+                <a href="/stocks/mouvements/" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const cards = document.querySelectorAll('.type-mvt-card');
+const motifsBox = document.querySelector('#motifs-suggestions');
+const motifInput = document.querySelector('#motif-input');
+
+function activerCarte(card) {
+    cards.forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    card.querySelector('input[type="radio"]').checked = true;
+    // Afficher les motifs suggérés
+    const motifs = (card.dataset.motifs || '').split('|').filter(Boolean);
+    motifsBox.innerHTML = motifs.length
+        ? '<span style="font-size: 0.72rem; color: var(--text-muted); margin-right: 4px; align-self: center;">Suggestions :</span>' +
+          motifs.map(m => `<span class="motif-chip" onclick="document.querySelector('#motif-input').value = '${m.replace(/'/g, "\\'")}'">${m}</span>`).join('')
+        : '';
+}
+cards.forEach(card => {
+    card.addEventListener('click', () => activerCarte(card));
+    if (card.querySelector('input[type="radio"]').checked) activerCarte(card);
+});
+</script>
+<%- include('../partials/footer') %>

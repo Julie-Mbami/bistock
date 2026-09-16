@@ -1,0 +1,141 @@
+<%- include('../partials/header') %>
+<style>
+.session-active { border: 2px solid var(--gold); background: linear-gradient(to right, rgba(202, 138, 4, 0.08), transparent); }
+.mode-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+.mode-especes { background: #ECFDF5; color: #065F46; }
+.mode-carte { background: #EFF6FF; color: #1E40AF; }
+.mode-orange { background: #FFF7ED; color: #C2410C; }
+.mode-mtn { background: #FEF3C7; color: #92400E; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Caisse — <%= activite.nom %></h1>
+        <p class="page-subtitle">États de caisse quotidiens</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <% if (ouverte) { %>
+            <a href="/caisses/cloturer" class="btn btn-warning"><i class="bi bi-lock"></i> Clôturer la caisse</a>
+        <% } else { %>
+            <a href="/caisses/ouvrir" class="btn btn-primary"><i class="bi bi-unlock"></i> Ouvrir une nouvelle caisse</a>
+        <% } %>
+    </div>
+</div>
+
+<% if (ouverte) { %>
+<div class="card session-active mb-3">
+    <div class="card-body">
+        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Session en cours</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--gold-dark);">
+                    <i class="bi bi-cash-coin"></i> <%= ouverte.numero %>
+                </div>
+                <div class="small text-muted" style="margin-top: 4px;">
+                    Ouverte le <strong><%= h.formatDate(ouverte.date_ouverture, true) %></strong>
+                    · Fond initial : <strong><%= h.formatNombre(ouverte.fond_ouverture) %> <%= devise %></strong>
+                </div>
+            </div>
+            <div style="display: flex; gap: 16px;">
+                <div style="text-align: center;">
+                    <div class="small text-muted">Ventes du jour</div>
+                    <div style="font-size: 1.4rem; font-weight: 700;"><%= theorique_en_cours.nb_ventes %></div>
+                </div>
+                <div style="text-align: center;">
+                    <div class="small text-muted">CA théorique</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: var(--success);"><%= h.formatNombre(theorique_en_cours.ca_total) %> <span class="small text-muted"><%= devise %></span></div>
+                </div>
+                <a href="/caisses/cloturer" class="btn btn-warning btn-lg" style="align-self: center;">
+                    <i class="bi bi-lock"></i> Clôturer maintenant
+                </a>
+            </div>
+        </div>
+        <hr style="margin: 16px 0;">
+        <div class="row">
+            <% [
+                { code: 'ESPECES', label: 'Espèces', icon: 'cash', mt: theorique_en_cours.ESPECES },
+                { code: 'CARTE_CREDIT', label: 'Carte de crédit', icon: 'credit-card-fill', mt: theorique_en_cours.CARTE_CREDIT },
+                { code: 'ORANGE', label: 'Orange Money', icon: 'phone', mt: theorique_en_cours.ORANGE },
+                { code: 'MTN', label: 'MTN Mobile Money', icon: 'phone-fill', mt: theorique_en_cours.MTN },
+            ].forEach(function(m) { %>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">
+                            <i class="bi bi-<%= m.icon %>"></i> <%= m.label %>
+                        </div>
+                        <div style="font-size: 1.1rem; font-weight: 700; margin-top: 2px;"><%= h.formatNombre(m.mt) %> <span class="small text-muted"><%= devise %></span></div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+</div>
+<% } else { %>
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Aucune caisse ouverte à votre nom.
+    <a href="/caisses/ouvrir" class="alert-link">Ouvrir une nouvelle session →</a>
+</div>
+<% } %>
+
+<div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <span><i class="bi bi-clock-history"></i> Historique des états de caisse <span class="badge bg-secondary" style="margin-left: 6px;"><%= clotures.length %></span></span>
+        <%- include('../partials/filtre_periode', { periode }) %>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Caissier</th>
+                    <th>Ouverture</th>
+                    <th>Clôture</th>
+                    <th style="text-align: right;">Total espèces</th>
+                    <th style="text-align: right;">Écart</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% clotures.forEach(function(c) { %>
+                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('a')) location='/caisses/<%= c.id %>'">
+                        <td><a href="/caisses/<%= c.id %>"><code><%= c.numero %></code></a></td>
+                        <td class="small"><%= c.ouvert_par_prenom || c.ouvert_par_username %></td>
+                        <td class="small text-muted"><%= h.formatDate(c.date_ouverture, true) %></td>
+                        <td class="small text-muted"><%= c.date_cloture ? h.formatDate(c.date_cloture, true) : '—' %></td>
+                        <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(c.total_compte_especes || 0) %></td>
+                        <td style="text-align: right;">
+                            <% const ec = Number(c.ecart || 0); %>
+                            <% if (c.statut === 'CLOTUREE') { %>
+                                <span style="color: <%= ec < 0 ? 'var(--danger)' : ec > 0 ? 'var(--gold-dark)' : 'var(--success)' %>; font-weight: 700;">
+                                    <%= ec > 0 ? '+' : '' %><%= h.formatNombre(ec) %>
+                                </span>
+                            <% } else { %>
+                                <span class="text-muted">—</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (c.statut === 'OUVERTE') { %>
+                                <span class="badge" style="background: var(--gold); color: #fff;">Ouverte</span>
+                            <% } else { %>
+                                <span class="badge bg-success">Clôturée</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <a href="/caisses/<%= c.id %>/pdf" target="_blank" class="btn btn-sm btn-outline-secondary" title="PDF"><i class="bi bi-file-pdf"></i></a>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (!clotures.length) { %>
+                    <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                        Aucun état de caisse. Ouvrez votre première session pour démarrer.
+                    </td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

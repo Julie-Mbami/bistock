@@ -1,0 +1,130 @@
+<%- include('../partials/header') %>
+<style>
+.tva-hero { background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border-left: 6px solid #0EA5E9; }
+.tva-line { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.tva-line:last-child { border-bottom: none; }
+.tva-net { background: #FEF3C7; border-radius: 8px; padding: 16px; margin-top: 12px; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">État TVA</h1>
+        <p class="page-subtitle">Déclaration mensuelle DSF · TVA <%= (tvaTaux * 100).toFixed(2) %>%</p>
+    </div>
+    <form method="get" style="display: flex; gap: 8px; align-items: center;">
+        <label class="form-label small" style="margin: 0;">Mois :</label>
+        <input type="month" name="mois" value="<%= moisFiltre %>" onchange="this.form.submit()" class="form-control" style="max-width: 200px;">
+    </form>
+</div>
+
+<div class="tva-hero">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <div style="text-transform: uppercase; font-weight: 700; color: #0369A1; font-size: 0.85rem; letter-spacing: 0.05em;">TVA nette du mois</div>
+            <div style="font-size: 2.4rem; font-weight: 800; color: <%= nette >= 0 ? '#0369A1' : 'var(--success)' %>; line-height: 1;">
+                <%= h.formatNombre(nette) %> <span style="font-size: 1.2rem;"><%= devise %></span>
+            </div>
+            <div class="small text-muted" style="margin-top: 4px;">
+                <% if (nette >= 0) { %>À décaisser (à provisionner pour la DSF)<% } else { %>Crédit reportable sur le mois suivant<% } %>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <div class="small text-muted">Formule</div>
+            <div style="font-family: monospace; font-size: 0.9rem;">
+                Collectée <%= h.formatNombre(collectee.m) %><br>
+                − Déductible <%= h.formatNombre(deductible.m) %><br>
+                = <strong><%= h.formatNombre(nette) %></strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%; border-left: 4px solid var(--success);">
+            <div class="card-header" style="background: #F0FDF4; font-weight: 700;">
+                <i class="bi bi-arrow-down-circle-fill" style="color: var(--success);"></i>
+                TVA collectée sur ventes
+            </div>
+            <div class="card-body">
+                <div class="tva-line">
+                    <span>Base HT (ventes hors taxes)</span>
+                    <strong><%= h.formatNombre(baseVentes) %> <%= devise %></strong>
+                </div>
+                <div class="tva-line" style="background: #F0FDF4; padding: 12px; border-radius: 6px; margin-top: 8px;">
+                    <span><strong>TVA collectée</strong> <span class="small text-muted">(<%= collectee.nb %> pièces)</span></span>
+                    <strong style="color: var(--success); font-size: 1.15rem;"><%= h.formatNombre(collectee.m) %> <%= devise %></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%; border-left: 4px solid var(--danger);">
+            <div class="card-header" style="background: #FEF2F2; font-weight: 700;">
+                <i class="bi bi-arrow-up-circle-fill" style="color: var(--danger);"></i>
+                TVA déductible sur achats
+            </div>
+            <div class="card-body">
+                <div class="tva-line">
+                    <span>Base HT (achats hors taxes)</span>
+                    <strong><%= h.formatNombre(baseAchats) %> <%= devise %></strong>
+                </div>
+                <div class="tva-line" style="background: #FEF2F2; padding: 12px; border-radius: 6px; margin-top: 8px;">
+                    <span><strong>TVA déductible</strong> <span class="small text-muted">(<%= deductible.nb %> pièces)</span></span>
+                    <strong style="color: var(--danger); font-size: 1.15rem;"><%= h.formatNombre(deductible.m) %> <%= devise %></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header">Détail — Collectée (100 dernières)</div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm" style="margin-bottom: 0;">
+                    <thead style="position: sticky; top: 0; background: #fff; z-index: 10;"><tr><th>Date</th><th>Pièce</th><th>Ref</th><th style="text-align: right;">Montant TVA</th></tr></thead>
+                    <tbody>
+                        <% detailCollectee.forEach(function(e) { %>
+                            <tr>
+                                <td class="small"><%= h.formatDate(e.date_ecriture, false) %></td>
+                                <td><code style="font-size: 0.7rem;"><%= e.numero_piece %></code></td>
+                                <td class="small text-muted"><%= e.reference_metier || '—' %></td>
+                                <td style="text-align: right; font-weight: 600; color: var(--success);"><%= h.formatNombre(e.montant) %></td>
+                            </tr>
+                        <% }); %>
+                        <% if (!detailCollectee.length) { %>
+                            <tr><td colspan="4" class="text-muted text-center" style="padding: 20px;">Aucune TVA collectée ce mois.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header">Détail — Déductible (100 dernières)</div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm" style="margin-bottom: 0;">
+                    <thead style="position: sticky; top: 0; background: #fff; z-index: 10;"><tr><th>Date</th><th>Pièce</th><th>Ref</th><th style="text-align: right;">Montant TVA</th></tr></thead>
+                    <tbody>
+                        <% detailDeductible.forEach(function(e) { %>
+                            <tr>
+                                <td class="small"><%= h.formatDate(e.date_ecriture, false) %></td>
+                                <td><code style="font-size: 0.7rem;"><%= e.numero_piece %></code></td>
+                                <td class="small text-muted"><%= e.reference_metier || '—' %></td>
+                                <td style="text-align: right; font-weight: 600; color: var(--danger);"><%= h.formatNombre(e.montant) %></td>
+                            </tr>
+                        <% }); %>
+                        <% if (!detailDeductible.length) { %>
+                            <tr><td colspan="4" class="text-muted text-center" style="padding: 20px;">Aucune TVA déductible ce mois.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

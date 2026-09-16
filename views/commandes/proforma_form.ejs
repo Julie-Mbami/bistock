@@ -1,0 +1,478 @@
+<%- include('../partials/header') %>
+<style>
+.ligne-row { border-bottom: 1px solid var(--border); padding: 8px 0; }
+.ligne-row:last-child { border-bottom: none; }
+.total-panel { background: var(--bg-soft, #F8FAFC); padding: 16px; border-radius: var(--r-md); border: 1px solid var(--border); }
+.total-line { display: flex; justify-content: space-between; padding: 4px 0; }
+.total-line.grand { border-top: 2px solid var(--gold); padding-top: 8px; margin-top: 8px; font-size: 1.15rem; font-weight: 700; color: var(--gold-dark); }
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><%= mode === 'creer' ? 'Nouvelle proforma' : 'Modifier ' + (commande.numero_proforma || '') %></h1>
+        <p class="page-subtitle">Activité <strong><%= activite.nom %></strong></p>
+    </div>
+    <a href="/commandes/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<% if (erreurs && erreurs.length) { %>
+    <div class="alert alert-danger">
+        <strong>Corrigez les erreurs suivantes :</strong>
+        <ul class="mb-0"><% erreurs.forEach(function(e) { %><li><%= e %></li><% }); %></ul>
+    </div>
+<% } %>
+
+<form method="post" id="proforma-form">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-person-vcard"></i> Client et paramètres</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Client <span style="color: var(--danger);">*</span></label>
+                            <div style="display: flex; gap: 8px; align-items: stretch;">
+                                <select name="client_id" id="client-id" class="form-select" required style="flex: 1;">
+                                    <option value="">— Choisir un client —</option>
+                                    <% clients.forEach(function(c) { %>
+                                        <option value="<%= c.id %>" <%= String(commande.client_id) === String(c.id) ? 'selected' : '' %>>
+                                            <%= c.nom %><% if (c.type_client === 'ENTR') { %> (Entreprise)<% } %><% if (c.telephone) { %> · <%= c.telephone %><% } %>
+                                        </option>
+                                    <% }); %>
+                                </select>
+                                <button type="button" class="btn btn-primary" onclick="ouvrirModalClient()" title="Créer un nouveau client rapidement">
+                                    <i class="bi bi-plus-lg"></i> Nouveau
+                                </button>
+                            </div>
+                            <div class="form-text">Le client n'existe pas ? Clique sur <strong>« Nouveau »</strong> pour le créer sans quitter cette page.</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Livraison prévue</label>
+                            <input type="date" name="date_livraison_prevue" id="date-livraison" class="form-control" value="<%= commande.date_livraison_prevue ? String(commande.date_livraison_prevue).substring(0, 10) : '' %>" onchange="<% if (estCantine) { %>verifierJourOuvre(); <% } %>verifierEcheance();">
+                            <% if (estCantine) { %>
+                                <div id="livraison-warning" style="display: none; margin-top: 6px; padding: 6px 10px; background: rgba(220, 38, 38, 0.1); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 0.85rem; color: var(--danger);">
+                                    <i class="bi bi-exclamation-triangle"></i> <span id="livraison-warning-txt"></span>
+                                </div>
+                            <% } %>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Échéance paiement</label>
+                            <input type="date" name="date_echeance" id="date-echeance" class="form-control" value="<%= commande.date_echeance ? String(commande.date_echeance).substring(0, 10) : '' %>" onchange="verifierEcheance()">
+                            <div id="echeance-warning" style="display: none; margin-top: 6px; padding: 6px 10px; background: rgba(220, 38, 38, 0.1); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 0.82rem; color: var(--danger);">
+                                <i class="bi bi-exclamation-triangle-fill"></i> <span id="echeance-warning-txt"></span>
+                            </div>
+                        </div>
+                        <input type="hidden" name="taux_tva" value="0"><!-- Compatibilité : TVA globale désactivée, gérée par ligne -->
+                        <div class="col-md-6 mb-3" style="display: flex; align-items: end;">
+                            <div style="background: var(--gold-50, #FEF3C7); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--gold); font-size: 0.82rem; color: var(--gold-dark, #92400E);">
+                                <i class="bi bi-info-circle-fill"></i> La <strong>TVA se règle par ligne d'article</strong> (0 = exonéré · <%= taux_tva %> = TVA Cameroun).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="bi bi-list-ul"></i> Lignes du proforma</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="ajouterLigne()"><i class="bi bi-plus"></i> Ajouter une ligne</button>
+                </div>
+                <div class="card-body">
+                    <div id="lignes-container"></div>
+                    <div id="lignes-vide" style="text-align: center; padding: 40px; color: var(--text-muted); display: none;">
+                        <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                        Aucune ligne. Cliquez sur "Ajouter une ligne".
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card" style="position: sticky; top: 16px;">
+                <div class="card-header"><i class="bi bi-calculator"></i> Récapitulatif</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Remise globale (FCFA)</label>
+                        <input type="number" step="0.01" name="montant_remise" id="montant-remise" class="form-control" value="<%= commande.montant_remise || 0 %>" oninput="recalculer()">
+                    </div>
+                    <div class="total-panel">
+                        <div class="total-line"><span>Sous-total HT</span><strong id="tot-ht">0</strong></div>
+                        <div class="total-line"><span>Remise</span><strong id="tot-remise" style="color: var(--danger);">0</strong></div>
+                        <div class="total-line"><span>TVA</span><strong id="tot-tva">0</strong></div>
+                        <div class="total-line" id="ligne-livraison" style="display: none;"><span><i class="bi bi-scooter"></i> Livraison</span><strong id="tot-livraison">0</strong></div>
+                        <div class="total-line grand"><span>Total TTC</span><strong id="tot-ttc">0</strong></div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Notes internes</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Précisions livraison, contact..."><%= commande.notes || '' %></textarea>
+                    </div>
+                    <% if (estCantine && feriesAnnee && feriesAnnee.length) { %>
+                    <div class="mt-3" style="background: rgba(59, 130, 246, 0.06); border-left: 3px solid #3b82f6; padding: 10px 12px; border-radius: 4px; font-size: 0.82rem;">
+                        <div style="font-weight: 700; margin-bottom: 4px;"><i class="bi bi-calendar-x"></i> Jours de non-livraison Cantine <%= new Date().getFullYear() %></div>
+                        <div style="color: var(--text-muted);">
+                            Aucune livraison samedi/dimanche ni les fériés camerounais suivants :
+                        </div>
+                        <ul style="margin: 4px 0 0; padding-left: 20px; color: var(--text-muted); font-size: 0.78rem; max-height: 120px; overflow-y: auto;">
+                            <% feriesAnnee.forEach(function(f) { %>
+                                <li><strong><%= h.formatDate(f.iso) %></strong> — <%= f.nom %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                    <% } %>
+                </div>
+                <div class="card-footer" style="display: flex; gap: 8px;">
+                    <a href="/commandes/" class="btn btn-outline-secondary" style="flex: 1;">Annuler</a>
+                    <button type="submit" class="btn btn-primary" style="flex: 2;">
+                        <i class="bi bi-check-lg"></i> <%= mode === 'creer' ? 'Créer le proforma' : 'Enregistrer' %>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<template id="tpl-ligne">
+    <div class="ligne-row row align-items-center g-2">
+        <div class="col-md-4">
+            <label class="form-label small text-muted">Produit</label>
+            <select name="produit_id" class="form-select produit-select" required onchange="prefillLigne(this)">
+                <option value="">— Choisir —</option>
+                <% produits.forEach(function(p) { %>
+                    <option value="<%= p.id %>" data-designation="<%= p.designation %>" data-prix="<%= p.prix_vente %>"><%= p.designation %> (<%= p.reference %>)</option>
+                <% }); %>
+            </select>
+            <input type="hidden" name="designation" class="designation-input">
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small text-muted">Qté</label>
+            <input type="number" name="quantite" step="0.01" min="0" class="form-control qte-input" value="1" required oninput="recalculer()">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">PU (F)</label>
+            <input type="number" name="prix_unitaire" step="0.01" min="0" class="form-control pu-input" value="0" required oninput="recalculer()">
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small text-muted">Rem.%</label>
+            <input type="number" name="remise_ligne" step="0.01" min="0" max="100" class="form-control remise-input" value="0" oninput="recalculer()">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted" title="TVA en % (0 = exonéré)">TVA %</label>
+            <select name="taux_tva_ligne" class="form-select tva-input" oninput="recalculer()" onchange="recalculer()">
+                <option value="0">Exonéré (0)</option>
+                <option value="<%= taux_tva %>"><%= taux_tva %>%</option>
+                <option value="5">5%</option>
+                <option value="10">10%</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted">Total TTC</label>
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="text" class="form-control total-input" readonly style="background: var(--bg-soft); font-weight: 600;">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.ligne-row').remove(); recalculer();" title="Supprimer"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+<% if (estCantine) { %>
+const joursFeriesCantine = {
+    <% feriesAnnee.forEach(function(f) { %>
+        '<%= f.iso %>': '<%= f.nom.replace(/'/g, "\\'") %>',
+    <% }); %>
+};
+function verifierJourOuvre() {
+    const val = document.querySelector('#date-livraison').value;
+    const w = document.querySelector('#livraison-warning');
+    const t = document.querySelector('#livraison-warning-txt');
+    if (!val) { w.style.display = 'none'; return; }
+    const d = new Date(val + 'T12:00:00');
+    const jourNum = d.getDay();
+    const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    if (jourNum === 0 || jourNum === 6) {
+        t.textContent = `Ce jour est un ${jours[jourNum]} — la Cantine ne livre pas le week-end. Choisissez un lundi–vendredi ouvré.`;
+        w.style.display = 'block';
+    } else if (joursFeriesCantine[val]) {
+        t.textContent = `Ce jour est férié (${joursFeriesCantine[val]}) — la Cantine ne livre pas les jours fériés.`;
+        w.style.display = 'block';
+    } else {
+        w.style.display = 'none';
+    }
+}
+verifierJourOuvre();
+<% } %>
+
+// Vérifie que la date d'échéance de paiement n'est pas antérieure à la livraison prévue
+function verifierEcheance() {
+    const livr = document.getElementById('date-livraison').value;
+    const ech = document.getElementById('date-echeance').value;
+    const w = document.getElementById('echeance-warning');
+    const t = document.getElementById('echeance-warning-txt');
+    const inp = document.getElementById('date-echeance');
+    if (!livr || !ech) {
+        w.style.display = 'none';
+        inp.setCustomValidity('');
+        return true;
+    }
+    if (ech < livr) {
+        const dLivr = new Date(livr + 'T12:00:00').toLocaleDateString('fr-FR');
+        t.innerHTML = "L'échéance ne peut pas être avant la <strong>livraison prévue</strong> (" + dLivr + "). Choisissez une date le jour de la livraison ou après.";
+        w.style.display = 'block';
+        inp.setCustomValidity('Échéance antérieure à la livraison');
+        return false;
+    }
+    w.style.display = 'none';
+    inp.setCustomValidity('');
+    return true;
+}
+verifierEcheance();
+
+function ajouterLigne(data) {
+    const tpl = document.querySelector('#tpl-ligne');
+    const clone = tpl.content.cloneNode(true);
+    document.querySelector('#lignes-container').appendChild(clone);
+    const ligne = document.querySelector('#lignes-container').lastElementChild;
+    if (data) {
+        ligne.querySelector('.produit-select').value = data.produit_id;
+        ligne.querySelector('.qte-input').value = data.quantite;
+        ligne.querySelector('.pu-input').value = data.prix_unitaire;
+        ligne.querySelector('.remise-input').value = data.remise || 0;
+        // TVA : si la valeur ne correspond à aucune option, on l'ajoute
+        const tvaSel = ligne.querySelector('.tva-input');
+        const tvaVal = String(data.taux_tva || 0);
+        if (!Array.from(tvaSel.options).some(o => o.value === tvaVal)) {
+            const opt = document.createElement('option');
+            opt.value = tvaVal; opt.textContent = tvaVal + '%';
+            tvaSel.appendChild(opt);
+        }
+        tvaSel.value = tvaVal;
+        prefillLigne(ligne.querySelector('.produit-select'), true);
+    }
+    document.querySelector('#lignes-vide').style.display = 'none';
+    recalculer();
+}
+function prefillLigne(select, skipPrix) {
+    const ligne = select.closest('.ligne-row');
+    const opt = select.selectedOptions[0];
+    if (!opt || !opt.value) return;
+    ligne.querySelector('.designation-input').value = opt.dataset.designation || '';
+    if (!skipPrix) {
+        const puInput = ligne.querySelector('.pu-input');
+        if (Number(puInput.value) === 0) puInput.value = opt.dataset.prix || 0;
+    }
+    recalculer();
+}
+const FRAIS_LIVRAISON = Number('<%= commande.frais_livraison || 0 %>') || 0;
+function recalculer() {
+    let ht = 0;
+    let tvaTotale = 0;
+    document.querySelectorAll('#lignes-container .ligne-row').forEach(r => {
+        const qte = Number(r.querySelector('.qte-input').value) || 0;
+        const pu = Number(r.querySelector('.pu-input').value) || 0;
+        const rem = Number(r.querySelector('.remise-input').value) || 0;
+        const tvaLigne = Number(r.querySelector('.tva-input').value) || 0;
+        const totalHT = qte * pu * (1 - rem / 100);
+        const tvaMontant = totalHT * tvaLigne / 100;
+        const totalTTC = totalHT + tvaMontant;
+        r.querySelector('.total-input').value = format(totalTTC);
+        ht += totalHT;
+        tvaTotale += tvaMontant;
+    });
+    const remiseG = Number(document.querySelector('#montant-remise').value) || 0;
+    const htNet = Math.max(0, ht - remiseG);
+    const ttc = htNet + tvaTotale + FRAIS_LIVRAISON;
+    document.querySelector('#tot-ht').textContent = format(ht) + ' FCFA';
+    document.querySelector('#tot-remise').textContent = '-' + format(remiseG) + ' FCFA';
+    document.querySelector('#tot-tva').textContent = format(tvaTotale) + ' FCFA';
+    // Livraison : affichée uniquement si > 0
+    const ligneLiv = document.querySelector('#ligne-livraison');
+    if (FRAIS_LIVRAISON > 0) {
+        ligneLiv.style.display = '';
+        document.querySelector('#tot-livraison').textContent = format(FRAIS_LIVRAISON) + ' FCFA';
+    } else {
+        ligneLiv.style.display = 'none';
+    }
+    document.querySelector('#tot-ttc').textContent = format(ttc) + ' FCFA';
+}
+function format(n) { return Math.round(n).toLocaleString('fr-FR'); }
+
+// Précharger les lignes en cas d'édition
+<% if (mode === 'modifier' && commande.lignes) { %>
+    <% commande.lignes.forEach(function(l) { %>
+        ajouterLigne({ produit_id: '<%= l.produit_id %>', quantite: <%= l.quantite %>, prix_unitaire: <%= l.prix_unitaire %>, remise: <%= l.remise || 0 %>, taux_tva: <%= l.taux_tva || 0 %> });
+    <% }); %>
+<% } else { %>
+    document.querySelector('#lignes-vide').style.display = 'block';
+<% } %>
+</script>
+<!-- Modale de création rapide client -->
+<div id="modal-client" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 400; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #fff; border-radius: 14px; max-width: 520px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+            <h5 style="margin: 0; color: var(--navy);"><i class="bi bi-person-plus-fill"></i> Créer un nouveau client</h5>
+            <button type="button" onclick="fermerModalClient()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;">×</button>
+        </div>
+        <div style="padding: 20px 24px;">
+            <div class="mb-3">
+                <label class="form-label">Type de client *</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label style="cursor: pointer; padding: 12px; border: 2px solid var(--border); border-radius: 8px; text-align: center; background: #fff; transition: all 0.15s;" class="mc-type-btn active" data-type="PART">
+                        <input type="radio" name="mc-type-radio" value="PART" checked style="display: none;">
+                        <i class="bi bi-person" style="font-size: 1.3rem; display: block; margin-bottom: 4px;"></i>
+                        <strong style="font-size: 0.85rem;">Particulier</strong>
+                    </label>
+                    <label style="cursor: pointer; padding: 12px; border: 2px solid var(--border); border-radius: 8px; text-align: center; background: #fff; transition: all 0.15s;" class="mc-type-btn" data-type="ENTR">
+                        <input type="radio" name="mc-type-radio" value="ENTR" style="display: none;">
+                        <i class="bi bi-building" style="font-size: 1.3rem; display: block; margin-bottom: 4px;"></i>
+                        <strong style="font-size: 0.85rem;">Entreprise</strong>
+                    </label>
+                </div>
+                <input type="hidden" id="mc-type" value="PART">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" id="mc-nom-label">Nom complet *</label>
+                <input type="text" id="mc-nom" class="form-control" placeholder="Nom du client">
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Téléphone</label>
+                    <input type="text" id="mc-tel" class="form-control" placeholder="+237 6XX XX XX XX">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="mc-email" class="form-control">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Adresse</label>
+                <input type="text" id="mc-adresse" class="form-control">
+            </div>
+            <!-- Champs spécifiques entreprise (masqués par défaut) -->
+            <div id="mc-entreprise-fields" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">NIU</label>
+                        <input type="text" id="mc-niu" class="form-control" placeholder="Numéro d'identifiant unique">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">RCCM</label>
+                        <input type="text" id="mc-rccm" class="form-control" placeholder="Registre du commerce">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Personne à contacter</label>
+                    <input type="text" id="mc-contact" class="form-control" placeholder="Nom du responsable">
+                </div>
+            </div>
+            <div id="mc-erreur" style="display: none; color: var(--danger); font-size: 0.85rem; margin-bottom: 12px;"></div>
+        </div>
+        <div style="display: flex; gap: 10px; padding: 12px 24px 20px;">
+            <button type="button" onclick="fermerModalClient()" class="btn btn-outline-secondary" style="flex: 1;">Annuler</button>
+            <button type="button" onclick="creerClientRapide()" class="btn btn-primary" style="flex: 2;">
+                <i class="bi bi-plus-lg"></i> Créer et sélectionner
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const selectClient = document.getElementById('client-id');
+
+// ============ Modal création rapide ============
+// Basculement PART / ENTR dans la modale
+document.querySelectorAll('.mc-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const type = this.dataset.type;
+        document.getElementById('mc-type').value = type;
+        document.querySelectorAll('.mc-type-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.borderColor = 'var(--border)';
+            b.style.background = '#fff';
+            b.style.color = '';
+        });
+        this.classList.add('active');
+        this.style.borderColor = 'var(--navy)';
+        this.style.background = 'var(--navy-50, #eff6ff)';
+        this.style.color = 'var(--navy)';
+        // Adapter le label du champ nom et l'affichage des champs entreprise
+        const nomLabel = document.getElementById('mc-nom-label');
+        const nomInput = document.getElementById('mc-nom');
+        const entrFields = document.getElementById('mc-entreprise-fields');
+        if (type === 'ENTR') {
+            nomLabel.innerHTML = 'Raison sociale <span style="color: var(--danger);">*</span>';
+            nomInput.placeholder = 'Ex : SARL Bâti-Nord';
+            entrFields.style.display = '';
+        } else {
+            nomLabel.innerHTML = 'Nom complet <span style="color: var(--danger);">*</span>';
+            nomInput.placeholder = 'Ex : Jean-Paul Kamga';
+            entrFields.style.display = 'none';
+        }
+    });
+});
+// Init : styliser le bouton PART par défaut
+(function initTypeBtn() {
+    const btn = document.querySelector('.mc-type-btn.active');
+    if (btn) { btn.style.borderColor = 'var(--navy)'; btn.style.background = 'var(--navy-50, #eff6ff)'; btn.style.color = 'var(--navy)'; }
+})();
+function ouvrirModalClient() {
+    document.getElementById('modal-client').style.display = 'flex';
+    document.getElementById('mc-erreur').style.display = 'none';
+    setTimeout(() => document.getElementById('mc-nom').focus(), 100);
+}
+function fermerModalClient() {
+    document.getElementById('modal-client').style.display = 'none';
+}
+document.getElementById('modal-client').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalClient();
+});
+
+async function creerClientRapide() {
+    const nom = document.getElementById('mc-nom').value.trim();
+    const err = document.getElementById('mc-erreur');
+    if (!nom) { err.textContent = 'Le nom est obligatoire.'; err.style.display = 'block'; return; }
+    const payload = {
+        nom,
+        type_client: document.getElementById('mc-type').value,
+        telephone: document.getElementById('mc-tel').value.trim(),
+        email: document.getElementById('mc-email').value.trim(),
+        adresse: document.getElementById('mc-adresse').value.trim(),
+        niu: (document.getElementById('mc-niu') || {}).value?.trim() || '',
+        rccm: (document.getElementById('mc-rccm') || {}).value?.trim() || '',
+        contact_personne: (document.getElementById('mc-contact') || {}).value?.trim() || '',
+    };
+    try {
+        const r = await fetch('/ventes/clients/api/creer/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await r.json();
+        if (!r.ok || data.erreur) { err.textContent = data.erreur || 'Erreur inconnue.'; err.style.display = 'block'; return; }
+        // Ajouter la nouvelle option dans le select et la sélectionner
+        const label = data.nom + (payload.type_client === 'ENTR' ? ' (Entreprise)' : '') + (payload.telephone ? ' · ' + payload.telephone : '');
+        const opt = document.createElement('option');
+        opt.value = data.id; opt.textContent = label; opt.selected = true;
+        // Insérer juste après la première option "— Choisir un client —"
+        selectClient.insertBefore(opt, selectClient.options[1] || null);
+        selectClient.value = data.id;
+        selectClient.style.borderColor = 'var(--success)';
+        setTimeout(() => { selectClient.style.borderColor = ''; }, 2000);
+        fermerModalClient();
+        // Réinitialiser les champs de la modale
+        ['mc-nom','mc-tel','mc-email','mc-adresse','mc-niu','mc-rccm','mc-contact'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        document.getElementById('mc-type').value = 'PART';
+        // Remettre PART par défaut visuellement
+        document.querySelectorAll('.mc-type-btn').forEach(b => { b.classList.remove('active'); b.style.borderColor='var(--border)'; b.style.background='#fff'; b.style.color=''; });
+        const btnPart = document.querySelector('.mc-type-btn[data-type="PART"]');
+        if (btnPart) { btnPart.classList.add('active'); btnPart.style.borderColor='var(--navy)'; btnPart.style.background='var(--navy-50, #eff6ff)'; btnPart.style.color='var(--navy)'; }
+        document.getElementById('mc-entreprise-fields').style.display = 'none';
+        document.getElementById('mc-nom-label').innerHTML = 'Nom complet <span style="color: var(--danger);">*</span>';
+    } catch (e) {
+        err.textContent = 'Erreur réseau : ' + e.message;
+        err.style.display = 'block';
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>

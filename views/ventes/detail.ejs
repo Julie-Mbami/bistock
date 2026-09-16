@@ -1,0 +1,77 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Vente <%= vente.numero %></h1>
+        <p class="page-subtitle"><%= h.formatDate(vente.date_vente, true) %></p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/ventes/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+        <a href="/ventes/<%= vente.id %>/ticket.pdf" target="_blank" class="btn btn-primary"><i class="bi bi-receipt"></i> Ticket (80mm)</a>
+        <a href="/ventes/<%= vente.id %>/facture.pdf" target="_blank" class="btn btn-outline-primary"><i class="bi bi-file-pdf"></i> Facture A4</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5>Détail des lignes</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Réf.</th><th>Désignation</th><th style="text-align: center;">Qté</th><th style="text-align: right;">P.U.</th><th style="text-align: right;">Sous-total</th></tr></thead>
+                        <tbody>
+                        <% vente.lignes.forEach(function(l) { %>
+                            <tr>
+                                <td><code><%= l.reference %></code></td>
+                                <td><%= l.designation %></td>
+                                <td style="text-align: center;"><%= l.quantite %></td>
+                                <td style="text-align: right;"><%= h.formatNombre(l.prix_unitaire) %></td>
+                                <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(l.sous_total) %></td>
+                            </tr>
+                        <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Récapitulatif</h5>
+                <dl class="row">
+                    <dt class="col-6">Total brut</dt><dd class="col-6 text-end"><%= h.formatNombre(vente.montant_total) %> <%= devise %></dd>
+                    <dt class="col-6">Remise</dt><dd class="col-6 text-end"><%= h.formatNombre(vente.montant_remise) %></dd>
+                    <% if (vente.montant_tva > 0) { %>
+                        <dt class="col-6">TVA</dt><dd class="col-6 text-end"><%= h.formatNombre(vente.montant_tva) %></dd>
+                    <% } %>
+                    <dt class="col-6"><strong>Net à payer</strong></dt><dd class="col-6 text-end"><strong><%= h.formatNombre(vente.montant_net) %></strong></dd>
+                    <dt class="col-6">Payé</dt><dd class="col-6 text-end"><%= h.formatNombre(vente.montant_paye) %></dd>
+                    <dt class="col-6">Reste</dt><dd class="col-6 text-end" style="color: var(--danger);"><%= h.formatNombre(vente.reste_a_payer) %></dd>
+                </dl>
+                <hr>
+                <div>
+                    <span style="background: <%= vente.mode_paiement_style.fond %>; color: <%= vente.mode_paiement_style.couleur %>; padding: 4px 12px; border-radius: 9999px; font-weight: 600;">
+                        <i class="bi <%= vente.mode_paiement_style.icone %>"></i> <%= vente.mode_paiement_style.label %>
+                    </span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <% if (vente.statut_paiement === 'PAYE') { %><span class="badge badge-ok">Payée</span>
+                    <% } else if (vente.statut_paiement === 'PARTIEL') { %><span class="badge badge-alerte">Paiement partiel</span>
+                    <% } else { %><span class="badge badge-rupture">Impayée</span><% } %>
+                </div>
+            </div>
+        </div>
+        <% if (vente.client_nom) { %>
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-body">
+                <h5>Client</h5>
+                <p><strong><%= vente.client_nom %></strong></p>
+                <% if (vente.client_tel) { %><div class="text-muted"><i class="bi bi-telephone"></i> <%= vente.client_tel %></div><% } %>
+                <% if (vente.client_email) { %><div class="text-muted"><i class="bi bi-envelope"></i> <%= vente.client_email %></div><% } %>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>
+<%- include('../partials/footer') %>

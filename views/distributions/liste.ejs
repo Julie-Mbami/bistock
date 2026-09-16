@@ -1,0 +1,79 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Distributions</h1>
+        <p class="page-subtitle">Bons de distribution vers les 4 activités · <%= achats_a_distribuer %> achat<%= achats_a_distribuer > 1 ? 's' : '' %> réceptionné<%= achats_a_distribuer > 1 ? 's' : '' %> à distribuer</p>
+    </div>
+    <% if (peut_creer && achats_a_distribuer > 0) { %>
+    <a href="/distributions/nouveau" class="btn btn-primary"><i class="bi bi-truck"></i> Distribuer les achats (<%= achats_a_distribuer %>)</a>
+    <% } %>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card primary"><div class="kpi-label">Préparées</div><div class="kpi-value"><%= stats.preparee %></div><div class="kpi-meta">à remettre au gestionnaire</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card info"><div class="kpi-label">Remises</div><div class="kpi-value"><%= stats.remise %></div><div class="kpi-meta">en attente de réception</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card success"><div class="kpi-label">Réceptionnées</div><div class="kpi-value"><%= stats.receptionnee %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card danger"><div class="kpi-label">Refusées</div><div class="kpi-value"><%= stats.refusee %></div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row">
+            <input type="hidden" name="preset" value="<%= periode.preset %>">
+            <% if (periode.preset === 'personnalise') { %>
+                <input type="hidden" name="debut" value="<%= periode.debut %>">
+                <input type="hidden" name="fin" value="<%= periode.fin %>">
+            <% } %>
+            <div class="col-md-8 mb-2">
+                <select name="statut" class="form-select">
+                    <option value="">Tous statuts</option>
+                    <option value="PREPAREE" <%= statut === 'PREPAREE' ? 'selected' : '' %>>Préparées</option>
+                    <option value="REMISE" <%= statut === 'REMISE' ? 'selected' : '' %>>Remises</option>
+                    <option value="RECEPTIONNEE" <%= statut === 'RECEPTIONNEE' ? 'selected' : '' %>>Réceptionnées</option>
+                    <option value="REFUSEE" <%= statut === 'REFUSEE' ? 'selected' : '' %>>Refusées</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;">Filtrer</button></div>
+        </form>
+        <div style="padding: 8px 0 12px; border-top: 1px dashed var(--border);">
+            <%- include('../partials/filtre_periode', { periode, autresFiltres: { statut } }) %>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>N°</th><th>Activité</th><th>Créée</th><th style="text-align: center;">Lignes</th><th>Statut</th><th>Gestionnaire</th><th></th></tr></thead>
+            <tbody>
+            <% distributions.forEach(function(d) { %>
+                <tr style="cursor: pointer;" onclick="if(!event.target.closest('a,button,form')) location='/distributions/<%= d.id %>'">
+                    <td><a href="/distributions/<%= d.id %>"><code><%= d.numero %></code></a></td>
+                    <td><span style="padding: 2px 10px; background: <%= d.activite_couleur %>15; color: <%= d.activite_couleur %>; border-radius: 9999px; font-weight: 600; font-size: 0.78rem;"><%= d.activite_nom %></span></td>
+                    <td class="text-muted small"><%= h.formatDate(d.date_creation, true) %></td>
+                    <td style="text-align: center;"><%= d.nb_lignes %></td>
+                    <td>
+                        <% var sb = { PREPAREE: ['badge-alerte', 'Préparée'], REMISE: ['bg-primary', 'Remise'], RECEPTIONNEE: ['badge-ok', 'Réceptionnée'], REFUSEE: ['badge-rupture', 'Refusée'], ANNULEE: ['bg-secondary', 'Annulée'] }[d.statut] || ['bg-secondary', d.statut]; %>
+                        <span class="badge <%= sb[0] %>"><%= sb[1] %></span>
+                    </td>
+                    <td class="text-muted small"><%= d.gestionnaire_nom || '—' %></td>
+                    <td style="white-space: nowrap; text-align: right;">
+                        <% if (peut_remettre && d.statut === 'PREPAREE') { %>
+                            <form method="post" action="/distributions/<%= d.id %>/remettre" style="display: inline;"
+                                  data-confirm="Marquer la distribution <strong><%= d.numero %></strong> comme <strong>remise</strong> au gestionnaire ?"
+                                  data-confirm-title="Confirmer la remise"
+                                  data-confirm-ok="Remettre">
+                                <input type="hidden" name="retour" value="liste">
+                                <button type="submit" class="btn btn-sm btn-warning" title="Marquer comme remise sans ouvrir le détail" onclick="event.stopPropagation()">
+                                    <i class="bi bi-truck"></i> Remettre
+                                </button>
+                            </form>
+                        <% } %>
+                        <a href="/distributions/<%= d.id %>" class="btn btn-sm btn-outline-primary" title="Détail"><i class="bi bi-eye"></i></a>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!distributions.length) { %><tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucune distribution.</td></tr><% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

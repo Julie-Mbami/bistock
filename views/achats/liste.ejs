@@ -1,0 +1,82 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Achats</h1>
+        <p class="page-subtitle">Bons d'achat de Mme Sandra — <%= stats.saisi %> à réceptionner, <%= stats.receptionne %> à distribuer</p>
+    </div>
+    <% if (peut_saisir) { %>
+    <a href="/achats/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvel achat</a>
+    <% } %>
+</div>
+
+<% if (user.est_distribution && stats.saisi > 0 && statut !== 'SAISI') { %>
+<div class="alert" style="background: #FEF3C7; border: 1px solid #FCD34D; color: #92400E; display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 16px;">
+    <i class="bi bi-bell-fill" style="font-size: 1.4rem;"></i>
+    <div style="flex: 1;">
+        <strong><%= stats.saisi %> bon<%= stats.saisi > 1 ? 's' : '' %> d'achat en attente de votre réception</strong>
+        <br><small>Mme Sandra a saisi <%= stats.saisi > 1 ? 'ces achats' : 'cet achat' %>. Ouvrez le détail et cliquez sur « Marquer comme réceptionné ».</small>
+    </div>
+    <a href="/achats/?statut=SAISI" class="btn btn-warning btn-sm"><i class="bi bi-funnel"></i> Voir uniquement les Saisis</a>
+</div>
+<% } %>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card primary"><div class="kpi-label">Saisis</div><div class="kpi-value"><%= stats.saisi %></div><div class="kpi-meta">à faire réceptionner</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card info"><div class="kpi-label">Réceptionnés</div><div class="kpi-value"><%= stats.receptionne %></div><div class="kpi-meta">à distribuer</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card success"><div class="kpi-label">Distribués</div><div class="kpi-value"><%= stats.distribue %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card"><div class="kpi-label">Clôturés</div><div class="kpi-value"><%= stats.cloture %></div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row">
+            <input type="hidden" name="preset" value="<%= periode.preset %>">
+            <% if (periode.preset === 'personnalise') { %>
+                <input type="hidden" name="debut" value="<%= periode.debut %>">
+                <input type="hidden" name="fin" value="<%= periode.fin %>">
+            <% } %>
+            <div class="col-md-5 mb-2"><input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Numéro ou fournisseur..."></div>
+            <div class="col-md-4 mb-2">
+                <select name="statut" class="form-select">
+                    <option value="">Tous statuts</option>
+                    <option value="SAISI" <%= statut === 'SAISI' ? 'selected' : '' %>>Saisi</option>
+                    <option value="RECEPTIONNE" <%= statut === 'RECEPTIONNE' ? 'selected' : '' %>>Réceptionné</option>
+                    <option value="DISTRIBUE" <%= statut === 'DISTRIBUE' ? 'selected' : '' %>>Distribué</option>
+                    <option value="CLOTURE" <%= statut === 'CLOTURE' ? 'selected' : '' %>>Clôturé</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;">Filtrer</button></div>
+        </form>
+        <div style="padding: 8px 0 12px; border-top: 1px dashed var(--border);">
+            <%- include('../partials/filtre_periode', { periode, autresFiltres: { q, statut } }) %>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr><th>N°</th><th>Date</th><th>Fournisseur</th><th style="text-align: center;">Lignes</th><th style="text-align: right;">Montant</th><th>Statut</th><th>Créé par</th><th></th></tr>
+            </thead>
+            <tbody>
+            <% achats.forEach(function(a) { %>
+                <tr style="cursor: pointer;" onclick="if(!event.target.closest('a,button')) location='/achats/<%= a.id %>'">
+                    <td><a href="/achats/<%= a.id %>"><code><%= a.numero %></code></a></td>
+                    <td class="text-muted small"><%= h.formatDate(a.date_achat) %></td>
+                    <td><%= a.fournisseur_affichage || '—' %></td>
+                    <td style="text-align: center;"><%= a.nb_lignes %></td>
+                    <td style="text-align: right;"><%= h.formatNombre(a.montant_total) %> <%= devise %></td>
+                    <td>
+                        <% var badges = { SAISI: ['badge-alerte', 'Saisi'], RECEPTIONNE: ['bg-info', 'Réceptionné'], DISTRIBUE: ['badge-ok', 'Distribué'], CLOTURE: ['bg-secondary', 'Clôturé'], ANNULE: ['badge-rupture', 'Annulé'] }; %>
+                        <% var b = badges[a.statut] || ['bg-secondary', a.statut]; %>
+                        <span class="badge <%= b[0] %>"><%= b[1] %></span>
+                    </td>
+                    <td class="text-muted small"><%= a.cree_par_nom %></td>
+                    <td><a href="/achats/<%= a.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                </tr>
+            <% }); %>
+            <% if (!achats.length) { %><tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucun achat.</td></tr><% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

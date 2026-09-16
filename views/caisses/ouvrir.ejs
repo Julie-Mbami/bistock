@@ -1,0 +1,39 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Ouverture de caisse</h1>
+        <p class="page-subtitle">Démarrez votre session en déclarant le fond initial présent dans la caisse.</p>
+    </div>
+    <a href="/caisses/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header" style="background: var(--gold); color: #fff;">
+                <i class="bi bi-unlock"></i> Fond d'ouverture
+            </div>
+            <form method="post">
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Comptez les espèces déjà présentes dans la caisse au moment de l'ouverture (fond de caisse). Ce montant servira de base pour calculer les recettes en espèces à la clôture.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600;">Montant du fond initial (FCFA)</label>
+                        <input type="number" name="fond_ouverture" min="0" step="1" value="<%= fond_suggere %>" class="form-control form-control-lg" style="font-size: 1.5rem; text-align: right; font-weight: 700;" required autofocus>
+                        <div class="form-text">Total en espèces présent au démarrage de la session.</div>
+                    </div>
+                    <div class="alert alert-info small" style="margin-bottom: 0;">
+                        <i class="bi bi-info-circle"></i>
+                        À la clôture, le système calculera automatiquement les recettes attendues (fond + ventes espèces) et comparera avec votre décompte physique pour vous signaler tout écart.
+                    </div>
+                </div>
+                <div class="card-footer" style="display: flex; gap: 8px; justify-content: space-between;">
+                    <a href="/caisses/" class="btn btn-outline-secondary">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Ouvrir la caisse</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

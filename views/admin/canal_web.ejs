@@ -1,0 +1,186 @@
+<%- include('../partials/header') %>
+
+<style>
+.canal-hero {
+    background: linear-gradient(135deg, #78350F 0%, #92400E 100%);
+    color: #fff;
+    padding: 30px; border-radius: 14px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.canal-hero .icon-box {
+    width: 80px; height: 80px; border-radius: 20px;
+    background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; flex-shrink: 0;
+}
+.canal-hero h2 { font-size: 1.4rem; margin-bottom: 6px; }
+.canal-hero p { opacity: 0.85; font-size: 0.9rem; margin: 0; }
+.canal-url {
+    display: inline-block; background: rgba(0,0,0,0.25);
+    padding: 6px 14px; border-radius: 8px;
+    font-family: monospace; font-size: 0.9rem; margin-top: 8px;
+    letter-spacing: 0.02em;
+}
+.stats-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat-mini { background: var(--surface); border-radius: 10px; padding: 14px 16px; border-left: 4px solid; }
+.stat-mini .n { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat-mini .lbl { font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.04em; margin-top: 2px; }
+
+.toggle-card {
+    background: var(--surface); border-radius: 14px; padding: 22px;
+    margin-bottom: 18px; box-shadow: var(--sh-sm);
+    display: flex; align-items: center; gap: 20px;
+    border: 2px solid var(--border);
+}
+.toggle-card.actif { border-color: var(--success); background: #F0FDF4; }
+.toggle-card .toggle-info { flex: 1; }
+.toggle-card h3 { font-size: 1.05rem; margin-bottom: 4px; }
+.toggle-card p { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
+
+/* Switch */
+.switch { position: relative; display: inline-block; width: 60px; height: 32px; cursor: pointer; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+    position: absolute; inset: 0;
+    background: var(--border-strong, #94a3b8); border-radius: 999px; transition: 0.3s;
+}
+.switch-slider::before {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 26px; height: 26px; border-radius: 50%; background: #fff;
+    transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.switch input:checked + .switch-slider { background: var(--success); }
+.switch input:checked + .switch-slider::before { transform: translateX(28px); }
+
+.activites-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.activite-card {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 12px;
+}
+.activite-card:hover { border-color: var(--gold); }
+.activite-card input { width: 20px; height: 20px; cursor: pointer; }
+.activite-card.selected { border-color: var(--gold); background: var(--gold-50, #FEF3C7); }
+.activite-card .info { flex: 1; }
+.activite-card .nom { font-weight: 700; color: var(--navy); font-size: 0.9rem; }
+.activite-card .type { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+.activite-card .code { font-family: monospace; color: var(--gold-dark); font-size: 0.72rem; }
+
+.card-form { background: var(--surface); border-radius: 14px; padding: 24px; margin-bottom: 18px; box-shadow: var(--sh-sm); }
+.card-form h3 { font-size: 1.05rem; margin-bottom: 4px; color: var(--navy); }
+.card-form .subtitle { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px; }
+
+.form-inline { display: flex; align-items: center; gap: 12px; }
+.form-inline input[type="number"] { flex: 0 0 180px; padding: 12px 14px; font-size: 1.1rem; font-weight: 700; border: 1.5px solid var(--border); border-radius: 10px; }
+.form-inline .unit { font-weight: 700; color: var(--gold-dark); font-size: 1rem; }
+
+.actions-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; gap: 12px; flex-wrap: wrap; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-globe2"></i> Canal de commande en ligne</h1>
+        <p class="page-subtitle">Configurer le site public /commander/ que vos clients utilisent</p>
+    </div>
+</div>
+
+<div class="canal-hero">
+    <div class="icon-box">🛒</div>
+    <div>
+        <h2>Boutique en ligne <%= config.actif ? '· Active' : '· Inactive' %></h2>
+        <p>Vos clients peuvent commander depuis leur téléphone. Retrait sur place ou livraison, paiement à la récupération.</p>
+        <a href="/commander/" target="_blank" class="canal-url">
+            <i class="bi bi-box-arrow-up-right"></i> <%= parametres && parametres.entreprise_nom ? '' : '' %>votre-domaine.cm/commander
+        </a>
+    </div>
+</div>
+
+<div class="stats-strip">
+    <div class="stat-mini" style="border-color: var(--gold);"><div class="n" style="color: var(--gold);"><%= stats.total %></div><div class="lbl">Commandes reçues</div></div>
+    <div class="stat-mini" style="border-color: #DC2626;"><div class="n" style="color: #DC2626;"><%= stats.en_attente %></div><div class="lbl">Nouvelles</div></div>
+    <div class="stat-mini" style="border-color: #2563EB;"><div class="n" style="color: #2563EB;"><%= stats.en_prep %></div><div class="lbl">En préparation</div></div>
+    <div class="stat-mini" style="border-color: var(--success);"><div class="n" style="color: var(--success);"><%= stats.traitees %></div><div class="lbl">Traitées</div></div>
+</div>
+
+<form method="post" action="/admin/canal-web/">
+    <!-- Toggle actif / inactif -->
+    <div class="toggle-card <%= config.actif ? 'actif' : '' %>" id="toggle-actif-card">
+        <div style="width: 50px; height: 50px; border-radius: 50%; background: <%= config.actif ? 'var(--success)' : '#94a3b8' %>; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+            <i class="bi bi-<%= config.actif ? 'wifi' : 'wifi-off' %>"></i>
+        </div>
+        <div class="toggle-info">
+            <h3><%= config.actif ? 'Le canal est actif' : 'Le canal est désactivé' %></h3>
+            <p><%= config.actif ? 'Les clients peuvent passer commande via le site public.' : 'Les visiteurs voient un message d\'indisponibilité.' %></p>
+        </div>
+        <label class="switch">
+            <input type="checkbox" name="actif" value="1" id="input-actif" <%= config.actif ? 'checked' : '' %>>
+            <span class="switch-slider"></span>
+        </label>
+    </div>
+
+    <!-- Frais de livraison -->
+    <div class="card-form">
+        <h3><i class="bi bi-scooter"></i> Frais de livraison</h3>
+        <p class="subtitle">Montant fixe pour toute livraison à domicile. Mettre 0 pour désactiver l'option livraison.</p>
+        <div class="form-inline">
+            <input type="number" name="frais_livraison" min="0" step="100" value="<%= config.frais_livraison %>" id="input-frais">
+            <span class="unit">FCFA</span>
+        </div>
+    </div>
+
+    <!-- Activités visibles -->
+    <div class="card-form">
+        <h3><i class="bi bi-shop"></i> Activités visibles sur le site public</h3>
+        <p class="subtitle">Choisissez les activités dont les produits apparaîtront dans le catalogue en ligne. Décochez tout pour utiliser toutes les activités B2C par défaut.</p>
+        <div class="activites-grid">
+            <% toutesActivites.forEach(function(a) { %>
+                <label class="activite-card <%= config.activites_ids.includes(a.id) ? 'selected' : '' %>">
+                    <input type="checkbox" name="activites_ids" value="<%= a.id %>" <%= config.activites_ids.includes(a.id) ? 'checked' : '' %>>
+                    <div class="info">
+                        <div class="nom"><%= a.nom %></div>
+                        <div class="type"><span class="code"><%= a.code %></span> · <%= a.type === 'B2C_CAISSE' ? 'Caisse' : 'Commande' %></div>
+                    </div>
+                </label>
+            <% }); %>
+        </div>
+        <div style="margin-top: 14px; padding: 12px 14px; background: #EFF6FF; border-left: 3px solid var(--navy); border-radius: 4px; font-size: 0.82rem; color: var(--navy);">
+            <i class="bi bi-info-circle-fill"></i>
+            <strong>Recommandation :</strong> pour la commande B2C, sélectionnez uniquement <strong>237 Bona Burger</strong> et <strong>Pâtisserie</strong>. Les activités B2B (Traiteur, Cantine) ne se prêtent pas à la commande en ligne rapide.
+        </div>
+    </div>
+
+    <div class="actions-bar">
+        <a href="/commander/" target="_blank" class="btn btn-outline-primary">
+            <i class="bi bi-box-arrow-up-right"></i> Ouvrir le site public dans un nouvel onglet
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-lg"></i> Enregistrer la configuration
+        </button>
+    </div>
+</form>
+
+<script>
+// Toggle actif — mettre à jour visuel + valeur du input
+const inputActif = document.getElementById('input-actif');
+const toggleCard = document.getElementById('toggle-actif-card');
+inputActif.addEventListener('change', () => {
+    toggleCard.classList.toggle('actif', inputActif.checked);
+});
+
+// Cartes d'activités : cocher/décocher au clic sur la card
+document.querySelectorAll('.activite-card').forEach(card => {
+    const chk = card.querySelector('input[type="checkbox"]');
+    chk.addEventListener('change', () => card.classList.toggle('selected', chk.checked));
+});
+
+// S'assurer qu'un champ "actif" est envoyé même quand décoché (form envoie rien sinon)
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!inputActif.checked) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden'; hidden.name = 'actif'; hidden.value = '0';
+        this.appendChild(hidden);
+    }
+});
+</script>
+
+<%- include('../partials/footer') %>

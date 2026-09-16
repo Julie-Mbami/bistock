@@ -1,0 +1,178 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><%= activite.nom %></h1>
+        <p class="page-subtitle">Vue opérationnelle du stock — <%= user.nom_affiche %></p>
+    </div>
+</div>
+
+<% if (nb_receptions_a_traiter > 0) { %>
+<div class="alert" style="background: var(--gold-50); border-left: 4px solid var(--gold); padding: 14px 18px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="bi bi-truck" style="font-size: 1.6rem; color: var(--gold-dark);"></i>
+        <div style="flex: 1;">
+            <strong style="color: var(--gold-dark);"><%= nb_receptions_a_traiter %> réception<%= nb_receptions_a_traiter > 1 ? 's' : '' %> en attente</strong>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Nestor a remis des produits — vérifiez et entrez en stock</div>
+        </div>
+        <a href="/stocks/receptions/" class="btn btn-primary"><i class="bi bi-check-lg"></i> Traiter maintenant</a>
+    </div>
+</div>
+<% } %>
+
+<!-- KPI principaux -->
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= nb_receptions_a_traiter > 0 ? 'primary' : '' %>">
+            <div class="kpi-icon"><i class="bi bi-inbox"></i></div>
+            <div class="kpi-label">Réceptions à traiter</div>
+            <div class="kpi-value"><%= nb_receptions_a_traiter %></div>
+            <div class="kpi-meta">
+                <% if (nb_receptions_preparees) { %><%= nb_receptions_preparees %> en préparation<% } else { %>&nbsp;<% } %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= nb_rupture > 0 ? 'danger' : (nb_alerte > 0 ? '' : 'success') %>">
+            <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="kpi-label">Alertes stock</div>
+            <div class="kpi-value"><%= nb_rupture + nb_alerte %></div>
+            <div class="kpi-meta">
+                <% if (nb_rupture) { %><span style="color: var(--danger); font-weight: 600;"><%= nb_rupture %> en rupture</span><% } %>
+                <% if (nb_rupture && nb_alerte) { %> · <% } %>
+                <% if (nb_alerte) { %><span style="color: var(--gold-dark); font-weight: 600;"><%= nb_alerte %> en alerte</span><% } %>
+                <% if (!nb_rupture && !nb_alerte) { %>Tout est en ordre<% } %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card info">
+            <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="kpi-label">Valeur du stock</div>
+            <div class="kpi-value"><%= h.formatNombre(valeur_stock) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta"><%= nb_produits_actifs %> produit<%= h.pluralize(nb_produits_actifs) %> actif<%= h.pluralize(nb_produits_actifs) %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="bi bi-arrow-left-right"></i></div>
+            <div class="kpi-label">Mouvements du jour</div>
+            <div class="kpi-value"><%= mvts_jour.total || 0 %></div>
+            <div class="kpi-meta">
+                <% if (mvts_jour.entrees) { %><span style="color: var(--success);">↑ <%= mvts_jour.entrees %></span><% } %>
+                <% if (mvts_jour.sorties) { %> <span style="color: var(--danger);">↓ <%= mvts_jour.sorties %></span><% } %>
+                <% if (mvts_jour.ajust) { %> · <%= mvts_jour.ajust %> ajust.<% } %>
+                <% if (!mvts_jour.total) { %>Aucun mouvement<% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Graphique mouvements 30j -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="color: var(--navy);"><i class="bi bi-graph-up" style="color: var(--gold);"></i> Entrées / Sorties — 30 derniers jours</h5>
+                <div style="position: relative; height: 320px;"><canvas id="chartMouvements"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prévision rupture -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="color: var(--navy);"><i class="bi bi-hourglass-split" style="color: var(--gold);"></i> Ruptures à venir (7 jours)</h5>
+                <% if (!previsions_rupture.length) { %>
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="bi bi-check-circle" style="font-size: 2rem; color: var(--success);"></i>
+                        <div style="margin-top: 8px;">Aucune rupture à prévoir dans la semaine</div>
+                    </div>
+                <% } else { %>
+                <div style="max-height: 320px; overflow-y: auto;">
+                    <% previsions_rupture.forEach(function(p) { %>
+                        <div style="padding: 10px 0; border-bottom: 1px solid var(--border);">
+                            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                                <strong style="font-size: 0.88rem;"><%= p.designation %></strong>
+                                <span class="badge <%= p.jours_restants < 3 ? 'badge-rupture' : 'badge-alerte' %>"><%= p.jours_restants %>j</span>
+                            </div>
+                            <small class="text-muted">Stock : <%= p.stock_actuel %> <%= p.unite %> · conso <%= p.conso_jour %>/j</small>
+                        </div>
+                    <% }); %>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <!-- Top produits consommés -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="color: var(--navy);"><i class="bi bi-trophy" style="color: var(--gold);"></i> Top 5 produits consommés (30j)</h5>
+                <% if (!top_conso.length) { %>
+                    <p class="text-muted">Aucune sortie enregistrée.</p>
+                <% } else { %>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Produit</th><th style="text-align: right;">Sorties totales</th></tr></thead>
+                        <tbody>
+                        <% top_conso.forEach(function(p) { %>
+                            <tr>
+                                <td><strong><%= p.designation %></strong> <small class="text-muted"><code><%= p.reference %></code></small></td>
+                                <td style="text-align: right; font-weight: 700;"><%= p.qte %></td>
+                            </tr>
+                        <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dernier inventaire + actions rapides -->
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="color: var(--navy);"><i class="bi bi-lightning-charge" style="color: var(--gold);"></i> Accès rapides</h5>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="/stocks/etat/" class="btn btn-outline-primary text-start"><i class="bi bi-list-check"></i> État complet du stock</a>
+                    <a href="/stocks/mouvements/" class="btn btn-outline-primary text-start"><i class="bi bi-arrow-left-right"></i> Historique des mouvements</a>
+                    <a href="/stocks/inventaires/nouveau" class="btn btn-outline-primary text-start"><i class="bi bi-clipboard-check"></i> Démarrer un inventaire</a>
+                    <a href="/stocks/alertes/" class="btn btn-outline-primary text-start"><i class="bi bi-bell"></i> Voir les alertes<% if (nb_alertes_non_lues) { %> (<%= nb_alertes_non_lues %>)<% } %></a>
+                </div>
+                <% if (dernier_inv) { %>
+                <hr>
+                <h6 style="color: var(--text-muted); font-size: 0.85rem;">Dernier inventaire</h6>
+                <div style="font-size: 0.88rem;">
+                    <code><%= dernier_inv.reference %></code>
+                    <span class="badge <%= dernier_inv.statut === 'VALIDE' ? 'badge-ok' : 'badge-alerte' %>" style="margin-left: 4px;"><%= dernier_inv.statut %></span>
+                    <br><small class="text-muted"><%= h.formatDate(dernier_inv.date_creation) %>
+                    <% if (dernier_inv.nb_ecarts) { %> · <%= dernier_inv.nb_ecarts %> écart<%= h.pluralize(dernier_inv.nb_ecarts) %><% } %>
+                    </small>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const jours = <%- jours_labels %>;
+const entrees = <%- data_entrees %>;
+const sorties = <%- data_sorties %>;
+new Chart(document.getElementById('chartMouvements'), {
+    type: 'bar',
+    data: { labels: jours, datasets: [
+        { label: 'Entrées', data: entrees, backgroundColor: '#047857', borderRadius: 4 },
+        { label: 'Sorties', data: sorties, backgroundColor: '#b91c1c', borderRadius: 4 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } }, y: { beginAtZero: true } } }
+});
+</script>
+<%- include('../partials/footer') %>

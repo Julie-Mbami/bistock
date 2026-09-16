@@ -1,0 +1,383 @@
+<%- include('layout_header') %>
+
+<style>
+/* === HERO immersif avec photo === */
+.hero {
+    position: relative;
+    height: 520px;
+    background-image: linear-gradient(135deg, rgba(44,24,16,0.65) 0%, rgba(44,24,16,0.35) 60%, rgba(0,0,0,0.15) 100%),
+                      url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1600&q=85&auto=format&fit=crop');
+    background-size: cover; background-position: center;
+    color: #fff;
+    display: flex; align-items: center;
+    padding: 0 20px;
+    overflow: hidden;
+}
+.hero .hero-content { max-width: 1200px; margin: 0 auto; width: 100%; padding: 30px 0; }
+.hero .tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+    padding: 8px 16px; border-radius: 999px;
+    font-size: 0.8rem; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.25);
+    margin-bottom: 20px;
+}
+.hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.8rem; line-height: 1.05;
+    font-weight: 900;
+    max-width: 700px;
+    margin-bottom: 18px;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+}
+.hero .tagline {
+    font-size: 1.15rem; max-width: 540px;
+    opacity: 0.95; margin-bottom: 30px; line-height: 1.5;
+    font-weight: 300;
+}
+.hero .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* === Sections === */
+.section { padding: 70px 20px; }
+.section.bg-cream { background: var(--creme-fonce); }
+.section-header { text-align: center; margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto; }
+.section-header .eyebrow {
+    color: var(--or); font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; font-size: 0.75rem; margin-bottom: 10px;
+    display: block;
+}
+.section-header h2 {
+    font-size: 2.4rem; color: var(--marron);
+    margin-bottom: 12px; line-height: 1.15;
+}
+.section-header p { color: var(--text-muted); font-size: 1.02rem; line-height: 1.6; }
+
+/* === Catégories === */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    max-width: 1200px; margin: 0 auto;
+}
+.category-tile {
+    position: relative;
+    aspect-ratio: 1 / 1.15;
+    border-radius: 20px; overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: all 0.3s;
+    display: block;
+}
+.category-tile:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.category-tile img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.5s;
+}
+.category-tile:hover img { transform: scale(1.08); }
+.category-tile::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 40%, transparent 70%);
+}
+.category-tile .content {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 22px; color: #fff; z-index: 2;
+}
+.category-tile .content h3 {
+    font-size: 1.6rem; margin-bottom: 4px;
+    font-family: 'Playfair Display', serif; font-weight: 800;
+}
+.category-tile .content span { font-size: 0.85rem; opacity: 0.9; }
+
+/* === Coups de cœur === */
+.featured-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+    max-width: 1200px; margin: 0 auto;
+}
+.dish-card {
+    background: var(--surface); border-radius: 18px; overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+    display: flex; flex-direction: column;
+    position: relative;
+}
+.dish-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.dish-card .photo-wrap { position: relative; aspect-ratio: 4 / 3; overflow: hidden; }
+.dish-card .photo-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.dish-card:hover .photo-wrap img { transform: scale(1.06); }
+.dish-card .tag-populaire {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--or); color: var(--marron);
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    box-shadow: var(--shadow-sm);
+}
+.dish-card .body { padding: 18px 20px 20px; }
+.dish-card .name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700; font-size: 1.25rem; color: var(--marron);
+    margin-bottom: 6px;
+}
+.dish-card .desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px;
+                   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+                   min-height: 2.55em; }
+.dish-card .bottom {
+    display: flex; justify-content: space-between; align-items: center;
+}
+.dish-card .price {
+    font-family: 'Playfair Display', serif;
+    font-weight: 800; font-size: 1.4rem; color: var(--marron);
+}
+.dish-card .price small { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; font-family: 'Inter'; }
+.dish-card .add-btn {
+    background: var(--marron); color: var(--or-clair);
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 700;
+    transition: all 0.2s;
+}
+.dish-card .add-btn:hover { background: var(--or); color: var(--marron); transform: rotate(90deg); }
+
+/* === Comment ça marche === */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 30px; max-width: 1100px; margin: 0 auto; }
+.step { text-align: center; padding: 20px; }
+.step .num {
+    width: 68px; height: 68px; border-radius: 50%;
+    background: var(--or-clair); color: var(--marron);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 0 8px rgba(184,134,11,0.1);
+}
+.step h4 { font-size: 1.2rem; color: var(--marron); margin-bottom: 8px; font-family: 'Playfair Display', serif; }
+.step p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.55; }
+
+/* === CTA final === */
+.cta-final {
+    background: var(--marron); color: var(--or-clair);
+    padding: 70px 20px; text-align: center;
+    position: relative; overflow: hidden;
+}
+.cta-final::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&q=60');
+    background-size: cover; opacity: 0.08;
+}
+.cta-final .inner { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; }
+.cta-final h2 { font-size: 2.3rem; color: #fff; margin-bottom: 14px; }
+.cta-final p { opacity: 0.9; margin-bottom: 26px; font-size: 1.05rem; }
+
+/* === Responsive === */
+@media (max-width: 640px) {
+    .hero { height: 460px; }
+    .hero h1 { font-size: 2.4rem; }
+    .hero .tagline { font-size: 1rem; }
+    .section { padding: 50px 16px; }
+    .section-header h2 { font-size: 1.8rem; }
+}
+</style>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-content">
+        <span class="tag"><i class="bi bi-star-fill" style="color: #FBBF24;"></i> Bienvenue au Traiteur du Bistrot</span>
+        <h1>La bonne cuisine, livrée chez vous.</h1>
+        <p class="tagline">Burgers, pâtisseries maison, plats traiteur. Commandez en quelques clics, on s'occupe du reste.</p>
+        <div class="hero-ctas">
+            <a href="/commander/" class="btn btn-or btn-lg">
+                <i class="bi bi-basket"></i> Voir le menu
+            </a>
+            <a href="#comment" class="btn btn-outline btn-lg" style="border-color: rgba(255,255,255,0.4); color: #fff;">
+                Comment ça marche
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- CATÉGORIES -->
+<section class="section">
+    <div class="section-header">
+        <span class="eyebrow">Notre carte</span>
+        <h2>De quoi vous faire plaisir</h2>
+        <p>Des recettes préparées chaque matin par nos chefs, avec des produits frais.</p>
+    </div>
+    <div class="categories-grid">
+        <a href="/commander/?categorie=burger" class="category-tile">
+            <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=85&auto=format&fit=crop" alt="Burgers">
+            <div class="content">
+                <h3>Burgers</h3>
+                <span>12 recettes maison</span>
+            </div>
+        </a>
+        <a href="/commander/?categorie=patisserie" class="category-tile">
+            <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=85&auto=format&fit=crop" alt="Pâtisseries">
+            <div class="content">
+                <h3>Pâtisseries</h3>
+                <span>18 gourmandises</span>
+            </div>
+        </a>
+        <a href="/commander/?categorie=viennoiserie" class="category-tile">
+            <img src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&q=85&auto=format&fit=crop" alt="Viennoiseries">
+            <div class="content">
+                <h3>Viennoiseries</h3>
+                <span>8 spécialités du matin</span>
+            </div>
+        </a>
+        <a href="/commander/?categorie=boisson" class="category-tile">
+            <img src="https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=600&q=85&auto=format&fit=crop" alt="Boissons">
+            <div class="content">
+                <h3>Boissons fraîches</h3>
+                <span>14 jus & sodas</span>
+            </div>
+        </a>
+    </div>
+</section>
+
+<!-- COUPS DE CŒUR -->
+<section class="section bg-cream">
+    <div class="section-header">
+        <span class="eyebrow">Les incontournables</span>
+        <h2>Nos coups de cœur</h2>
+        <p>Les plats les plus commandés cette semaine par nos clients.</p>
+    </div>
+    <div class="featured-grid">
+        <div class="dish-card">
+            <div class="photo-wrap">
+                <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=85&auto=format&fit=crop" alt="Big Bona Burger">
+                <span class="tag-populaire">★ Populaire</span>
+            </div>
+            <div class="body">
+                <div class="name">Big Bona Burger</div>
+                <div class="desc">Double steak haché, cheddar fondu, tomate, salade fraîche, oignons caramélisés, sauce maison.</div>
+                <div class="bottom">
+                    <div class="price">3 500 <small>FCFA</small></div>
+                    <button class="add-btn" title="Ajouter au panier">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dish-card">
+            <div class="photo-wrap">
+                <img src="https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&q=85&auto=format&fit=crop" alt="Fondant chocolat">
+                <span class="tag-populaire">★ Populaire</span>
+            </div>
+            <div class="body">
+                <div class="name">Fondant au chocolat</div>
+                <div class="desc">Cœur coulant, chocolat noir 70% du Cameroun, servi tiède avec un coulis vanille.</div>
+                <div class="bottom">
+                    <div class="price">1 500 <small>FCFA</small></div>
+                    <button class="add-btn" title="Ajouter au panier">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dish-card">
+            <div class="photo-wrap">
+                <img src="https://images.unsplash.com/photo-1509365465985-25d11c17e812?w=600&q=85&auto=format&fit=crop" alt="Croissant beurre">
+            </div>
+            <div class="body">
+                <div class="name">Croissant au beurre</div>
+                <div class="desc">Feuilletage maison, beurre AOP, croustillant à l'extérieur, moelleux à l'intérieur.</div>
+                <div class="bottom">
+                    <div class="price">500 <small>FCFA</small></div>
+                    <button class="add-btn" title="Ajouter au panier">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dish-card">
+            <div class="photo-wrap">
+                <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=85&auto=format&fit=crop" alt="Pizza 4 fromages">
+            </div>
+            <div class="body">
+                <div class="name">Pizza 4 fromages</div>
+                <div class="desc">Mozzarella, chèvre, gruyère, gorgonzola sur pâte fine artisanale, cuite au four à bois.</div>
+                <div class="bottom">
+                    <div class="price">4 500 <small>FCFA</small></div>
+                    <button class="add-btn" title="Ajouter au panier">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="text-align: center; margin-top: 40px;">
+        <a href="/commander/" class="btn btn-primary btn-lg">Voir tout le menu <i class="bi bi-arrow-right"></i></a>
+    </div>
+</section>
+
+<!-- COMMENT ÇA MARCHE -->
+<section class="section" id="comment">
+    <div class="section-header">
+        <span class="eyebrow">3 étapes simples</span>
+        <h2>Comment ça marche</h2>
+    </div>
+    <div class="steps">
+        <div class="step">
+            <div class="num">1</div>
+            <h4>Choisissez vos plats</h4>
+            <p>Parcourez notre menu, ajoutez ce qui vous fait envie à votre panier.</p>
+        </div>
+        <div class="step">
+            <div class="num">2</div>
+            <h4>Retrait ou livraison</h4>
+            <p>Venez récupérer votre commande sur place ou faites-vous livrer à Douala.</p>
+        </div>
+        <div class="step">
+            <div class="num">3</div>
+            <h4>Payez à la remise</h4>
+            <p>Espèces, Orange Money ou MTN Mobile Money — au moment où vous récupérez.</p>
+        </div>
+    </div>
+</section>
+
+<!-- CONTACT & INFOS PRATIQUES -->
+<section class="section bg-cream">
+    <div class="section-header">
+        <span class="eyebrow">Toujours à votre écoute</span>
+        <h2>Nous joindre</h2>
+    </div>
+    <div style="max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+        <a href="tel:+237690000000" style="background: var(--surface); border-radius: 16px; padding: 24px; text-align: center; box-shadow: var(--shadow-sm); transition: all 0.2s; display: block; text-decoration: none; color: inherit;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-sm)'">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--or-clair); color: var(--marron); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 1.4rem;">
+                <i class="bi bi-telephone-fill"></i>
+            </div>
+            <div style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron); font-size: 1.05rem; margin-bottom: 4px;">Téléphone</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">+237 690 00 00 00</div>
+        </a>
+
+        <a href="https://wa.me/237690000000" target="_blank" style="background: var(--surface); border-radius: 16px; padding: 24px; text-align: center; box-shadow: var(--shadow-sm); transition: all 0.2s; display: block; text-decoration: none; color: inherit;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-sm)'">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: #DCFCE7; color: #059669; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 1.4rem;">
+                <i class="bi bi-whatsapp"></i>
+            </div>
+            <div style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron); font-size: 1.05rem; margin-bottom: 4px;">WhatsApp</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Discutez avec nous</div>
+        </a>
+
+        <div style="background: var(--surface); border-radius: 16px; padding: 24px; text-align: center; box-shadow: var(--shadow-sm);">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--or-clair); color: var(--marron); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 1.4rem;">
+                <i class="bi bi-clock-fill"></i>
+            </div>
+            <div style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron); font-size: 1.05rem; margin-bottom: 4px;">Horaires</div>
+            <div style="color: var(--text-muted); font-size: 0.85rem;">Lun–Sam · 8h–22h<br>Dim · 10h–20h</div>
+        </div>
+
+        <div style="background: var(--surface); border-radius: 16px; padding: 24px; text-align: center; box-shadow: var(--shadow-sm);">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--or-clair); color: var(--marron); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 1.4rem;">
+                <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <div style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron); font-size: 1.05rem; margin-bottom: 4px;">Adresse</div>
+            <div style="color: var(--text-muted); font-size: 0.85rem;">Douala, Cameroun</div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-final">
+    <div class="inner">
+        <h2>Une petite faim ?</h2>
+        <p>Notre équipe prépare votre commande en 20 minutes. Bon appétit !</p>
+        <a href="/commander/" class="btn btn-or btn-lg">Commander maintenant <i class="bi bi-arrow-right"></i></a>
+    </div>
+</section>
+
+<%- include('layout_footer') %>

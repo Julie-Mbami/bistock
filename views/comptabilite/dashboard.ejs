@@ -1,0 +1,178 @@
+<%- include('../partials/header') %>
+<style>
+.fin-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; box-shadow: var(--sh-sm); }
+.fin-tile-label { font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; }
+.fin-tile-value { font-size: 1.9rem; font-weight: 800; color: var(--navy); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.fin-tile-meta { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+.tresorerie-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border); }
+.tresorerie-row:last-child { border-bottom: none; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Situation financière</h1>
+        <p class="page-subtitle">Vue consolidée temps réel — mois en cours</p>
+    </div>
+</div>
+
+<!-- KPIs financiers -->
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="fin-tile" style="border-left: 4px solid var(--success);">
+            <div class="fin-tile-label"><i class="bi bi-cash-stack"></i> Trésorerie totale</div>
+            <div class="fin-tile-value" style="color: var(--success);"><%= h.formatNombre(tresorerie.total) %> <span style="font-size: 1rem;"><%= devise %></span></div>
+            <div class="fin-tile-meta">Caisses + banque</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="fin-tile" style="border-left: 4px solid var(--gold);">
+            <div class="fin-tile-label"><i class="bi bi-graph-up-arrow"></i> CA du mois</div>
+            <div class="fin-tile-value" style="color: var(--gold-dark);"><%= h.formatNombre(caMois) %> <span style="font-size: 1rem;"><%= devise %></span></div>
+            <div class="fin-tile-meta">
+                <% if (caMoisPrec > 0) { const pct = Math.round((caMois - caMoisPrec) / caMoisPrec * 100); %>
+                    Mois précédent : <%= h.formatNombre(caMoisPrec) %> <%= devise %>
+                    <span style="color: <%= pct >= 0 ? 'var(--success)' : 'var(--danger)' %>; font-weight: 600;">
+                        (<%= pct >= 0 ? '+' : '' %><%= pct %>%)
+                    </span>
+                <% } else { %>Premier mois d'activité<% } %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="fin-tile" style="border-left: 4px solid #2563EB;">
+            <div class="fin-tile-label"><i class="bi bi-inbox-fill"></i> À encaisser</div>
+            <div class="fin-tile-value" style="color: #2563EB;"><%= h.formatNombre(aEncaisser) %> <span style="font-size: 1rem;"><%= devise %></span></div>
+            <div class="fin-tile-meta">Solde clients (compte 411)</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="fin-tile" style="border-left: 4px solid #EA580C;">
+            <div class="fin-tile-label"><i class="bi bi-send-fill"></i> À payer aux fournisseurs</div>
+            <div class="fin-tile-value" style="color: #EA580C;"><%= h.formatNombre(aPayer) %> <span style="font-size: 1rem;"><%= devise %></span></div>
+            <div class="fin-tile-meta">Solde fournisseurs (compte 401)</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Détail trésorerie -->
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header"><i class="bi bi-wallet2"></i> Détail trésorerie</div>
+            <div class="card-body">
+                <div class="tresorerie-row">
+                    <span><i class="bi bi-bank" style="color: #8B5CF6;"></i> <strong>521 — Banque principale</strong></span>
+                    <strong style="color: var(--success);"><%= h.formatNombre(tresorerie.banque) %> <%= devise %></strong>
+                </div>
+                <% tresorerie.caisses.forEach(function(c) { %>
+                    <div class="tresorerie-row">
+                        <span><i class="bi bi-cash-coin" style="color: var(--gold);"></i> <%= c.compte %> — <%= c.activite %></span>
+                        <strong style="color: <%= c.solde >= 0 ? 'var(--success)' : 'var(--danger)' %>;"><%= h.formatNombre(c.solde) %> <%= devise %></strong>
+                    </div>
+                <% }); %>
+                <div class="tresorerie-row" style="border-top: 2px solid var(--gold); padding-top: 12px; margin-top: 8px;">
+                    <strong style="font-size: 1.05rem;">TOTAL</strong>
+                    <strong style="color: var(--gold-dark); font-size: 1.15rem;"><%= h.formatNombre(tresorerie.total) %> <%= devise %></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TVA du mois -->
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-receipt"></i> TVA du mois</span>
+                <a href="/comptabilite/tva/" class="small">Détail →</a>
+            </div>
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                    <span>TVA collectée (ventes)</span>
+                    <strong style="color: var(--success);">+ <%= h.formatNombre(tvaCollectee) %> <%= devise %></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                    <span>TVA déductible (achats)</span>
+                    <strong style="color: var(--danger);">− <%= h.formatNombre(tvaDeductible) %> <%= devise %></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid var(--gold); margin-top: 6px;">
+                    <strong style="font-size: 1.05rem;">TVA nette à décaisser</strong>
+                    <strong style="color: <%= tvaNette >= 0 ? '#EA580C' : 'var(--success)' %>; font-size: 1.15rem;"><%= h.formatNombre(tvaNette) %> <%= devise %></strong>
+                </div>
+                <div class="small text-muted" style="margin-top: 8px;">
+                    <i class="bi bi-info-circle"></i>
+                    <% if (tvaNette >= 0) { %>
+                        À provisionner pour la déclaration DSF.
+                    <% } else { %>
+                        Crédit TVA reportable sur le mois suivant.
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Répartition CA par activité -->
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header"><i class="bi bi-pie-chart"></i> CA du mois par activité</div>
+            <div class="card-body">
+                <% caParActivite.forEach(function(a) {
+                    const pct = caMois > 0 ? Math.round(a.ca / caMois * 100) : 0;
+                %>
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="color: <%= a.couleur %>; font-weight: 600;"><%= a.nom %></span>
+                            <span><strong><%= h.formatNombre(a.ca) %> <%= devise %></strong> <span class="text-muted small">(<%= pct %>%)</span></span>
+                        </div>
+                        <div style="height: 6px; background: var(--bg-soft); border-radius: 3px; overflow: hidden;">
+                            <div style="width: <%= pct %>%; height: 100%; background: <%= a.couleur %>;"></div>
+                        </div>
+                    </div>
+                <% }); %>
+                <% if (!caParActivite.some(a => a.ca > 0)) { %>
+                    <div class="text-muted small" style="text-align: center; padding: 20px;">Aucun CA journalisé ce mois-ci.</div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dernières écritures -->
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-clock-history"></i> Dernières écritures</span>
+                <a href="/comptabilite/journaux/" class="small">Tous les journaux →</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Pièce</th>
+                            <th>Libellé</th>
+                            <th style="text-align: right;">Montant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% dernieresEcritures.forEach(function(e) { %>
+                            <tr>
+                                <td class="small text-muted"><%= h.formatDate(e.date_ecriture, false) %></td>
+                                <td><code style="font-size: 0.75rem;"><%= e.numero_piece %></code></td>
+                                <td class="small"><%= (e.libelle || '').slice(0, 40) %><%= (e.libelle || '').length > 40 ? '…' : '' %></td>
+                                <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(Math.max(e.d, e.c)) %></td>
+                            </tr>
+                        <% }); %>
+                        <% if (!dernieresEcritures.length) { %>
+                            <tr><td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                                Aucune écriture pour l'instant. Elles seront générées automatiquement au fil des ventes, achats et paiements.
+                            </td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

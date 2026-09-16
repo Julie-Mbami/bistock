@@ -1,0 +1,28 @@
+<svg viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bsf-grad-or" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#F5D97A"/>
+      <stop offset="45%"  stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+  </defs>
+  <!-- Icône -->
+  <rect x="30" y="30" width="200" height="200" rx="34" fill="#FFFFFF" stroke="url(#bsf-grad-or)" stroke-width="4"/>
+  <rect x="34" y="34" width="192" height="70" rx="30" fill="#FBF8ED" opacity="0.5"/>
+  <text x="118" y="180"
+        font-family="Helvetica, Arial, sans-serif"
+        font-weight="900"
+        font-size="160"
+        fill="url(#bsf-grad-or)"
+        text-anchor="middle">B</text>
+  <rect x="176" y="118" width="36" height="10" rx="2" fill="url(#bsf-grad-or)"/>
+  <rect x="176" y="136" width="28" height="10" rx="2" fill="#C9A227"/>
+  <rect x="176" y="154" width="20" height="10" rx="2" fill="#C9A227" opacity="0.65"/>
+  <!-- Wordmark -->
+  <text x="270" y="152"
+        font-family="Helvetica, Arial, sans-serif"
+        font-weight="900"
+        font-size="88"
+        fill="#3D3025"
+        letter-spacing="-3">Bistock</text>
+</svg>

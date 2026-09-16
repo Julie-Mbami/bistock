@@ -1,0 +1,581 @@
+<%- include('layout_header') %>
+
+<style>
+.panier-hero {
+    background: linear-gradient(135deg, var(--marron) 0%, #4A2F1E 100%);
+    color: #fff;
+    padding: 36px 20px 22px;
+    text-align: center;
+}
+.panier-hero .eyebrow { color: var(--or); font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; font-size: 0.72rem; display: block; margin-bottom: 8px; }
+.panier-hero h1 { font-size: 1.9rem; color: #fff; }
+.panier-hero p { opacity: 0.75; font-size: 0.9rem; margin-top: 4px; }
+
+.panier-container {
+    max-width: 900px; margin: 0 auto; padding: 40px 20px 100px;
+    display: grid; grid-template-columns: 1fr 340px; gap: 30px;
+}
+@media (max-width: 900px) { .panier-container { grid-template-columns: 1fr; } }
+
+.articles-liste { display: flex; flex-direction: column; gap: 14px; }
+
+.panier-item {
+    background: var(--surface); border-radius: 16px;
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+}
+.panier-item:hover { box-shadow: var(--shadow); }
+.panier-item .photo {
+    width: 90px; height: 90px; border-radius: 12px;
+    overflow: hidden; flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--or-clair), var(--or-pale));
+    font-size: 2.5rem;
+}
+.panier-item .photo img { width: 100%; height: 100%; object-fit: cover; }
+.panier-item .infos { flex: 1; min-width: 0; }
+.panier-item .name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.1rem; color: var(--marron); margin-bottom: 4px; }
+.panier-item .prix-unit { font-size: 0.82rem; color: var(--text-muted); }
+.panier-item .total { font-family: 'Playfair Display', serif; font-weight: 800; color: var(--marron); font-size: 1.15rem; margin-top: 6px; }
+
+.qty-selector { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.qty-row {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--creme-fonce); border-radius: 999px; padding: 4px;
+}
+.qty-row button {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface); color: var(--marron);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.1rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.1s; border: none; cursor: pointer;
+}
+.qty-row button:active { transform: scale(0.92); }
+.qty-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+.qty-row .qty { font-weight: 800; font-size: 1rem; min-width: 24px; text-align: center; color: var(--marron); }
+.trash-btn { color: var(--danger); font-size: 0.75rem; font-weight: 600; opacity: 0.7; background: none; border: none; cursor: pointer; }
+.trash-btn:hover { opacity: 1; }
+
+.recap-sticky { position: sticky; top: 130px; }
+.recap-card {
+    background: var(--surface); border-radius: 18px;
+    padding: 26px; box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+.recap-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; color: var(--marron); margin-bottom: 4px; }
+.recap-subtitle { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
+.mode-choix { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.mode-btn {
+    padding: 14px 10px; border-radius: 12px;
+    border: 2px solid var(--border); background: var(--surface);
+    text-align: center; font-weight: 700; font-size: 0.82rem;
+    color: var(--text); transition: all 0.15s; cursor: pointer;
+}
+.mode-btn i { font-size: 1.5rem; display: block; margin-bottom: 4px; color: var(--text-muted); }
+.mode-btn small { display: block; font-weight: 400; font-size: 0.7rem; margin-top: 3px; color: var(--text-muted); }
+.mode-btn.active { border-color: var(--or); background: var(--or-pale); color: var(--marron); box-shadow: 0 4px 12px rgba(184,134,11,0.15); }
+.mode-btn.active i, .mode-btn.active small { color: var(--marron); }
+.recap-line { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.92rem; }
+.recap-line .label { color: var(--text-muted); }
+.recap-line strong { color: var(--marron); }
+.recap-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-top: 14px; margin-top: 10px;
+    border-top: 2px dashed var(--border);
+}
+.recap-total .label { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron); font-size: 1.1rem; }
+.recap-total .amount { font-family: 'Playfair Display', serif; font-weight: 900; color: var(--marron); font-size: 1.8rem; transition: color 0.3s; }
+.recap-total .amount.flash { color: var(--success); }
+
+/* Bandeau rassurance douce (sans engagement horaire) */
+.recap-info {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--or-pale);
+    padding: 10px 14px; border-radius: 12px;
+    margin: 14px 0; font-size: 0.85rem; color: var(--marron);
+    border-left: 3px solid var(--or);
+}
+.recap-info i { font-size: 1.1rem; color: var(--or-fonce); }
+
+.empty-cart { text-align: center; padding: 80px 20px; }
+.empty-cart .emoji { font-size: 4rem; display: block; margin-bottom: 12px; }
+.empty-cart h2 { color: var(--marron); font-size: 1.6rem; margin-bottom: 8px; }
+.empty-cart p { color: var(--text-muted); margin-bottom: 24px; }
+
+/* Barre d'action panier */
+.panier-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; margin-top: 6px;
+}
+.panier-actions a { color: var(--marron); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+.panier-actions a:hover { text-decoration: underline; }
+.btn-vider {
+    background: transparent; border: none; color: var(--danger);
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 8px;
+}
+.btn-vider:hover { background: rgba(220,38,38,0.08); }
+
+.reassurance {
+    text-align: center; font-size: 0.75rem;
+    color: var(--text-muted); margin-top: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.reassurance i { color: var(--success); font-size: 0.9rem; }
+
+/* ===== Modale de confirmation personnalisée ===== */
+.confirm-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(44,24,16,0.55);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.confirm-overlay.open { display: flex; opacity: 1; }
+.confirm-modal {
+    background: var(--surface); border-radius: 24px;
+    max-width: 440px; width: 100%;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+    overflow: hidden;
+    transform: scale(0.92); opacity: 0;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.confirm-overlay.open .confirm-modal {
+    transform: scale(1); opacity: 1;
+}
+.confirm-icon {
+    width: 68px; height: 68px; border-radius: 50%;
+    margin: 32px auto 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+}
+.confirm-icon.danger { background: #FEF2F2; color: var(--danger); }
+.confirm-icon.warning { background: var(--or-pale); color: var(--or-fonce); }
+.confirm-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 800; font-size: 1.5rem; color: var(--marron);
+    text-align: center; margin-bottom: 8px;
+    padding: 0 32px;
+}
+.confirm-message {
+    text-align: center; color: var(--text-muted);
+    font-size: 0.95rem; line-height: 1.5;
+    padding: 0 32px; margin-bottom: 28px;
+}
+.confirm-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 0 24px 24px;
+}
+.confirm-btn-annuler {
+    padding: 14px 20px; border-radius: 999px;
+    background: var(--creme-fonce); color: var(--marron);
+    font-weight: 700; font-size: 0.95rem;
+    border: none; cursor: pointer;
+    transition: background 0.15s;
+}
+.confirm-btn-annuler:hover { background: var(--or-pale); }
+.confirm-btn-valider {
+    padding: 14px 20px; border-radius: 999px;
+    background: var(--marron); color: var(--or-clair);
+    font-weight: 700; font-size: 0.95rem;
+    border: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: var(--shadow);
+}
+.confirm-btn-valider:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.confirm-btn-valider.danger { background: var(--danger); color: #fff; }
+.confirm-btn-valider.danger:hover { background: #B91C1C; }
+</style>
+
+<section class="panier-hero">
+    <% if (locals.modification) { %>
+        <span class="eyebrow" style="color: var(--or-clair);">Modification en cours</span>
+        <h1>Modifier ma commande</h1>
+        <p><strong><%= modification.code_suivi %></strong> · <%= panier.nb_articles %> article<%= panier.nb_articles > 1 ? 's' : '' %></p>
+    <% } else { %>
+        <span class="eyebrow">Votre commande</span>
+        <h1>Mon panier</h1>
+        <p><%= panier.nb_articles %> article<%= panier.nb_articles > 1 ? 's' : '' %></p>
+    <% } %>
+</section>
+
+<% if (locals.modification) { %>
+<div style="max-width: 900px; margin: 20px auto 0; padding: 12px 20px; background: var(--or-pale); border: 1px solid var(--or-clair); border-radius: 12px; display: flex; align-items: center; gap: 12px;">
+    <i class="bi bi-info-circle-fill" style="color: var(--or-fonce); font-size: 1.2rem;"></i>
+    <div style="flex: 1; font-size: 0.88rem; color: var(--marron);">
+        Vous modifiez la commande <strong><%= modification.code_suivi %></strong>. Ajustez le panier puis validez pour appliquer les changements.
+    </div>
+    <a href="/commander/modifier/<%= modification.code_suivi %>/annuler" style="color: var(--marron); font-size: 0.82rem; text-decoration: underline;">Annuler la modification</a>
+</div>
+<% } %>
+
+<% if (panier.items.length === 0) { %>
+    <div class="empty-cart">
+        <span class="emoji">🛒</span>
+        <h2>Votre panier est vide</h2>
+        <p>Ajoutez des plats depuis notre menu pour commencer.</p>
+        <a href="/commander/" class="btn btn-primary btn-lg">
+            <i class="bi bi-basket"></i> Voir le menu
+        </a>
+    </div>
+<% } else { %>
+<div class="panier-container">
+    <div class="articles-liste">
+        <% panier.items.forEach(function(it) { %>
+            <div class="panier-item" data-produit-id="<%= it.id %>" data-ligne-key="<%= it.ligne_key %>" data-prix-unit="<%= Math.round(it.prix_unit_total) %>">
+                <div class="photo">
+                    <% if (it.image) { %>
+                        <img src="/media/<%= it.image %>" alt="<%= it.designation %>">
+                    <% } else { %>
+                        <%= it.emoji %>
+                    <% } %>
+                </div>
+                <div class="infos">
+                    <div class="name"><%= it.designation %></div>
+                    <% if (it.supplements_choisis && it.supplements_choisis.length) { %>
+                        <div style="margin: 4px 0 6px; font-size: 0.78rem; color: var(--text-muted);">
+                            <% it.supplements_choisis.forEach(function(s) { %>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <i class="bi bi-arrow-return-right" style="opacity: 0.6;"></i>
+                                    <span><%= s.nom %></span>
+                                    <span style="color: var(--marron); font-weight: 600;">(+<%= Math.round(s.prix).toLocaleString('fr-FR').replace(/,/g, ' ') %> F)</span>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                    <div class="prix-unit"><%= Math.round(it.prix_unit_total).toLocaleString('fr-FR').replace(/,/g, ' ') %> FCFA / unité</div>
+                    <div class="total item-total"><%= it.total.toLocaleString('fr-FR').replace(/,/g, ' ') %> FCFA</div>
+                </div>
+                <div class="qty-selector">
+                    <div class="qty-row">
+                        <button class="btn-moins" <%= it.quantite <= 1 ? 'disabled' : '' %>>−</button>
+                        <span class="qty"><%= it.quantite %></span>
+                        <button class="btn-plus">+</button>
+                    </div>
+                    <button class="trash-btn"><i class="bi bi-trash"></i> Retirer</button>
+                </div>
+            </div>
+        <% }); %>
+        <div class="panier-actions">
+            <a href="/commander/">
+                <i class="bi bi-plus-circle"></i> Ajouter d'autres articles
+            </a>
+            <button type="button" class="btn-vider" onclick="viderPanier()" title="Vider tout le panier">
+                <i class="bi bi-trash3"></i> Vider le panier
+            </button>
+        </div>
+    </div>
+
+    <div class="recap-sticky">
+        <div class="recap-card">
+            <div class="recap-title">Votre commande</div>
+            <p class="recap-subtitle">Comment souhaitez-vous la recevoir ?</p>
+            <div class="mode-choix" id="mode-choix">
+                <button class="mode-btn active" data-mode="RETRAIT">
+                    <i class="bi bi-bag-check"></i>
+                    À emporter
+                    <small>Prête chez nous</small>
+                </button>
+                <button class="mode-btn" data-mode="LIVRAISON">
+                    <i class="bi bi-scooter"></i>
+                    Livraison
+                    <small><%= frais_livraison.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</small>
+                </button>
+            </div>
+
+            <div class="recap-info">
+                <i class="bi bi-bell-fill"></i>
+                <span>Nous vous prévenons dès que c'est prêt.</span>
+            </div>
+
+            <div class="recap-line"><span class="label">Sous-total</span><span id="ligne-sous-total"><%= panier.sous_total.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></div>
+            <div class="recap-line" id="ligne-frais-row" style="display: none;"><span class="label">Frais livraison</span><span id="ligne-frais"><%= frais_livraison.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></div>
+
+            <% if (locals.web_livraison_gratuite_seuil && web_livraison_gratuite_seuil > 0) { %>
+              <% const restant = Math.max(0, web_livraison_gratuite_seuil - panier.sous_total); %>
+              <div class="livraison-gratuite-banner" id="livraison-banner"
+                   style="margin: 12px 0 4px; padding: 10px 12px; border-radius: 10px;
+                          background: <%= restant === 0 ? 'linear-gradient(135deg, #D1FAE5, #A7F3D0)' : 'linear-gradient(135deg, #FEF3C7, #FDE68A)' %>;
+                          border: 1px solid <%= restant === 0 ? '#10B981' : '#F59E0B' %>;
+                          font-size: 0.82rem; color: <%= restant === 0 ? '#065F46' : '#92400E' %>;">
+                <% if (restant === 0) { %>
+                  <i class="bi bi-check-circle-fill"></i>
+                  <strong>Livraison offerte !</strong> Panier > <%= web_livraison_gratuite_seuil.toLocaleString('fr-FR').replace(/,/g, ' ') %> F 🎉
+                <% } else { %>
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                    <i class="bi bi-truck"></i>
+                    <span>Plus que <strong><%= restant.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</strong> pour la livraison offerte</span>
+                  </div>
+                  <div style="height: 6px; background: rgba(146,64,14,0.15); border-radius: 3px; overflow: hidden;">
+                    <div style="height: 100%; background: linear-gradient(90deg, #F59E0B, #D97706);
+                                width: <%= Math.round((panier.sous_total / web_livraison_gratuite_seuil) * 100) %>%;
+                                border-radius: 3px; transition: width 0.3s;"></div>
+                  </div>
+                <% } %>
+              </div>
+            <% } %>
+
+            <div class="recap-total">
+                <span class="label">Total</span>
+                <span class="amount" id="amount-block"><span id="ligne-total"><%= panier.sous_total.toLocaleString('fr-FR').replace(/,/g, ' ') %></span> <small style="font-size: 0.8rem; font-family: Inter; font-weight: 500; color: var(--text-muted);">F</small></span>
+            </div>
+
+            <a href="/commander/checkout" class="btn btn-primary btn-lg btn-block" style="margin-top: 20px;">
+                Passer la commande <i class="bi bi-arrow-right"></i>
+            </a>
+            <p class="reassurance">
+                <i class="bi bi-shield-check"></i> Paiement à la réception · Aucune carte à saisir
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Modale de confirmation réutilisable -->
+<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="confirm-icon" id="confirm-icon">
+            <i class="bi bi-question-lg"></i>
+        </div>
+        <h3 class="confirm-title" id="confirm-title">Confirmer</h3>
+        <p class="confirm-message" id="confirm-message">Voulez-vous vraiment continuer ?</p>
+        <div class="confirm-actions">
+            <button type="button" class="confirm-btn-annuler" id="confirm-btn-annuler">Annuler</button>
+            <button type="button" class="confirm-btn-valider" id="confirm-btn-valider">Confirmer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== Modale de confirmation personnalisée (remplace confirm()) =====
+// Usage : const ok = await confirmerAction({ title, message, valider, variant }); if (ok) { ... }
+window.confirmerAction = function(opts) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('confirm-overlay');
+        const iconWrap = document.getElementById('confirm-icon');
+        const titleEl = document.getElementById('confirm-title');
+        const msgEl = document.getElementById('confirm-message');
+        const btnAnnuler = document.getElementById('confirm-btn-annuler');
+        const btnValider = document.getElementById('confirm-btn-valider');
+
+        titleEl.textContent = opts.title || 'Confirmer';
+        msgEl.textContent = opts.message || 'Voulez-vous vraiment continuer ?';
+        btnAnnuler.textContent = opts.annuler || 'Annuler';
+        btnValider.innerHTML = (opts.icone ? '<i class="bi ' + opts.icone + '"></i> ' : '') + (opts.valider || 'Confirmer');
+
+        // Variantes visuelles : 'danger' rouge, 'warning' or, 'default' marron
+        iconWrap.className = 'confirm-icon';
+        btnValider.className = 'confirm-btn-valider';
+        const variant = opts.variant || 'default';
+        if (variant === 'danger') {
+            iconWrap.classList.add('danger');
+            iconWrap.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+            btnValider.classList.add('danger');
+        } else if (variant === 'warning') {
+            iconWrap.classList.add('warning');
+            iconWrap.innerHTML = '<i class="bi bi-question-lg"></i>';
+        } else {
+            iconWrap.classList.add('warning');
+            iconWrap.innerHTML = '<i class="bi ' + (opts.iconeIntro || 'bi-question-lg') + '"></i>';
+        }
+
+        function fermer(result) {
+            overlay.classList.remove('open');
+            btnAnnuler.onclick = null;
+            btnValider.onclick = null;
+            overlay.onclick = null;
+            document.removeEventListener('keydown', onKey);
+            setTimeout(() => resolve(result), 200);
+        }
+        function onKey(e) {
+            if (e.key === 'Escape') fermer(false);
+            if (e.key === 'Enter') fermer(true);
+        }
+        btnAnnuler.onclick = () => fermer(false);
+        btnValider.onclick = () => fermer(true);
+        overlay.onclick = (e) => { if (e.target === overlay) fermer(false); };
+        document.addEventListener('keydown', onKey);
+
+        overlay.classList.add('open');
+        setTimeout(() => btnValider.focus(), 50);
+    });
+};
+
+// sousTotalActuel : suit le sous-total en temps réel (mis à jour à chaque modif de quantité)
+let sousTotalActuel = <%= panier.sous_total %>;
+const FRAIS_LIVRAISON = <%= frais_livraison %>;
+const SEUIL_LIVRAISON_GRATUITE = <%= locals.web_livraison_gratuite_seuil || 0 %>;
+let modeCurrent = 'RETRAIT';
+
+function fmt(n) { return Math.round(n).toLocaleString('fr-FR').replace(/,/g, ' '); }
+
+/** Frais de livraison actuels (0 si retrait ou seuil atteint) */
+function fraisActuels() {
+    if (modeCurrent !== 'LIVRAISON') return 0;
+    if (SEUIL_LIVRAISON_GRATUITE > 0 && sousTotalActuel >= SEUIL_LIVRAISON_GRATUITE) return 0;
+    return FRAIS_LIVRAISON;
+}
+
+/** Mise à jour de la bannière "livraison gratuite dès X" */
+function majBanniere() {
+    const banner = document.getElementById('livraison-banner');
+    if (!banner || SEUIL_LIVRAISON_GRATUITE <= 0) return;
+    const restant = Math.max(0, SEUIL_LIVRAISON_GRATUITE - sousTotalActuel);
+    if (restant === 0) {
+        banner.style.background = 'linear-gradient(135deg, #D1FAE5, #A7F3D0)';
+        banner.style.borderColor = '#10B981';
+        banner.style.color = '#065F46';
+        banner.innerHTML = '<i class="bi bi-check-circle-fill"></i> <strong>Livraison offerte !</strong> Panier > ' + fmt(SEUIL_LIVRAISON_GRATUITE) + ' F 🎉';
+    } else {
+        const pct = Math.round((sousTotalActuel / SEUIL_LIVRAISON_GRATUITE) * 100);
+        banner.style.background = 'linear-gradient(135deg, #FEF3C7, #FDE68A)';
+        banner.style.borderColor = '#F59E0B';
+        banner.style.color = '#92400E';
+        banner.innerHTML =
+            '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">' +
+                '<i class="bi bi-truck"></i>' +
+                '<span>Plus que <strong>' + fmt(restant) + ' F</strong> pour la livraison offerte</span>' +
+            '</div>' +
+            '<div style="height: 6px; background: rgba(146,64,14,0.15); border-radius: 3px; overflow: hidden;">' +
+                '<div style="height: 100%; background: linear-gradient(90deg, #F59E0B, #D97706); width: ' + pct + '%; border-radius: 3px; transition: width 0.3s;"></div>' +
+            '</div>';
+    }
+}
+
+function majTotaux() {
+    document.getElementById('ligne-sous-total').textContent = fmt(sousTotalActuel) + ' F';
+    const frais = fraisActuels();
+    const seuilAtteint = modeCurrent === 'LIVRAISON' && SEUIL_LIVRAISON_GRATUITE > 0 && sousTotalActuel >= SEUIL_LIVRAISON_GRATUITE;
+    const ligneFraisRow = document.getElementById('ligne-frais-row');
+    if (ligneFraisRow) {
+        // Montrer la ligne en mode LIVRAISON (soit avec montant, soit avec "Offerte")
+        ligneFraisRow.style.display = modeCurrent === 'LIVRAISON' ? '' : 'none';
+        const ligneFrais = document.getElementById('ligne-frais');
+        if (ligneFrais) {
+            if (seuilAtteint) {
+                ligneFrais.innerHTML = '<span style="color: #10B981; font-weight: 700;">Offerte 🎉</span>';
+            } else if (frais) {
+                ligneFrais.textContent = fmt(frais) + ' F';
+            }
+        }
+    }
+    const totalEl = document.getElementById('ligne-total');
+    totalEl.textContent = fmt(sousTotalActuel + frais);
+    majBanniere();
+    // Flash doux sur le bloc total pour signaler la mise à jour
+    const bloc = document.getElementById('amount-block');
+    bloc.classList.remove('flash');
+    void bloc.offsetWidth;
+    bloc.classList.add('flash');
+    setTimeout(() => bloc.classList.remove('flash'), 400);
+}
+
+// Vider tout le panier avec confirmation stylée
+window.viderPanier = async function() {
+    const ok = await confirmerAction({
+        title: 'Vider tout le panier ?',
+        message: 'Tous les articles seront retirés. Cette action est irréversible.',
+        valider: 'Tout vider',
+        icone: 'bi-trash3-fill',
+        annuler: 'Garder mon panier',
+        variant: 'danger',
+    });
+    if (!ok) return;
+    const r = await fetch('/commander/panier/vider', { method: 'POST' });
+    if (r.ok || r.redirected) location.href = '/commander/panier';
+};
+
+// Mise à jour du total ligne (visible dans la card article)
+function majTotalLigne(card, quantite) {
+    // Utilise le prix unitaire (base + suppléments) stocké en data-attribute
+    const prixUnit = Number(card.dataset.prixUnit) || 0;
+    const total = prixUnit * quantite;
+    const totalEl = card.querySelector('.item-total');
+    if (totalEl) totalEl.textContent = fmt(total) + ' FCFA';
+}
+
+// Modif quantité — envoie ligne_key pour cibler la bonne ligne (2 produits identiques
+// avec suppléments différents sont 2 lignes distinctes dans le panier)
+async function modifierQuantite(produitId, nouvelleQte, ligneKey) {
+    const r = await fetch('/commander/panier/modifier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ produit_id: produitId, quantite: nouvelleQte, ligne_key: ligneKey || '' }),
+    });
+    const data = await r.json();
+    if (!data.ok) { alert(data.erreur || 'Erreur'); return; }
+    if (nouvelleQte === 0 || data.nb_articles === 0) {
+        location.reload();
+        return;
+    }
+    // Mise à jour visuelle — on cible par ligne_key (pas par produit_id, sinon on peut toucher la mauvaise ligne)
+    const card = document.querySelector(`.panier-item[data-ligne-key="${ligneKey}"]`) ||
+                 document.querySelector(`.panier-item[data-produit-id="${produitId}"]`);
+    if (card) {
+        card.querySelector('.qty').textContent = nouvelleQte;
+        card.querySelector('.btn-moins').disabled = nouvelleQte <= 1;
+        majTotalLigne(card, nouvelleQte);
+    }
+    // On met à jour le sous-total actuel puis on rafraîchit les totaux (mode conservé)
+    sousTotalActuel = data.sous_total;
+    majTotaux();
+    // Maj des badges (header)
+    const headerBadge = document.querySelector('.cart-btn .badge-count');
+    if (headerBadge) headerBadge.textContent = data.nb_articles;
+}
+
+document.querySelectorAll('.btn-plus').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const card = btn.closest('.panier-item');
+        const id = Number(card.dataset.produitId);
+        const q = Number(card.querySelector('.qty').textContent);
+        modifierQuantite(id, q + 1, card.dataset.ligneKey);
+    });
+});
+document.querySelectorAll('.btn-moins').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const card = btn.closest('.panier-item');
+        const id = Number(card.dataset.produitId);
+        const q = Number(card.querySelector('.qty').textContent);
+        if (q > 1) modifierQuantite(id, q - 1, card.dataset.ligneKey);
+    });
+});
+document.querySelectorAll('.trash-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const card = btn.closest('.panier-item');
+        const id = Number(card.dataset.produitId);
+        const nom = card.querySelector('.name')?.textContent || 'cet article';
+        const ok = await confirmerAction({
+            title: 'Retirer cet article ?',
+            message: '« ' + nom + ' » sera retiré de votre panier.',
+            valider: 'Retirer',
+            icone: 'bi-trash3',
+            annuler: 'Garder',
+            variant: 'danger',
+        });
+        if (ok) modifierQuantite(id, 0, card.dataset.ligneKey);
+    });
+});
+
+// Choix mode retrait/livraison — utilise TOUJOURS sousTotalActuel (pas la valeur initiale)
+document.querySelectorAll('#mode-choix .mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#mode-choix .mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        modeCurrent = btn.dataset.mode;
+        majTotaux();
+        document.cookie = 'mode_recup=' + modeCurrent + '; path=/commander; max-age=3600';
+    });
+});
+</script>
+<% } %>
+
+<%- include('layout_footer') %>

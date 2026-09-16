@@ -1,0 +1,360 @@
+<%- include('../partials/header') %>
+<style>
+/* Bandeau d'action */
+.action-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 22px;
+    border-radius: var(--r-lg);
+    margin-bottom: 18px;
+    border: 1px solid;
+}
+.action-banner.critique {
+    background: var(--danger-50);
+    border-color: var(--danger-100);
+    color: var(--danger);
+}
+.action-banner.ok {
+    background: var(--success-50);
+    border-color: var(--success-100);
+    color: var(--success);
+}
+.action-icon {
+    width: 50px; height: 50px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+.action-banner.critique .action-icon { background: var(--danger); color: #fff; }
+.action-banner.ok .action-icon { background: var(--success); color: #fff; }
+.action-title { font-weight: 800; font-size: 1.05rem; }
+.action-text { font-size: 0.92rem; line-height: 1.4; color: var(--text); margin-top: 2px; }
+.action-text strong { color: inherit; }
+.action-banner.critique .action-text { color: #7f1d1d; }
+.action-banner.ok .action-text { color: #064e3b; }
+
+/* Mini stats */
+.reco-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.rstats-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--sh-sm);
+}
+.rstats-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+.rstats-card.haute::before { background: var(--danger); }
+.rstats-card.moyenne::before { background: var(--gold); }
+.rstats-card.basse::before { background: var(--success); }
+.rstats-card.cout::before { background: var(--navy); }
+
+.rstats-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+.rstats-card.haute .rstats-icon { background: var(--danger-50); color: var(--danger); }
+.rstats-card.moyenne .rstats-icon { background: var(--gold-50); color: var(--gold-dark); }
+.rstats-card.basse .rstats-icon { background: var(--success-50); color: var(--success); }
+.rstats-card.cout .rstats-icon { background: var(--navy-50); color: var(--navy); }
+
+.rstats-pulse {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--danger);
+    animation: rec-pulse 2s infinite;
+}
+.rstats-card.moyenne .rstats-pulse, .rstats-card.basse .rstats-pulse, .rstats-card.cout .rstats-pulse { display: none; }
+@keyframes rec-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+    50%      { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+}
+
+.rstats-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+}
+.rstats-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    margin: 2px 0;
+}
+.rstats-sub { font-size: 0.72rem; color: var(--text-muted); }
+
+/* Groupe fournisseur */
+.fourn-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-sm);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+.fourn-group.urgent { border-color: var(--danger); border-width: 2px; }
+
+.fourn-group-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.fg-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: var(--navy-50);
+    color: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+.fg-info { flex: 1; min-width: 200px; }
+.fg-nom { font-size: 1rem; font-weight: 700; color: var(--navy); }
+.fg-nom a { color: var(--navy); text-decoration: none; }
+.fg-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+.fg-stats { display: flex; gap: 18px; }
+.fg-stat { text-align: center; }
+.fg-stat-val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.fg-stat-lab { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+
+.fg-actions { display: flex; gap: 6px; }
+.fg-btn-wa {
+    background: #25D366;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-size: 0.86rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+}
+.fg-btn-wa:hover { background: #1da851; color: #fff; text-decoration: none; }
+.fg-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.fg-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); text-decoration: none; }
+
+/* Lignes de recommandation */
+.reco-line {
+    display: grid;
+    grid-template-columns: 60px 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    border-left: 4px solid transparent;
+    transition: background 0.1s;
+}
+.reco-line:last-child { border-bottom: none; }
+.reco-line:hover { background: var(--surface-2); }
+.reco-line.urgence-haute   { border-left-color: var(--danger); }
+.reco-line.urgence-moyenne { border-left-color: var(--gold); }
+.reco-line.urgence-basse   { border-left-color: var(--success); }
+
+.rl-thumb {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint);
+    overflow: hidden;
+    font-size: 1.2rem;
+}
+.rl-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.rl-info { min-width: 0; }
+.rl-nom {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.rl-nom a { color: var(--text); text-decoration: none; }
+.rl-nom a:hover { color: var(--navy); text-decoration: underline; }
+.cls {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    font-weight: 800; font-size: 0.7rem;
+    color: #fff;
+}
+.cls-a { background: var(--danger); }
+.cls-b { background: var(--gold); }
+.cls-c { background: var(--success); }
+.rl-meta {
+    display: flex;
+    gap: 14px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    flex-wrap: wrap;
+}
+.rl-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.rl-meta i { color: var(--text-faint); }
+.rl-meta strong { color: var(--text); }
+
+.urg-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+.urg-pill.haute   { background: var(--danger-50); color: var(--danger); }
+.urg-pill.moyenne { background: var(--gold-50); color: var(--gold-dark); }
+.urg-pill.basse   { background: var(--success-50); color: var(--success); }
+
+.rl-quantite {
+    text-align: center;
+    background: var(--navy-50);
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--navy-100);
+}
+.rl-qte-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--navy);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.rl-qte-lab {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-top: 2px;
+}
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Recommandations de réapprovisionnement</h1>
+        <p class="page-subtitle"><%= nb_total %> références à commander · coût estimé <strong><%= h.formatNombre(cout_total) %> <%= devise %></strong></p>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 mb-2"><div class="kpi-card danger"><div class="kpi-label">Urgence haute</div><div class="kpi-value"><%= nb_haute %></div><div class="kpi-meta"><%= h.formatNombre(cout_haute) %> <%= devise %></div></div></div>
+    <div class="col-md-3 mb-2"><div class="kpi-card primary"><div class="kpi-label">Urgence moyenne</div><div class="kpi-value"><%= nb_moyenne %></div></div></div>
+    <div class="col-md-3 mb-2"><div class="kpi-card info"><div class="kpi-label">Urgence basse</div><div class="kpi-value"><%= nb_basse %></div></div></div>
+    <div class="col-md-3 mb-2"><div class="kpi-card success"><div class="kpi-label">Coût total</div><div class="kpi-value"><%= h.formatNombre(cout_total) %></div><div class="kpi-meta"><%= devise %> en prix d'achat</div></div></div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row">
+            <div class="col-md-4 mb-2">
+                <select name="urgence" class="form-select">
+                    <option value="">Toutes urgences</option>
+                    <option value="haute" <%= filtre_urgence === 'haute' ? 'selected' : '' %>>Haute</option>
+                    <option value="moyenne" <%= filtre_urgence === 'moyenne' ? 'selected' : '' %>>Moyenne</option>
+                    <option value="basse" <%= filtre_urgence === 'basse' ? 'selected' : '' %>>Basse</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-2">
+                <select name="classe" class="form-select">
+                    <option value="">Toutes classes</option>
+                    <option value="A" <%= filtre_classe === 'A' ? 'selected' : '' %>>Classe A</option>
+                    <option value="B" <%= filtre_classe === 'B' ? 'selected' : '' %>>Classe B</option>
+                    <option value="C" <%= filtre_classe === 'C' ? 'selected' : '' %>>Classe C</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;">Filtrer</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Produit</th><th style="text-align: center;">Classe</th>
+                    <th style="text-align: center;">Stock</th>
+                    <th style="text-align: center;">Consommation/j</th>
+                    <th style="text-align: center;">Point commande</th>
+                    <th style="text-align: right;">Qté à commander</th>
+                    <th style="text-align: right;">Coût estimé</th>
+                    <th>Fournisseur</th>
+                    <th style="text-align: center;">Urgence</th>
+                </tr>
+            </thead>
+            <tbody>
+            <% recommandations.forEach(function(r) { %>
+                <tr>
+                    <td><strong><%= r.produit.designation %></strong><br><small class="text-muted"><code><%= r.produit.reference %></code></small></td>
+                    <td style="text-align: center;">
+                        <span class="badge <%= r.classe_abc === 'A' ? 'badge-rupture' : (r.classe_abc === 'B' ? 'badge-alerte' : 'bg-secondary') %>"><%= r.classe_abc %></span>
+                    </td>
+                    <td style="text-align: center;"><%= r.stock_actuel %></td>
+                    <td style="text-align: center;"><%= r.consommation_journaliere %></td>
+                    <td style="text-align: center;"><%= r.point_commande %> (délai <%= r.delai_livraison %>j)</td>
+                    <td style="text-align: right; font-weight: 600;"><%= r.quantite_a_commander %></td>
+                    <td style="text-align: right;"><%= h.formatNombre(r.quantite_a_commander * r.produit.prix_achat) %></td>
+                    <td class="text-muted small"><%= r.produit.fournisseur_nom || '—' %></td>
+                    <td style="text-align: center;">
+                        <% if (r.urgence === 'haute') { %><span class="badge badge-rupture">Haute</span>
+                        <% } else if (r.urgence === 'moyenne') { %><span class="badge badge-alerte">Moyenne</span>
+                        <% } else { %><span class="badge bg-secondary">Basse</span><% } %>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!recommandations.length) { %>
+                <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="bi bi-check-circle" style="font-size: 2rem; color: var(--success);"></i><br>
+                    Aucune recommandation. Le stock est bien géré.
+                </td></tr>
+            <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+<%- include('../partials/footer') %>

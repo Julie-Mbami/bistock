@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Commander' %> · Le Traiteur du Bistrot</title>
+    <link rel="icon" href="/static/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --or: #B8860B;
+            --or-fonce: #7C5A08;
+            --or-clair: #F5E6B8;
+            --or-pale: #FDF6E3;
+            --marron: #3D2817;
+            --marron-clair: #6B4423;
+            --creme: #FBF8F3;
+            --creme-fonce: #F4EDDF;
+            --text: #2C1810;
+            --text-muted: #78716C;
+            --bg: #FBF8F3;
+            --surface: #FFFFFF;
+            --border: #E7E0D0;
+            --success: #059669;
+            --danger: #DC2626;
+            --shadow-sm: 0 1px 3px rgba(60,40,20,0.06);
+            --shadow: 0 4px 20px rgba(60,40,20,0.08);
+            --shadow-lg: 0 12px 40px rgba(60,40,20,0.15);
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg); color: var(--text);
+            line-height: 1.5; -webkit-font-smoothing: antialiased;
+            font-weight: 400;
+        }
+        h1, h2, h3, .serif { font-family: 'Playfair Display', Georgia, serif; letter-spacing: -0.01em; }
+        img { max-width: 100%; display: block; }
+        a { color: inherit; text-decoration: none; }
+        button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+        input, select, textarea { font-family: inherit; font-size: 1rem; }
+
+        /* === Header sticky === */
+        .site-header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .site-header .brand {
+            display: flex; align-items: center; gap: 12px;
+            font-family: 'Playfair Display', serif;
+            font-weight: 900; font-size: 1.2rem; color: var(--marron);
+        }
+        .site-header .brand .logo {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: var(--marron); color: var(--or-clair);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 900; font-size: 1.35rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .site-header .brand small {
+            display: block; font-family: 'Inter', sans-serif;
+            font-weight: 400; font-size: 0.7rem;
+            color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase;
+        }
+        .cart-btn {
+            position: relative;
+            background: var(--marron); color: var(--creme);
+            padding: 10px 18px; border-radius: 999px;
+            font-weight: 700; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 8px;
+            transition: all 0.2s;
+        }
+        .cart-btn:hover { background: var(--marron-clair); transform: translateY(-1px); }
+        .cart-btn .badge-count {
+            background: var(--or); color: var(--marron);
+            border-radius: 999px; padding: 2px 8px;
+            font-size: 0.72rem; font-weight: 900;
+            min-width: 22px; text-align: center;
+        }
+
+        /* === Container === */
+        .container-app { max-width: 1200px; margin: 0 auto; padding: 32px 20px 60px; }
+
+        /* === Boutons === */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+               padding: 14px 24px; border-radius: 999px; font-weight: 700; font-size: 0.95rem;
+               transition: all 0.2s; cursor: pointer; border: 2px solid transparent;
+               letter-spacing: 0.01em;
+        }
+        .btn-primary { background: var(--marron); color: var(--or-clair); box-shadow: var(--shadow); }
+        .btn-primary:hover { background: var(--marron-clair); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn-or { background: var(--or); color: #fff; box-shadow: var(--shadow); }
+        .btn-or:hover { background: var(--or-fonce); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn-outline { background: transparent; color: var(--marron); border-color: var(--marron); }
+        .btn-outline:hover { background: var(--marron); color: var(--or-clair); }
+        .btn-lg { padding: 18px 32px; font-size: 1.05rem; }
+        .btn-block { width: 100%; }
+
+        /* === Bandeau statut === */
+        .status-banner {
+            background: var(--marron); color: var(--or-clair);
+            padding: 10px 20px; text-align: center;
+            font-size: 0.82rem; font-weight: 500;
+            display: flex; align-items: center; justify-content: center; gap: 14px;
+            flex-wrap: wrap;
+        }
+        .status-banner strong { color: #fff; font-weight: 700; }
+        .status-banner .dot-live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 0 3px rgba(16,185,129,0.2); animation: pulse 2s infinite; margin-right: 6px; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+    <div class="status-banner">
+        <span><span class="dot-live"></span> Ouvert · <%= locals.ent_horaires || 'Lun-Ven 8h-22h' %></span>
+        <span>·</span>
+        <span><i class="bi bi-scooter"></i> Livraison Douala <strong><%= Math.round(locals.web_frais_livraison || 1000).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</strong></span>
+        <% if (locals.ent_tel_lien) { %>
+        <span>·</span>
+        <a href="tel:<%= locals.ent_tel_lien %>" style="color: inherit; text-decoration: none;"><i class="bi bi-telephone-fill"></i> <strong><%= locals.ent_tel %></strong></a>
+        <% } %>
+        <% if (locals.ent_whatsapp) { %>
+        <span>·</span>
+        <a href="https://wa.me/<%= locals.ent_whatsapp %>" target="_blank" style="color: inherit; text-decoration: none;"><i class="bi bi-whatsapp"></i> WhatsApp</a>
+        <% } %>
+    </div>
+    <header class="site-header">
+        <a href="/commander/" class="brand">
+            <span class="logo">T</span>
+            <div>
+                <%= locals.ent_nom || 'Le Traiteur du Bistrot' %>
+                <small>Restaurant · Pâtisserie · Traiteur</small>
+            </div>
+        </a>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <% if (locals.banniere_promos && banniere_promos.length > 0) { %>
+                <a href="/commander/offres" class="cart-btn" style="background: linear-gradient(135deg, #DC2626, #B91C1C); color: #fff; position: relative;">
+                    <i class="bi bi-tag-fill"></i>
+                    <span class="d-none-mobile">Offres</span>
+                    <span class="badge-count" style="background: #FEF3C7; color: #7C2D12; font-weight: 800;"><%= banniere_promos.length %></span>
+                </a>
+            <% } %>
+            <a href="#" id="lien-mes-commandes" class="cart-btn" style="background: var(--or); color: var(--marron); display: none;">
+                <i class="bi bi-clipboard-check-fill"></i>
+                <span class="d-none-mobile">Mes commandes</span>
+                <span class="badge-count" id="mes-cmd-count" style="background: var(--marron); color: var(--or-clair);">0</span>
+            </a>
+            <a href="/commander/panier" class="cart-btn" style="<%= (locals.panier_count || 0) === 0 ? 'opacity:0.7;' : '' %>">
+                <i class="bi bi-basket-fill"></i>
+                <span class="d-none-mobile">Panier</span>
+                <span class="badge-count"><%= locals.panier_count || 0 %></span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Bannières promotions automatiques actives (Phase 3 marketing) -->
+    <% if (locals.banniere_promos && banniere_promos.length > 0) { %>
+      <% banniere_promos.forEach(function(bp) { %>
+        <%
+          let icon = '🎁', valeurLabel = '', bg1 = '#FEF3C7', bg2 = '#FDE68A', color = '#78350F';
+          if (bp.type === 'POURCENTAGE') { valeurLabel = '−' + bp.valeur + '%'; icon = '⚡'; }
+          else if (bp.type === 'MONTANT_FIXE') { valeurLabel = '−' + Math.round(bp.valeur).toLocaleString('fr-FR').replace(/,/g, ' ') + ' F'; icon = '🎯'; }
+          else if (bp.type === 'LIVRAISON_OFFERTE') { valeurLabel = 'Livraison offerte'; icon = '🚚'; bg1 = '#D1FAE5'; bg2 = '#A7F3D0'; color = '#065F46'; }
+          const cible = bp.produit ? ('sur ' + bp.produit) : (bp.categorie ? ('sur ' + bp.categorie) : '');
+        %>
+        <div style="background: linear-gradient(135deg, <%= bg1 %>, <%= bg2 %>); border-bottom: 1px solid <%= bg2 %>; padding: 10px 20px; color: <%= color %>;">
+          <div style="max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 0.87rem;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.25rem;"><%= icon %></span>
+              <div>
+                <strong><%= bp.nom %> : <%= valeurLabel %></strong>
+                <% if (cible) { %> <span style="opacity: 0.8;"><%= cible %></span><% } %>
+                <% if (bp.description) { %><br><small style="opacity: 0.85;"><%= bp.description %></small><% } %>
+              </div>
+            </div>
+            <% if (bp.minutes_restantes) { %>
+              <span data-countdown="<%= bp.minutes_restantes %>" style="background: rgba(0,0,0,0.08); padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.8rem;">
+                ⏱ Se termine dans <%= Math.floor(bp.minutes_restantes / 60) %>h<%= String(bp.minutes_restantes % 60).padStart(2, '0') %>
+              </span>
+            <% } %>
+          </div>
+        </div>
+      <% }); %>
+    <% } %>
+
+    <!-- Bannière commande en cours (visible partout, générée par JS depuis localStorage) -->
+    <div id="banniere-cmd-cours" style="display: none; background: linear-gradient(135deg, #FEF3C7, #FDE68A); border-bottom: 1px solid #FCD34D; padding: 12px 20px;">
+        <div style="max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="width: 36px; height: 36px; border-radius: 50%; background: var(--or); color: #fff; display: flex; align-items: center; justify-content: center;"><i class="bi bi-clock-fill"></i></span>
+                <div>
+                    <div style="font-weight: 700; color: var(--marron); font-size: 0.9rem;">Vous avez une commande en cours</div>
+                    <div style="font-size: 0.78rem; color: var(--marron); opacity: 0.85;" id="banniere-cmd-code"></div>
+                </div>
+            </div>
+            <a id="banniere-cmd-lien" href="#" style="background: var(--marron); color: var(--or-clair); padding: 8px 18px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; text-decoration: none;">
+                <i class="bi bi-geo-alt-fill"></i> Suivre
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal Mes commandes -->
+    <div id="modal-mes-commandes" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #fff; border-radius: 18px; max-width: 480px; width: 100%; max-height: 80vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="font-family: 'Playfair Display', serif; color: var(--marron); font-size: 1.25rem; margin: 0;">Mes commandes</h3>
+                <button onclick="fermerMesCommandes()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">×</button>
+            </div>
+            <div id="liste-mes-commandes" style="padding: 20px 24px;"></div>
+            <div style="padding: 14px 24px; border-top: 1px solid var(--border); background: var(--creme-fonce); font-size: 0.78rem; color: var(--text-muted); text-align: center;">
+                Vos commandes sont mémorisées sur cet appareil, jamais partagées.
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // === Gestion des commandes mémorisées dans le navigateur ===
+    (function() {
+        const KEY = 'ltdb_commandes';
+        function get() {
+            try { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+            catch(e) { return []; }
+        }
+        function save(list) { localStorage.setItem(KEY, JSON.stringify(list)); }
+
+        // Ajoute ou met à jour une commande (montant/nb) — appelé sur les pages confirmation et suivi
+        window.memoriserCommande = function(code, total, nbArticles) {
+            const list = get();
+            const existant = list.find(c => c.code === code);
+            if (existant) {
+                // Mise à jour de l'entrée existante (le client a modifié sa commande)
+                existant.total = total;
+                existant.nbArticles = nbArticles;
+                existant.majDate = Date.now();
+            } else {
+                list.unshift({ code, total, nbArticles, date: Date.now() });
+            }
+            save(list.slice(0, 10));
+            majAffichage();
+        };
+
+        function estRecente(cmd) {
+            // Considère "en cours" une commande vieille de moins de 24h (statut serveur non connu côté client)
+            return (Date.now() - cmd.date) < 24 * 3600 * 1000;
+        }
+
+        function majAffichage() {
+            const list = get();
+            const enCours = list.filter(estRecente);
+            const lien = document.getElementById('lien-mes-commandes');
+            const badge = document.getElementById('mes-cmd-count');
+            if (list.length > 0) {
+                lien.style.display = 'flex';
+                badge.textContent = enCours.length || list.length;
+            } else {
+                lien.style.display = 'none';
+            }
+            // Bannière : la plus récente en cours (< 24h)
+            const banniere = document.getElementById('banniere-cmd-cours');
+            const cmdCode = document.getElementById('banniere-cmd-code');
+            const cmdLien = document.getElementById('banniere-cmd-lien');
+            if (enCours.length > 0 && !window.location.pathname.startsWith('/commander/suivi') && !window.location.pathname.startsWith('/commander/confirmation')) {
+                const derniere = enCours[0];
+                banniere.style.display = '';
+                cmdCode.textContent = derniere.code + ' · ' + Math.round(derniere.total).toLocaleString('fr-FR').replace(/,/g, ' ') + ' F';
+                cmdLien.href = '/commander/suivi/' + derniere.code;
+            } else {
+                banniere.style.display = 'none';
+            }
+        }
+
+        // Ouvrir la modale
+        window.ouvrirMesCommandes = function() {
+            const list = get();
+            const container = document.getElementById('liste-mes-commandes');
+            if (list.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px 0;">Aucune commande mémorisée sur cet appareil.</p>';
+            } else {
+                container.innerHTML = list.map(c => {
+                    const d = new Date(c.date);
+                    const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    return `<div style="padding: 14px; margin-bottom: 10px; background: var(--creme-fonce); border-radius: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                            <span style="font-family: 'Playfair Display', serif; font-weight: 800; color: var(--marron); font-size: 1.05rem;">${c.code}</span>
+                            <span style="font-weight: 700; color: var(--marron);">${Math.round(c.total).toLocaleString('fr-FR').replace(/,/g, ' ')} F</span>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">${dateStr} · ${c.nbArticles || '?'} article(s)</div>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="/commander/suivi/${c.code}" style="flex: 1; text-align: center; padding: 8px 12px; background: var(--surface); color: var(--marron); border-radius: 8px; font-weight: 600; font-size: 0.82rem; text-decoration: none; border: 1px solid var(--border);">
+                                <i class="bi bi-geo-alt"></i> Suivre
+                            </a>
+                            <button type="button" onclick="recommanderCommande('${c.code}', this)" style="flex: 1; padding: 8px 12px; background: var(--marron); color: var(--or-clair); border: none; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer;">
+                                <i class="bi bi-arrow-repeat"></i> Recommander
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+                container.innerHTML += '<button onclick="viderMesCommandes()" style="width: 100%; margin-top: 8px; padding: 10px; background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; font-size: 0.82rem; cursor: pointer;"><i class="bi bi-trash"></i> Effacer l\'historique</button>';
+            }
+            document.getElementById('modal-mes-commandes').style.display = 'flex';
+        };
+        window.fermerMesCommandes = function() {
+            document.getElementById('modal-mes-commandes').style.display = 'none';
+        };
+        window.viderMesCommandes = function() {
+            if (confirm('Effacer toutes les commandes de la mémoire de cet appareil ?')) {
+                localStorage.removeItem(KEY);
+                fermerMesCommandes();
+                majAffichage();
+            }
+        };
+
+        // Recommande une ancienne commande (recharge ses articles dans le panier courant)
+        window.recommanderCommande = async function(code, btn) {
+            if (!code) return;
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Ajout…';
+            try {
+                const r = await fetch('/commander/api/recommander/' + encodeURIComponent(code), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const data = await r.json();
+                if (data.ok) {
+                    // Mettre à jour les badges panier
+                    const badge = document.querySelector('.cart-btn:not(#lien-mes-commandes) .badge-count');
+                    if (badge) badge.textContent = data.nb_articles;
+                    fermerMesCommandes();
+                    // Rediriger vers le panier pour valider
+                    window.location.href = '/commander/panier';
+                } else {
+                    alert(data.erreur || 'Impossible de recommander cette commande.');
+                    btn.innerHTML = original;
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                alert('Erreur réseau — vérifiez votre connexion.');
+                btn.innerHTML = original;
+                btn.disabled = false;
+            }
+        };
+
+        // Init au chargement
+        document.getElementById('lien-mes-commandes').addEventListener('click', function(e) {
+            e.preventDefault();
+            ouvrirMesCommandes();
+        });
+        document.getElementById('modal-mes-commandes').addEventListener('click', function(e) {
+            if (e.target === this) fermerMesCommandes();
+        });
+        majAffichage();
+    })();
+    </script>

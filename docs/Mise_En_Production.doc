@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Guide de mise en production — Bistock</title>
+<style>
+body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; color: #1F2937; line-height: 1.6; margin: 40pt; max-width: 720pt; }
+h1 { color: #7C2D12; font-size: 22pt; border-bottom: 3px solid #CA8A04; padding-bottom: 10pt; margin-top: 0; }
+h2 { color: #1E3A8A; font-size: 16pt; margin-top: 32pt; padding: 8pt 12pt; background: #EFF6FF; border-left: 4pt solid #1E3A8A; }
+h3 { color: #7C2D12; font-size: 13pt; margin-top: 20pt; }
+p { text-align: justify; margin: 8pt 0; }
+code { background: #F1F5F9; color: #1E3A8A; padding: 2pt 6pt; border-radius: 3pt; font-family: 'Consolas', 'Courier New', monospace; font-size: 10pt; }
+pre { background: #0F172A; color: #E2E8F0; padding: 12pt 16pt; border-radius: 6pt; font-family: 'Consolas', monospace; font-size: 10pt; line-height: 1.4; margin: 10pt 0; }
+.note { background: #FEF9C3; border-left: 4pt solid #CA8A04; padding: 10pt 14pt; margin: 12pt 0; }
+.warning { background: #FEF2F2; border-left: 4pt solid #DC2626; padding: 10pt 14pt; margin: 12pt 0; }
+.success { background: #ECFDF5; border-left: 4pt solid #059669; padding: 10pt 14pt; margin: 12pt 0; }
+.step-num { background: #CA8A04; color: white; display: inline-block; width: 32pt; height: 32pt; line-height: 32pt; text-align: center; border-radius: 50%; font-weight: bold; font-size: 14pt; margin-right: 8pt; }
+table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+th { background: #1E3A8A; color: white; padding: 8pt; text-align: left; }
+td { border: 1pt solid #E5E7EB; padding: 8pt; vertical-align: top; }
+tr:nth-child(even) { background: #F9FAFB; }
+.checkbox { color: #CA8A04; font-weight: bold; margin: 10pt 0; padding: 6pt 10pt; background: #FEF9C3; border-radius: 3pt; }
+.toc { background: #F8FAFC; border: 1pt solid #E2E8F0; padding: 16pt 20pt; margin-bottom: 24pt; border-radius: 4pt; }
+.toc h3 { margin-top: 0; }
+.toc ol { margin: 0; padding-left: 20pt; }
+.toc li { margin: 4pt 0; }
+</style>
+</head>
+<body>
+
+<h1>Guide de mise en production — Bistock</h1>
+<p><strong>Le Traiteur du Bistrot</strong> — Passage de la version de test à la version réelle en production.</p>
+
+<div class="note">
+<strong>À qui s'adresse ce guide ?</strong><br>
+À la personne (Direction ou informaticien) qui va démarrer l'application en production pour la première fois. Suivre les étapes <strong>dans l'ordre</strong>. Chaque étape prend entre 2 et 20 minutes. L'ensemble prend environ <strong>1 heure</strong>.
+</div>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+<li>Ce que vous devez avoir avant de commencer</li>
+<li>Sauvegarde de sécurité de la base actuelle</li>
+<li>Création du fichier de configuration .env</li>
+<li>Génération d'une clé de sécurité SESSION_SECRET</li>
+<li>Vérification que la configuration est bien chargée</li>
+<li>Test du démarrage du serveur en mode production</li>
+<li>Purge des données de test</li>
+<li>Sécurisation des comptes utilisateurs</li>
+<li>Vérification des paramètres système</li>
+<li>Création des vrais utilisateurs et données de production</li>
+<li>Mise en place des sauvegardes automatiques</li>
+<li>Que faire en cas de problème</li>
+</ol>
+</div>
+
+<h2><span class="step-num">1</span> Ce que vous devez avoir avant de commencer</h2>
+
+<p>Avant de vous lancer, prenez 5 minutes pour vérifier que vous disposez de tout ce qu'il faut. Cela évitera de vous retrouver bloqué au milieu de la procédure.</p>
+
+<h3>Matériel et accès</h3>
+<ul>
+<li>L'ordinateur ou le serveur où l'application tournera en production doit être identifié et allumé.</li>
+<li>Vous devez avoir les droits <strong>administrateur</strong> sur cette machine (installation logicielle, création de fichiers).</li>
+<li>Vous devez pouvoir ouvrir un terminal (<strong>PowerShell</strong> sous Windows, <strong>Terminal</strong> sous Mac/Linux).</li>
+</ul>
+
+<h3>Logiciel</h3>
+<p><strong>Node.js version 18 ou supérieure</strong> doit être installé. Pour vérifier, ouvrir PowerShell et taper :</p>
+<pre>node --version</pre>
+<p>Si vous voyez par exemple <code>v18.17.0</code> ou plus, tout est bon. Si vous voyez une erreur ou une version inférieure, téléchargez la dernière version LTS sur <em>nodejs.org</em> et installez-la avant de continuer.</p>
+
+<h3>Connaissances</h3>
+<ul>
+<li>Savoir copier / coller un fichier dans l'Explorateur Windows.</li>
+<li>Savoir éditer un fichier texte simple (Bloc-notes, VS Code, Notepad++).</li>
+<li>Savoir taper une commande dans un terminal et lire ce qui s'affiche.</li>
+</ul>
+
+<div class="checkbox">☐ J'ai vérifié tout ce qui est ci-dessus.</div>
+
+<h2><span class="step-num">2</span> Sauvegarde de sécurité de la base actuelle</h2>
+
+<p>La purge à venir va supprimer toutes les données de test. Le script de purge fait déjà une sauvegarde automatiquement, mais nous allons en faire une supplémentaire à la main — c'est de la prudence de base.</p>
+
+<p><strong>Où se trouve la base ?</strong> Le fichier de base de données s'appelle <code>app.db</code> et se trouve dans le sous-dossier <code>data/</code> du projet.</p>
+
+<p><strong>Comment sauvegarder ?</strong> Ouvrez PowerShell et placez-vous dans le dossier du projet (utilisez la commande <code>cd</code> pour naviguer). Puis tapez exactement :</p>
+
+<pre>Copy-Item data\app.db data\app-avant-mise-en-prod.db</pre>
+
+<p>Cette commande crée une copie du fichier <code>app.db</code> sous un nouveau nom.</p>
+
+<p><strong>Vérification :</strong> tapez ensuite :</p>
+
+<pre>Get-ChildItem data\</pre>
+
+<p>Vous devez voir apparaître au moins deux fichiers : <code>app.db</code> (l'original) et <code>app-avant-mise-en-prod.db</code> (votre copie). Si les deux sont présents, la sauvegarde a réussi.</p>
+
+<div class="success">
+<strong>Pourquoi cette sauvegarde ?</strong><br>
+En cas de fausse manipulation pendant les étapes suivantes, vous pourrez restaurer votre base en 30 secondes en copiant ce fichier vers <code>app.db</code>. C'est votre filet de sécurité.
+</div>
+
+<div class="checkbox">☐ J'ai fait ma sauvegarde manuelle et je l'ai vérifiée.</div>
+
+<h2><span class="step-num">3</span> Création du fichier de configuration .env</h2>
+
+<p>L'application a besoin d'un fichier de configuration qui contient les paramètres sensibles : clé de sécurité, port, mode d'exécution. Ce fichier s'appelle <code>.env</code> (avec un point au début, sans extension).</p>
+
+<div class="warning">
+<strong>Important :</strong> Le fichier <code>.env</code> contient des informations qui doivent rester secrètes. Il est déjà configuré pour être ignoré par git. <strong>Ne le partagez avec personne</strong> par email, ne le mettez pas dans un dossier partagé public.
+</div>
+
+<p>Un modèle est déjà fourni avec l'application : <code>.env.example</code>. Nous allons le copier pour créer le vrai <code>.env</code>.</p>
+
+<h3>3.1 — Copier le modèle</h3>
+<p>Dans PowerShell, dans le dossier du projet, tapez :</p>
+<pre>Copy-Item .env.example .env</pre>
+<p>Cela crée un nouveau fichier <code>.env</code> qui est une copie exacte de <code>.env.example</code>.</p>
+
+<h3>3.2 — Ouvrir le fichier pour l'éditer</h3>
+<p>Utilisez votre éditeur préféré. Le plus simple sous Windows :</p>
+<pre>notepad .env</pre>
+<p>Le fichier s'ouvre. Vous y voyez plusieurs lignes qui commencent par un mot en majuscules suivi de <code>=</code> et d'une valeur. Ne changez rien à la structure, seulement les valeurs.</p>
+
+<div class="checkbox">☐ Le fichier .env est créé et ouvert dans mon éditeur.</div>
+
+<h2><span class="step-num">4</span> Génération d'une clé de sécurité SESSION_SECRET</h2>
+
+<p>La ligne la plus importante du <code>.env</code> est <code>SESSION_SECRET</code>. C'est une longue chaîne de caractères aléatoires qui sert à signer les cookies de session des utilisateurs. Sans elle, un pirate pourrait se faire passer pour n'importe quel utilisateur — y compris pour la Direction.</p>
+
+<p><strong>La règle absolue :</strong> cette clé doit être <strong>longue, aléatoire et unique à votre installation</strong>. Ne jamais utiliser une clé qui traîne sur internet ou dans une documentation.</p>
+
+<h3>Comment générer une bonne clé ?</h3>
+<p>Ouvrez PowerShell et tapez exactement cette commande :</p>
+<pre>[Convert]::ToBase64String((1..48 | %{Get-Random -Max 256}))</pre>
+
+<p>PowerShell affiche une chaîne d'environ 64 caractères qui ressemble à ça :</p>
+<pre>xK9mP+3vLqR8/nJ4hW2sT1yG5eB6cA0dQfE7uZi/OlHnMj+X8kY3wV2rP4sT1hG6=</pre>
+
+<p><strong>Cette chaîne est votre clé.</strong> Sélectionnez-la à la souris et appuyez sur Entrée pour la copier (PowerShell copie automatiquement la sélection dans le presse-papier).</p>
+
+<h3>Coller la clé dans .env</h3>
+<ol>
+<li>Retournez dans la fenêtre du Bloc-notes qui a le fichier <code>.env</code> ouvert.</li>
+<li>Cherchez la ligne : <code>SESSION_SECRET=REMPLACEZ_PAR_UNE_CHAINE_ALEATOIRE_LONGUE</code></li>
+<li>Effacez tout ce qui se trouve après le signe <code>=</code> (donc la partie <code>REMPLACEZ_PAR...</code>).</li>
+<li>Collez à la place votre clé générée (Ctrl+V).</li>
+<li>Le résultat doit ressembler à : <code>SESSION_SECRET=xK9mP+3vLqR8/nJ4hW2sT1yG5eB6cA0dQfE7uZi/OlHnMj+X8kY3wV2rP4sT1hG6=</code></li>
+<li>Vérifiez qu'il n'y a <strong>pas d'espace</strong> avant ou après le signe <code>=</code>.</li>
+<li>Vérifiez que la ligne <code>NODE_ENV=production</code> est bien présente (elle l'est par défaut dans le modèle).</li>
+<li>Sauvegardez le fichier (Fichier → Enregistrer, ou Ctrl+S).</li>
+<li>Fermez l'éditeur.</li>
+</ol>
+
+<div class="warning">
+<strong>Ne fermez pas PowerShell avant d'avoir collé la clé.</strong> Si vous fermez, vous perdez la clé et devrez la regénérer.
+</div>
+
+<p>Les autres paramètres du fichier <code>.env</code> ont des valeurs par défaut qui conviennent. Vous pourrez les ajuster plus tard si besoin (par exemple si vous voulez changer le port 9000).</p>
+
+<div class="checkbox">☐ J'ai généré une clé, je l'ai collée dans .env et j'ai sauvegardé le fichier.</div>
+
+<h2><span class="step-num">5</span> Vérification que la configuration est bien chargée</h2>
+
+<p>Avant de démarrer l'application, on va vérifier que le fichier <code>.env</code> est correctement lu par le système.</p>
+
+<p>Dans PowerShell, toujours dans le dossier du projet, tapez :</p>
+
+<pre>node -e "const c = require('./src/config'); console.log('NODE_ENV:', c.NODE_ENV); console.log('SESSION_SECRET length:', c.SESSION_SECRET.length);"</pre>
+
+<p><strong>Résultat attendu :</strong></p>
+
+<pre>NODE_ENV: production
+SESSION_SECRET length: 64</pre>
+
+<p>Interprétation :</p>
+<ul>
+<li><strong>NODE_ENV : production</strong> — parfait, l'application sait qu'elle est en production. Elle cachera les erreurs techniques aux utilisateurs.</li>
+<li><strong>SESSION_SECRET length : 64</strong> — parfait, la clé fait 64 caractères. Une valeur inférieure à 32 serait problématique.</li>
+</ul>
+
+<div class="warning">
+<strong>Si vous voyez</strong> <code>NODE_ENV : development</code> ou une longueur inférieure à 32, retournez à l'étape 3 ou 4 pour corriger le fichier <code>.env</code>. La cause la plus fréquente : une faute de frappe dans le nom de la variable, un espace superflu, ou le fichier n'a pas été sauvegardé.
+</div>
+
+<div class="checkbox">☐ La configuration est validée (NODE_ENV production, clé longue).</div>
+
+<h2><span class="step-num">6</span> Test du démarrage du serveur en mode production</h2>
+
+<p>On démarre maintenant l'application pour vérifier qu'elle démarre sans erreur avec la nouvelle configuration.</p>
+
+<p>Dans PowerShell :</p>
+<pre>npm start</pre>
+
+<p><strong>Résultat attendu :</strong></p>
+<pre>✓ Serveur lancé sur http://localhost:9000
+→ Le Traiteur du Bistrot — application multi-activités</pre>
+
+<p>Vous <strong>ne devez pas voir</strong> le warning suivant (qui apparaissait auparavant en développement) :</p>
+
+<pre>⚠ SESSION_SECRET utilise la valeur par défaut de dev...</pre>
+
+<p>Si ce warning apparaît, c'est que le fichier <code>.env</code> n'a pas été pris en compte. Vérifiez que le fichier existe bien à la racine du projet (au même niveau que <code>package.json</code>).</p>
+
+<p><strong>Test dans le navigateur :</strong> ouvrez <code>http://localhost:9000</code> — vous devez arriver sur la page de connexion. La page s'affiche normalement, tous les éléments visuels sont présents (logo, formulaire de connexion, mentions légales en bas).</p>
+
+<p><strong>Arrêtez le serveur</strong> en revenant dans PowerShell et en appuyant sur <code>Ctrl+C</code>. On va maintenant purger la base — le serveur ne doit pas tourner pendant la purge.</p>
+
+<div class="checkbox">☐ Le serveur démarre proprement, la page de connexion s'affiche, j'ai arrêté le serveur.</div>
+
+<h2><span class="step-num">7</span> Purge des données de test</h2>
+
+<p>C'est l'étape la plus délicate. Elle supprime définitivement toutes les données de test présentes dans l'application. Un backup automatique est fait avant la suppression, donc c'est rattrapable, mais soyez concentré.</p>
+
+<h3>7.1 — Simulation (aucune modification)</h3>
+<p>D'abord, on regarde ce qui va être supprimé, sans rien toucher :</p>
+<pre>npm run purge:prod</pre>
+
+<p>Le script affiche un tableau avec le nombre de lignes qui vont être supprimées par table (ventes, commandes, achats, distributions, productions, etc.) et un tableau des tables protégées (activités, utilisateurs, paramètres, plan comptable, journaux comptables) qui ne seront jamais touchées.</p>
+
+<p>Prenez le temps de lire. À la fin, un message dit « Mode simulation — aucune modification ».</p>
+
+<h3>7.2 — Choix du niveau de purge</h3>
+<p>Vous avez 3 options selon la profondeur de nettoyage souhaitée :</p>
+
+<table>
+<tr><th>Commande</th><th>Ce qu'elle vide</th><th>Ce qu'elle garde</th></tr>
+<tr>
+<td><code>npm run purge:prod:go</code></td>
+<td>Uniquement les transactions : ventes, commandes, stocks, factures, paiements, alertes, productions, journal d'audit…</td>
+<td>Le catalogue produits, les clients, les fournisseurs, les activités, les utilisateurs, les paramètres.</td>
+</tr>
+<tr>
+<td><code>node scripts/purge_prod.js --confirm --vider-tiers</code></td>
+<td>Tout ce qui est ci-dessus <strong>plus</strong> les clients et fournisseurs de test.</td>
+<td>Le catalogue produits, les activités, les utilisateurs, les paramètres.</td>
+</tr>
+<tr>
+<td><code>node scripts/purge_prod.js --confirm --tout</code></td>
+<td>Tout ce qui est ci-dessus <strong>plus</strong> le catalogue produits (produits, catégories, fiches techniques, suppléments).</td>
+<td>Les activités, les utilisateurs, les paramètres, le plan comptable, les journaux.</td>
+</tr>
+</table>
+
+<p><strong>Recommandation pour un vrai démarrage :</strong> l'option <code>--tout</code>. Vous partez d'une base absolument propre et vous ressaisissez vos vrais produits, ce qui garantit qu'aucune donnée de test ne traîne.</p>
+
+<h3>7.3 — Exécution de la purge choisie</h3>
+<p>Exemple pour l'option <code>--tout</code> :</p>
+<pre>node scripts/purge_prod.js --confirm --tout</pre>
+
+<p>Le script exécute dans l'ordre :</p>
+<ol>
+<li><strong>Backup automatique</strong> : crée le fichier <code>data/backups/avant-purge-prod-YYYYMMDD-HHMMSS.db</code>. <strong>Notez le nom exact affiché à l'écran</strong>, ce sera votre point de restauration.</li>
+<li><strong>Suppression</strong> des données des tables selon l'option choisie.</li>
+<li><strong>Réinitialisation des compteurs</strong> : les numéros de tickets, factures, bons de commande, bons de livraison, clôtures de caisse repartent tous à <code>0001</code> pour l'année en cours.</li>
+</ol>
+
+<p>À la fin, un message récapitulatif s'affiche avec le nombre total de lignes supprimées et le nom du backup.</p>
+
+<div class="checkbox">☐ La purge est terminée, j'ai noté le nom du fichier de backup.</div>
+
+<h2><span class="step-num">8</span> Sécurisation des comptes utilisateurs</h2>
+
+<p>Après la purge, seules les tables structurelles sont préservées, dont la table des utilisateurs. Les comptes de test (avec leurs mots de passe seed, publics dans les scripts) sont toujours actifs. <strong>Ces mots de passe doivent être changés immédiatement</strong> car ils sont documentés publiquement dans les fichiers de démonstration.</p>
+
+<h3>8.1 — Redémarrer le serveur</h3>
+<pre>npm start</pre>
+<p>Le serveur affiche « ✓ Serveur lancé sur http://localhost:9000 ».</p>
+
+<h3>8.2 — Se connecter à l'interface</h3>
+<p>Ouvrez <code>http://localhost:9000/comptes/connexion</code> dans votre navigateur. Connectez-vous avec le compte Directrice Générale existant.</p>
+
+<h3>8.3 — Changer les mots de passe</h3>
+<p>Dans le menu de gauche, allez dans <strong>Administration → Utilisateurs</strong>. La liste de tous les comptes préservés s'affiche.</p>
+
+<p>Pour <strong>chaque compte</strong> présent :</p>
+<ol>
+<li>Cliquez sur le nom du compte pour ouvrir sa fiche.</li>
+<li>Onglet « Sécurité » ou bouton « Réinitialiser le mot de passe ».</li>
+<li>Saisissez un nouveau mot de passe fort (au moins 8 caractères, avec majuscules, chiffres, symboles).</li>
+<li>Confirmez.</li>
+<li>Communiquez ce nouveau mot de passe à la personne concernée par un canal privé (WhatsApp direct, SMS, papier remis en main propre — <strong>pas par email non chiffré</strong>).</li>
+</ol>
+
+<div class="warning">
+<strong>Ne remettez pas cette étape à plus tard.</strong> Tant que les anciens mots de passe seed sont actifs, toute personne connaissant le nom du logiciel peut se connecter en Directrice Générale.
+</div>
+
+<div class="checkbox">☐ Tous les mots de passe ont été changés et communiqués aux personnes concernées.</div>
+
+<h2><span class="step-num">9</span> Vérification des paramètres système</h2>
+
+<p>La table des paramètres a été préservée. Vérifiez que toutes les informations sont correctes pour la production.</p>
+
+<p>Toujours dans l'interface, connecté en DG, allez dans <strong>Administration → Paramètres</strong>. Passez en revue chaque section :</p>
+
+<table>
+<tr><th>Section</th><th>À vérifier</th></tr>
+<tr><td>Identité entreprise</td><td>Raison sociale, adresse complète, téléphone, email, NIU (Numéro d'Identification Unique), RCCM.</td></tr>
+<tr><td>Coordonnées bancaires</td><td>Nom de la banque, numéro de compte (pour les virements clients B2B).</td></tr>
+<tr><td>Canal client en ligne</td><td>Horaires affichés au public, frais de livraison, canal actif ou non.</td></tr>
+<tr><td>Codes marchand Mobile Money</td><td>Numéros Orange Money et MTN Mobile Money affichés au client au moment de commander en ligne.</td></tr>
+<tr><td>Note moyenne et avis</td><td>Note affichée en bandelette sur le site (optionnel).</td></tr>
+<tr><td>Règles commerciales</td><td>Délai de paiement B2B par défaut, remise maximum sans validation DG.</td></tr>
+</table>
+
+<p>Une fois toutes les valeurs vérifiées et corrigées, cliquez sur <strong>Enregistrer les paramètres</strong> en bas de la page.</p>
+
+<div class="checkbox">☐ Tous les paramètres système sont à jour pour la production.</div>
+
+<h2><span class="step-num">10</span> Création des vrais utilisateurs et données de production</h2>
+
+<p>Vous êtes maintenant en production avec une base saine. Il reste à ajouter vos vraies données.</p>
+
+<h3>Créer les vrais utilisateurs</h3>
+<p>Dans <strong>Administration → Utilisateurs → Nouveau</strong>, créez un compte pour chaque personne réelle de l'équipe :</p>
+<ul>
+<li>Direction Générale (au moins 1)</li>
+<li>Secrétariat (0 à N selon organisation)</li>
+<li>Responsable Distribution (généralement 1)</li>
+<li>Gestionnaire (1 par activité)</li>
+<li>Caissier (1 à N par activité B2C)</li>
+<li>Cuisinier (0 à N par activité)</li>
+</ul>
+
+<p>Après avoir créé les vrais comptes et vérifié qu'ils peuvent se connecter, vous pouvez optionnellement <strong>supprimer les anciens comptes seed</strong>.</p>
+
+<h3>Si vous avez choisi la purge --tout : remplir le catalogue</h3>
+<p>Pour chaque activité (Traiteur, Cantine, Pâtisserie, Bona Burger, ou toute autre activité que vous avez ajoutée) :</p>
+<ol>
+<li>Menu <strong>Catalogue → Catégories</strong> : créer les catégories (ex : Boissons, Sandwichs, Desserts…)</li>
+<li>Menu <strong>Catalogue → Fournisseurs</strong> : ajouter les fournisseurs réels avec leurs coordonnées.</li>
+<li>Menu <strong>Catalogue → Produits</strong> : ajouter chaque produit avec sa référence, désignation, prix d'achat, prix de vente, stock initial, stock minimum (seuil d'alerte).</li>
+<li>Pour les produits vendus en ligne avec options : ouvrir le produit et remplir la section « Suppléments disponibles » en bas du formulaire.</li>
+<li>Pour les produits fabriqués en cuisine : créer les fiches techniques dans <strong>Cuisine → Recettes</strong>.</li>
+</ol>
+
+<h3>Ajouter les clients réguliers</h3>
+<p>Dans <strong>Ventes → Clients → Nouveau client</strong>, saisir les clients B2B habituels avec leurs coordonnées de facturation (NIU, RCCM, contact facturation).</p>
+
+<h3>Premier test réel</h3>
+<p>Faites une opération de bout en bout pour valider que tout fonctionne : passer un achat, faire une distribution, encaisser une vente, éditer un ticket ou une facture, clôturer une caisse. Si tout se passe bien, vous êtes en production.</p>
+
+<div class="checkbox">☐ Utilisateurs réels créés, catalogue rempli, premier test réel réussi.</div>
+
+<h2><span class="step-num">11</span> Mise en place des sauvegardes automatiques</h2>
+
+<p>En production, la base de données change à chaque vente, chaque commande, chaque paiement. Si le disque tombe en panne ou si un fichier est corrompu, sans sauvegarde vous perdez tout.</p>
+
+<p>La stratégie minimum recommandée :</p>
+<ul>
+<li>Une sauvegarde <strong>quotidienne</strong> (chaque nuit ou chaque matin avant l'ouverture).</li>
+<li>Conservation d'au moins <strong>7 jours</strong> de backups tournants.</li>
+<li>Copie de la sauvegarde sur un <strong>support externe</strong> (clé USB, disque externe, service cloud) au moins une fois par semaine.</li>
+</ul>
+
+<h3>Script simple pour Windows</h3>
+<pre>$stamp = Get-Date -Format "yyyyMMdd-HHmm"
+Copy-Item data\app.db data\backups\prod-$stamp.db</pre>
+
+<p>Enregistrez ce script sous <code>backup_quotidien.ps1</code> à la racine du projet, puis programmez-le dans le <strong>Planificateur de tâches Windows</strong> pour qu'il s'exécute chaque jour à une heure creuse (par exemple 5h du matin).</p>
+
+<p>Pour supprimer les backups plus vieux que 30 jours, ajouter au script :</p>
+
+<pre>Get-ChildItem data\backups\prod-*.db |
+  Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } |
+  Remove-Item</pre>
+
+<div class="checkbox">☐ Un script de sauvegarde automatique est programmé.</div>
+
+<h2><span class="step-num">12</span> Que faire en cas de problème</h2>
+
+<p>Si quelque chose se passe mal <strong>pendant les étapes 5 à 7</strong> (avant la fin de la purge), vous pouvez restaurer la base de test simplement :</p>
+
+<pre>Copy-Item data\app-avant-mise-en-prod.db data\app.db -Force</pre>
+
+<p>(cela utilise la sauvegarde manuelle faite à l'étape 2)</p>
+
+<p>Si vous avez déjà exécuté la purge mais quelque chose ne va pas, restaurez le backup automatique généré à l'étape 7 :</p>
+
+<pre>Copy-Item data\backups\avant-purge-prod-YYYYMMDD-HHMMSS.db data\app.db -Force</pre>
+
+<p>(remplacez <code>YYYYMMDD-HHMMSS</code> par le nom exact affiché à la fin de la purge)</p>
+
+<p>Puis redémarrez le serveur :</p>
+<pre>npm start</pre>
+
+<p>Tout revient à l'état d'avant la purge en 30 secondes.</p>
+
+<div class="note">
+<strong>Contact de dépannage :</strong> en cas de doute sur une étape, ne forcez rien. Prenez une capture d'écran du message d'erreur et contactez la personne qui a installé l'application ou fait la formation.
+</div>
+
+<hr>
+<p style="text-align: center; color: #78716C; font-size: 9pt; margin-top: 40pt;">
+Guide de mise en production Bistock — Le Traiteur du Bistrot<br>
+Document à conserver pour référence future
+</p>
+
+</body>
+</html>

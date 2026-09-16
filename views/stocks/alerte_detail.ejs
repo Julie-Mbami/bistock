@@ -1,0 +1,174 @@
+<%- include('../partials/header') %>
+<style>
+.card-alerte { border-left: 6px solid <%= alerte.source === 'CUISINE' ? '#CA8A04' : (alerte.niveau === 'CRITIQUE' ? 'var(--danger)' : 'var(--gold)') %>; }
+.info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); }
+.info-row:last-child { border-bottom: none; }
+.info-lbl { color: var(--text-muted); }
+.info-val { font-weight: 600; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <% if (alerte.source === 'CUISINE') { %>
+                <span style="color: var(--gold);"><i class="bi bi-fire"></i></span>
+                Demande de la cuisine
+            <% } else { %>
+                <span style="color: var(--danger);"><i class="bi bi-exclamation-triangle"></i></span>
+                Alerte stock
+            <% } %>
+        </h1>
+        <p class="page-subtitle">Alerte #<%= alerte.id %> · <%= h.formatDate(alerte.creee_le, true) %></p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <% if (!alerte.vue) { %>
+            <a href="/stocks/alertes/<%= alerte.id %>/vue" class="btn btn-success"><i class="bi bi-check-lg"></i> Marquer comme traitée</a>
+        <% } %>
+        <a href="/stocks/alertes/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Bandeau principal de l'alerte -->
+        <div class="card card-alerte mb-3">
+            <div class="card-body">
+                <% if (alerte.source === 'CUISINE') { %>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span class="badge" style="background: #FEF3C7; color: #92400E; font-weight: 700; padding: 6px 12px; font-size: 0.9rem;">
+                            <i class="bi bi-fire"></i> DEMANDE CUISINE
+                        </span>
+                        <span class="badge badge-rupture" style="padding: 6px 12px; font-size: 0.9rem;">RÉAPPRO URGENT</span>
+                        <% if (alerte.vue) { %><span class="badge bg-success" style="padding: 6px 12px;"><i class="bi bi-check-lg"></i> Traitée</span><% } %>
+                    </div>
+                <% } else { %>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <% if (alerte.niveau === 'CRITIQUE') { %><span class="badge badge-rupture" style="padding: 6px 12px; font-size: 0.9rem;">CRITIQUE</span>
+                        <% } else if (alerte.niveau === 'ALERTE') { %><span class="badge badge-alerte" style="padding: 6px 12px; font-size: 0.9rem;">ALERTE</span>
+                        <% } else { %><span class="badge bg-secondary" style="padding: 6px 12px;">INFO</span><% } %>
+                        <% if (alerte.vue) { %><span class="badge bg-success" style="padding: 6px 12px;"><i class="bi bi-check-lg"></i> Traitée</span><% } %>
+                    </div>
+                <% } %>
+
+                <p style="font-size: 1rem; margin: 0;"><%= alerte.message %></p>
+
+                <% if (contexte && contexte.notes) { %>
+                    <div style="margin-top: 12px; padding: 10px 14px; background: var(--bg-soft); border-left: 3px solid var(--gold); border-radius: 4px;">
+                        <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Note du demandeur</div>
+                        <div style="margin-top: 4px;"><%= contexte.notes %></div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Contexte spécifique : recette / production -->
+        <% if (contexte && contexte.produit_fini_id) { %>
+        <div class="card mb-3">
+            <div class="card-header" style="background: var(--gold); color: #fff;"><i class="bi bi-clipboard-check"></i> Recette à fabriquer</div>
+            <div class="card-body">
+                <div style="text-align: center; padding: 12px; background: var(--bg-soft); border-radius: 6px; margin-bottom: 16px;">
+                    <div class="small text-muted">La cuisine souhaite fabriquer</div>
+                    <div style="font-size: 1.6rem; font-weight: 700; color: var(--gold-dark);">
+                        <%= contexte.quantite_voulue %> × <%= contexte.produit_fini_nom %>
+                    </div>
+                    <div class="small text-muted"><%= contexte.produit_fini_ref %></div>
+                </div>
+
+                <% if (fiche && fiche.composition && fiche.composition.length) { %>
+                    <h6 style="margin-bottom: 8px;"><i class="bi bi-list-ul"></i> Composition de la recette (par portion)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Ingrédient</th>
+                                    <th style="text-align: right;">Qté / portion</th>
+                                    <th style="text-align: right;">Qté nécessaire</th>
+                                    <th style="text-align: right;">Stock actuel</th>
+                                    <th style="text-align: center;">État</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% const rendement = Math.max(1, Number(fiche.rendement) || 1); %>
+                                <% fiche.composition.forEach(function(c) {
+                                    const qteNecessaire = Number(c.quantite) * Number(contexte.quantite_voulue) / rendement;
+                                    const suffisant = Number(c.stock_actuel) >= qteNecessaire;
+                                    const estCeluiDeLAlerte = Number(c.ingredient_id) === Number(contexte.ingredient_id);
+                                %>
+                                    <tr <%= estCeluiDeLAlerte ? 'style="background: #FEF3C7;"' : '' %>>
+                                        <td>
+                                            <% if (estCeluiDeLAlerte) { %><i class="bi bi-arrow-right-circle-fill" style="color: var(--gold);"></i> <% } %>
+                                            <strong><%= c.designation %></strong>
+                                        </td>
+                                        <td style="text-align: right;"><%= h.formatDecimal(c.quantite, 3) %> <%= c.unite %></td>
+                                        <td style="text-align: right; font-weight: 600;"><%= h.formatDecimal(qteNecessaire, 2) %> <%= c.unite %></td>
+                                        <td style="text-align: right;"><%= h.formatDecimal(c.stock_actuel, 2) %> <%= c.unite %></td>
+                                        <td style="text-align: center;">
+                                            <% if (suffisant) { %>
+                                                <span style="color: var(--success);"><i class="bi bi-check-circle-fill"></i> OK</span>
+                                            <% } else { %>
+                                                <span style="color: var(--danger); font-weight: 700;">
+                                                    <i class="bi bi-x-circle-fill"></i> Manque <%= h.formatDecimal(qteNecessaire - Number(c.stock_actuel), 2) %> <%= c.unite %>
+                                                </span>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+
+                <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="/produits/<%= contexte.produit_fini_id %>/fiche-technique" class="btn btn-outline-primary btn-sm"><i class="bi bi-clipboard-check"></i> Voir la fiche technique complète</a>
+                    <a href="/produits/<%= contexte.ingredient_id %>" class="btn btn-outline-primary btn-sm"><i class="bi bi-basket"></i> Ouvrir la fiche de l'ingrédient</a>
+                </div>
+            </div>
+        </div>
+        <% } %>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Bloc info ingrédient concerné -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-basket"></i> Ingrédient concerné</div>
+            <div class="card-body">
+                <div style="text-align: center; padding: 8px 0 12px;">
+                    <div style="font-size: 1.2rem; font-weight: 700;"><%= alerte.designation %></div>
+                    <div class="small text-muted"><%= alerte.reference %></div>
+                </div>
+                <div class="info-row"><span class="info-lbl">Stock actuel</span><span class="info-val" style="color: <%= alerte.stock_actuel <= 0 ? 'var(--danger)' : 'var(--text)' %>;"><%= alerte.stock_actuel %> <%= alerte.unite %></span></div>
+                <% if (contexte && contexte.manque) { %>
+                    <div class="info-row"><span class="info-lbl">Manque</span><span class="info-val" style="color: var(--danger);"><%= h.formatDecimal(contexte.manque, 2) %> <%= alerte.unite %></span></div>
+                <% } %>
+                <div class="info-row"><span class="info-lbl">Prix d'achat</span><span class="info-val"><%= h.formatNombre(alerte.prix_achat) %> <%= devise %></span></div>
+                <% if (contexte && contexte.manque) { %>
+                    <div class="info-row"><span class="info-lbl">Coût réappro estimé</span><span class="info-val" style="color: var(--gold-dark);"><%= h.formatNombre(contexte.manque * alerte.prix_achat) %> <%= devise %></span></div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Traçabilité -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-clock-history"></i> Traçabilité</div>
+            <div class="card-body">
+                <div class="info-row"><span class="info-lbl">Créée le</span><span class="info-val small"><%= h.formatDate(alerte.creee_le, true) %></span></div>
+                <div class="info-row"><span class="info-lbl">Activité</span><span class="info-val"><span class="badge" style="background: <%= alerte.activite_couleur %>20; color: <%= alerte.activite_couleur %>;"><%= alerte.activite_nom %></span></span></div>
+                <div class="info-row"><span class="info-lbl">Source</span><span class="info-val"><%= alerte.source %></span></div>
+                <% if (contexte && contexte.demandeur) { %>
+                    <div class="info-row"><span class="info-lbl">Demandée par</span><span class="info-val"><%= contexte.demandeur.nom %></span></div>
+                <% } %>
+                <div class="info-row"><span class="info-lbl">Statut</span><span class="info-val">
+                    <% if (alerte.vue) { %><span style="color: var(--success);"><i class="bi bi-check-circle-fill"></i> Traitée</span>
+                    <% } else { %><span style="color: var(--danger);">Non traitée</span><% } %>
+                </span></div>
+                <% if (alerte.vue && alerte.vue_le) { %>
+                    <div class="info-row"><span class="info-lbl">Traitée le</span><span class="info-val small"><%= h.formatDate(alerte.vue_le, true) %></span></div>
+                    <% if (alerte.vue_par_prenom || alerte.vue_par_username) { %>
+                        <div class="info-row"><span class="info-lbl">Traitée par</span><span class="info-val"><%= alerte.vue_par_prenom || alerte.vue_par_username %></span></div>
+                    <% } %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

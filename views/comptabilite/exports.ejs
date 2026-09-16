@@ -1,0 +1,131 @@
+<%- include('../partials/header') %>
+<style>
+.export-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; height: 100%; transition: box-shadow 0.2s, transform 0.2s; }
+.export-card:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
+.export-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 12px; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Exports pour le cabinet comptable</h1>
+        <p class="page-subtitle">Fichiers Excel formatés OHADA — à envoyer à votre expert-comptable</p>
+    </div>
+    <form method="get" style="display: flex; gap: 8px; align-items: center;">
+        <label class="form-label small" style="margin: 0;">Mois :</label>
+        <input type="month" name="mois" value="<%= moisFiltre %>" onchange="this.form.submit()" class="form-control" style="max-width: 200px;">
+    </form>
+</div>
+
+<div class="alert alert-info" style="background: #EFF6FF; border-color: #93C5FD;">
+    <i class="bi bi-info-circle-fill"></i>
+    Chaque bouton télécharge un fichier <code>.xlsx</code> prêt à l'emploi : entêtes formatés, sous-totaux, fond doré sur la ligne totale.
+    Envoyez le lot au cabinet comptable à la fin de chaque mois pour qu'il tienne la comptabilité OHADA officielle.
+</div>
+
+<div class="row">
+    <div class="col-md-6 col-lg-4 mb-3">
+        <a href="/comptabilite/exports/ventes/<%= moisFiltre %>" style="text-decoration: none; color: inherit;">
+            <div class="export-card">
+                <div class="export-icon" style="background: #DCFCE7; color: #166534;"><i class="bi bi-receipt"></i></div>
+                <h5>Journal des ventes B2B</h5>
+                <p class="small text-muted">Factures Traiteur et Cantine du mois avec client, HT, TVA, TTC, encaissé, reste dû.</p>
+                <div class="small" style="color: var(--success); font-weight: 600;">
+                    <i class="bi bi-download"></i> journal_ventes_<%= moisFiltre %>.xlsx
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-3">
+        <a href="/comptabilite/exports/ventes-b2c/<%= moisFiltre %>" style="text-decoration: none; color: inherit;">
+            <div class="export-card">
+                <div class="export-icon" style="background: #FEF3C7; color: #92400E;"><i class="bi bi-cash-stack"></i></div>
+                <h5>Journal ventes B2C (caisse)</h5>
+                <p class="small text-muted">Ventes comptoir Pâtisserie et Bona Burger + commandes web du mois.</p>
+                <div class="small" style="color: var(--gold-dark); font-weight: 600;">
+                    <i class="bi bi-download"></i> journal_ventes_caisse_<%= moisFiltre %>.xlsx
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-3">
+        <a href="/comptabilite/exports/achats/<%= moisFiltre %>" style="text-decoration: none; color: inherit;">
+            <div class="export-card">
+                <div class="export-icon" style="background: #FEE2E2; color: #991B1B;"><i class="bi bi-cart-check"></i></div>
+                <h5>Journal des achats</h5>
+                <p class="small text-muted">Bons d'achat avec fournisseur, N° facture fournisseur, HT/TVA/TTC.</p>
+                <div class="small" style="color: var(--danger); font-weight: 600;">
+                    <i class="bi bi-download"></i> journal_achats_<%= moisFiltre %>.xlsx
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-3">
+        <a href="/comptabilite/exports/reglements/<%= moisFiltre %>" style="text-decoration: none; color: inherit;">
+            <div class="export-card">
+                <div class="export-icon" style="background: #DBEAFE; color: #1E40AF;"><i class="bi bi-arrow-down-right-circle"></i></div>
+                <h5>Journal des règlements clients</h5>
+                <p class="small text-muted">Tous les paiements reçus : reçu, client, facture, mode, montant.</p>
+                <div class="small" style="color: #1E40AF; font-weight: 600;">
+                    <i class="bi bi-download"></i> journal_reglements_<%= moisFiltre %>.xlsx
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-3">
+        <a href="/comptabilite/exports/tva/<%= moisFiltre %>" style="text-decoration: none; color: inherit;">
+            <div class="export-card">
+                <div class="export-icon" style="background: #F3E8FF; color: #6B21A8;"><i class="bi bi-percent"></i></div>
+                <h5>État TVA</h5>
+                <p class="small text-muted">3 feuilles : TVA collectée · TVA déductible · Synthèse (net à décaisser).</p>
+                <div class="small" style="color: #6B21A8; font-weight: 600;">
+                    <i class="bi bi-download"></i> etat_tva_<%= moisFiltre %>.xlsx
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-3">
+        <a href="/comptabilite/exports/grand-livre/<%= moisFiltre %>" style="text-decoration: none; color: inherit;">
+            <div class="export-card">
+                <div class="export-icon" style="background: #F3F4F6; color: #374151;"><i class="bi bi-book"></i></div>
+                <h5>Grand livre (toutes écritures)</h5>
+                <p class="small text-muted">Toutes les écritures comptables du mois avec compte, débit, crédit, référence.</p>
+                <div class="small" style="color: #374151; font-weight: 600;">
+                    <i class="bi bi-download"></i> grand_livre_<%= moisFiltre %>.xlsx
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-3">
+        <a href="/comptabilite/exports/clients-soldes" style="text-decoration: none; color: inherit;">
+            <div class="export-card">
+                <div class="export-icon" style="background: #FEE2E2; color: #B91C1C;"><i class="bi bi-people"></i></div>
+                <h5>Créances clients ouvertes</h5>
+                <p class="small text-muted">Factures non soldées à date, avec retard en jours. Utile pour les relances.</p>
+                <div class="small" style="color: #B91C1C; font-weight: 600;">
+                    <i class="bi bi-download"></i> creances_clients_<date>.xlsx
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><i class="bi bi-envelope"></i> Envoi au comptable — procédure suggérée</div>
+    <div class="card-body">
+        <ol class="mb-0">
+            <li>À la fin du mois (ou début du mois suivant), sélectionne le mois à clôturer ci-dessus.</li>
+            <li>Télécharge les 6 fichiers principaux (ventes B2B + ventes B2C + achats + règlements + TVA + grand livre).</li>
+            <li>Regroupe-les dans un dossier compressé (zip) avec pour nom <code>compta_&lt;mois&gt;.zip</code>.</li>
+            <li>Envoie par mail au cabinet comptable avec en objet : <em>« Bistrot Traiteur — Écritures &lt;mois&gt; »</em>.</li>
+            <li>Le cabinet importe/ressaisit dans son logiciel et te retourne bilan/résultat.</li>
+        </ol>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

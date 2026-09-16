@@ -1,0 +1,235 @@
+<aside class="sidebar">
+    <div class="sidebar-brand" style="display: flex; align-items: center; gap: 10px;">
+        <img src="/static/logos/bstock-icon.svg" alt="Bistock" class="logo-mark" style="width: 34px; height: 34px; border-radius: 8px; padding: 0; background: transparent;">
+        <div style="display: flex; flex-direction: column; line-height: 1.1;">
+            <span style="font-weight: 800;">Bistock</span>
+            <small style="font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.03em; text-transform: uppercase;">Billing &amp; Stock</small>
+        </div>
+    </div>
+
+    <% if (activite) { %>
+    <div style="padding: 8px 12px; margin: 4px 0 12px; background: <%= activite.couleur %>10; border-left: 3px solid <%= activite.couleur %>; border-radius: 4px;">
+        <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;">Activité active</div>
+        <div style="font-size: 0.85rem; font-weight: 700; color: <%= activite.couleur %>;">
+            <i class="bi <%= activite.icone %>"></i> <%= activite.nom %>
+        </div>
+    </div>
+    <% } %>
+
+    <% /* TABLEAU DE BORD */ %>
+    <% if (peut('dashboard.activite') || peut('dashboard.consolide')) { %>
+    <a class="nav-link <%= request_path.startsWith('/tableau-de-bord') ? 'active' : '' %>" href="/tableau-de-bord/">
+        <i class="bi bi-grid-1x2"></i> Tableau de bord
+    </a>
+    <% } %>
+
+    <% /* VENTE — B2C uniquement (Pâtisserie, Bona Burger) — visible si au moins une permission caisse */ %>
+    <% if (activite && activite.type === 'B2C_CAISSE' &&
+           (peut('caisse.utiliser') || peut('caisse.etat.lire') || peut('ventes.historique') || peut('clients.gerer'))) { %>
+    <div class="sidebar-group-title"><i class="bi bi-cart3"></i> Vente</div>
+    <% if (peut('caisse.utiliser')) { %>
+    <a class="nav-sub <%= request_path === '/ventes/caisse/' ? 'active' : '' %>" href="/ventes/caisse/">Caisse</a>
+    <a class="nav-sub <%= request_path.startsWith('/ventes-web') ? 'active' : '' %>" href="/ventes-web/" id="link-cmd-web">
+        <i class="bi bi-basket-fill"></i> Commandes en ligne
+        <span class="badge-count" id="badge-cmd-web" style="margin-left: auto; background: var(--gold); <%= !(locals.nb_commandes_web) ? 'display:none;' : '' %>"><%= locals.nb_commandes_web || 0 %></span>
+    </a>
+    <script>
+    // Polling léger toutes les 30s pour maj du badge sans recharger
+    (function() {
+        if (!document.getElementById('badge-cmd-web')) return;
+        async function refresh() {
+            try {
+                const r = await fetch('/ventes-web/api/count-nouvelles?_=' + Date.now(), { cache: 'no-store' });
+                if (!r.ok) return;
+                const d = await r.json();
+                const badge = document.getElementById('badge-cmd-web');
+                const total = (d.nb_actives || 0);
+                if (total > 0) { badge.textContent = total; badge.style.display = ''; }
+                else { badge.style.display = 'none'; }
+            } catch(e) {}
+        }
+        refresh();
+        setInterval(refresh, 10000);
+    })();
+    </script>
+    <% } %>
+    <% if (peut('ventes.historique')) { %>
+    <a class="nav-sub <%= request_path === '/ventes/' ? 'active' : '' %>" href="/ventes/">Historique des ventes</a>
+    <% } %>
+    <% if (peut('caisse.etat.lire')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/caisses') ? 'active' : '' %>" href="/caisses/">État de caisse</a>
+    <% } %>
+    <% if (peut('clients.gerer')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/ventes/clients') ? 'active' : '' %>" href="/ventes/clients/">Clients</a>
+    <% } %>
+    <% } %>
+
+    <% /* COMMANDES B2B — Traiteur et Cantine */ %>
+    <% if (activite && activite.type === 'B2B_COMMANDE' &&
+           (peut('commandes.saisir') || peut('facture.emettre') || peut('paiement.enregistrer') || peut('clients.gerer'))) { %>
+    <div class="sidebar-group-title"><i class="bi bi-journal-text"></i> Commandes B2B</div>
+    <% if (peut('commandes.saisir')) { %>
+    <a class="nav-sub <%= request_path === '/commandes/' || request_path === '/commandes' ? 'active' : '' %>" href="/commandes/">Toutes les commandes</a>
+    <% } %>
+    <% if (peut('proforma.editer')) { %>
+    <a class="nav-sub <%= request_path === '/commandes/nouveau' ? 'active' : '' %>" href="/commandes/nouveau">Nouvelle proforma</a>
+    <% } %>
+    <% if (peut('facture.emettre') || peut('paiement.enregistrer')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/commandes/factures') ? 'active' : '' %>" href="/commandes/factures/">Factures à encaisser</a>
+    <a class="nav-sub <%= request_path.startsWith('/commandes/relances') ? 'active' : '' %>" href="/commandes/relances/">
+        Factures à relancer
+        <% if (locals.nb_relances_a_faire) { %><span class="badge-count" style="margin-left: auto; background: var(--danger);"><%= locals.nb_relances_a_faire %></span><% } %>
+    </a>
+    <% } %>
+    <% if (peut('clients.gerer')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/ventes/clients') ? 'active' : '' %>" href="/ventes/clients/">Clients</a>
+    <% } %>
+    <% } %>
+
+    <% /* CATALOGUE — visible si lecture produits */ %>
+    <% if (activite && peut('produits.lire')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-box-seam"></i> Catalogue</div>
+    <a class="nav-sub <%= (request_path === '/produits/' || request_path.match(/^\/produits\/\d/)) ? 'active' : '' %>" href="/produits/">Produits</a>
+    <% if (peut('categories.gerer')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/produits/categories') ? 'active' : '' %>" href="/produits/categories/">Catégories</a>
+    <% } %>
+    <% if (peut('fournisseurs.gerer')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/produits/fournisseurs') ? 'active' : '' %>" href="/produits/fournisseurs/">Fournisseurs</a>
+    <% } %>
+    <% if (peut('intelligence.acceder')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/produits/analytics/ventes-produits') ? 'active' : '' %>" href="/produits/analytics/ventes-produits">Top ventes produits</a>
+    <% } %>
+    <% } %>
+
+    <% /* ACHATS — Mme Sandra saisit, Nestor réceptionne */ %>
+    <% if (peut('achats.consulter') || peut('achats.saisir') || peut('achats.receptionner')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-cart-check"></i> Achats</div>
+    <a class="nav-sub <%= request_path.startsWith('/achats') ? 'active' : '' %>" href="/achats/<%= locals.nb_achats_a_receptionner ? '?statut=SAISI' : '' %>"
+       <% if (locals.nb_achats_a_receptionner) { %>title="<%= locals.nb_achats_a_receptionner %> bon<%= locals.nb_achats_a_receptionner > 1 ? 's' : '' %> d'achat en attente de réception"<% } %>>
+        Bons d'achat
+        <% if (locals.nb_achats_a_receptionner) { %><span class="badge-count" style="margin-left: auto; background: var(--gold);"><%= locals.nb_achats_a_receptionner %></span><% } %>
+    </a>
+    <% } %>
+
+    <% /* DISTRIBUTION — Nestor uniquement */ %>
+    <% if (peut('distribution.consulter') || peut('distribution.creer') || peut('distribution.remettre')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-truck"></i> Distribution</div>
+    <a class="nav-sub <%= request_path.startsWith('/distributions') ? 'active' : '' %>" href="/distributions/<%= locals.nb_distributions_a_remettre ? '?statut=PREPAREE' : '' %>"
+       <% if (locals.nb_distributions_a_remettre) { %>title="<%= locals.nb_distributions_a_remettre %> distribution<%= locals.nb_distributions_a_remettre > 1 ? 's' : '' %> préparée<%= locals.nb_distributions_a_remettre > 1 ? 's' : '' %> à remettre"<% } %>>
+        Bons de distribution
+        <% if (locals.nb_distributions_a_remettre) { %><span class="badge-count" style="margin-left: auto; background: var(--gold);"><%= locals.nb_distributions_a_remettre %></span><% } %>
+    </a>
+    <% } %>
+
+    <% /* MAGASIN NESTOR */ %>
+    <% if (peut('magasin.lire')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-shop"></i> Magasin</div>
+    <a class="nav-sub <%= request_path.startsWith('/magasin-nestor') ? 'active' : '' %>" href="/magasin-nestor/">Magasin Nestor</a>
+    <% } %>
+
+    <% /* CUISINE — Cuisiniers et DG */ %>
+    <% if (activite && (peut('cuisine.recettes.lire') || peut('cuisine.production.creer') || peut('cuisine.recettes.ecrire'))) { %>
+    <div class="sidebar-group-title"><i class="bi bi-fire"></i> Cuisine</div>
+    <a class="nav-sub <%= request_path === '/productions/' || request_path.match(/^\/productions\/\d/) || request_path === '/productions/nouveau' ? 'active' : '' %>" href="/productions/<%= locals.nb_productions_a_valider ? '?statut=BROUILLON' : '' %>" style="display: flex; align-items: center; gap: 6px;">
+        <span style="flex: 1;">Ordres de production</span>
+        <% if (locals.nb_productions_web_a_traiter) { %>
+            <span class="badge-count" style="background: #8B5CF6; color: #fff;" title="Ordres issus de commandes en ligne">
+                <i class="bi bi-basket-fill" style="font-size: 0.7rem;"></i> <%= locals.nb_productions_web_a_traiter %>
+            </span>
+        <% } %>
+        <% if (locals.nb_productions_a_valider) { %>
+            <span class="badge-count" style="background: var(--gold);" title="Ordres en BROUILLON à valider"><%= locals.nb_productions_a_valider %></span>
+        <% } %>
+        <% if (user.est_cuisinier && locals.nb_notifs_cuisinier) { %>
+            <span class="badge-count" style="background: #2563EB;" title="Nouvelles réponses du gestionnaire"><%= locals.nb_notifs_cuisinier %></span>
+        <% } %>
+    </a>
+    <% if (peut('cuisine.recettes.lire')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/productions/recettes') ? 'active' : '' %>" href="/productions/recettes/">Recettes / Fiches techniques</a>
+    <% } %>
+    <% } %>
+
+    <% /* STOCKS — visible si lecture stock */ %>
+    <% if (activite && peut('stock.lire')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-archive"></i> Stocks</div>
+    <a class="nav-sub <%= request_path.startsWith('/stocks/etat') ? 'active' : '' %>" href="/stocks/etat/">État du stock</a>
+    <% if (peut('reception.confirmer')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/stocks/receptions') ? 'active' : '' %>" href="/stocks/receptions/">
+        Réceptions à traiter
+        <% if (locals.nb_receptions_en_attente) { %><span class="badge-count" style="margin-left: auto; background: var(--gold);"><%= locals.nb_receptions_en_attente %></span><% } %>
+    </a>
+    <% } %>
+    <% if (peut('cuisine.production.valider')) { %>
+    <a class="nav-sub <%= request_path === '/productions/' || request_path.match(/^\/productions\/\d/) ? 'active' : '' %>" href="/productions/<%= locals.nb_productions_a_valider ? '?statut=BROUILLON' : '' %>">
+        Sorties production
+        <% if (locals.nb_productions_a_valider) { %><span class="badge-count" style="margin-left: auto; background: var(--gold);"><%= locals.nb_productions_a_valider %></span><% } %>
+    </a>
+    <% } %>
+    <% if (peut('stock.inventaires')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/stocks/inventaires') ? 'active' : '' %>" href="/stocks/inventaires/">Inventaires</a>
+    <% } %>
+    <% if (peut('stock.mouvements') || peut('stock.lire')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/stocks/mouvements') ? 'active' : '' %>" href="/stocks/mouvements/">Mouvements</a>
+    <% } %>
+    <% if (peut('stock.alertes')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/stocks/alertes') ? 'active' : '' %>" href="/stocks/alertes/">
+        Alertes
+        <% if (locals.nb_alertes_non_lues) { %><span class="badge-count" style="margin-left: auto;"><%= locals.nb_alertes_non_lues %></span><% } %>
+    </a>
+    <% } %>
+    <% } %>
+
+    <% /* INTELLIGENCE */ %>
+    <% if (activite && peut('intelligence.acceder')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-cpu"></i> Intelligence</div>
+    <a class="nav-sub <%= request_path.startsWith('/intelligence/previsions') ? 'active' : '' %>" href="/intelligence/previsions/">Prévisions</a>
+    <a class="nav-sub <%= request_path.startsWith('/intelligence/classification-abc') ? 'active' : '' %>" href="/intelligence/classification-abc/">Classification ABC</a>
+    <a class="nav-sub <%= request_path.startsWith('/intelligence/recommandations') ? 'active' : '' %>" href="/intelligence/recommandations/">Recommandations</a>
+    <% } %>
+
+    <% /* COMPTABILITÉ */ %>
+    <% if (peut('compta.consulter') || peut('compta.tva') || peut('compta.exports') || peut('compta.plan_comptable')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-calculator"></i> Comptabilité</div>
+    <% if (peut('compta.consulter')) { %>
+    <a class="nav-sub <%= request_path === '/comptabilite/' || request_path === '/comptabilite' ? 'active' : '' %>" href="/comptabilite/">Situation financière</a>
+    <a class="nav-sub <%= request_path.startsWith('/comptabilite/journaux') ? 'active' : '' %>" href="/comptabilite/journaux/">Journaux</a>
+    <a class="nav-sub <%= request_path.startsWith('/comptabilite/grand-livre') ? 'active' : '' %>" href="/comptabilite/grand-livre/">Grand livre</a>
+    <% } %>
+    <% if (peut('compta.tva')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/comptabilite/tva') ? 'active' : '' %>" href="/comptabilite/tva/">État TVA</a>
+    <% } %>
+    <% if (peut('compta.exports')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/comptabilite/exports') ? 'active' : '' %>" href="/comptabilite/exports/">
+        <i class="bi bi-file-earmark-excel"></i> Exports Excel
+    </a>
+    <% } %>
+    <% if (peut('compta.plan_comptable')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/comptabilite/plan-comptable') ? 'active' : '' %>" href="/comptabilite/plan-comptable/">Plan comptable</a>
+    <% } %>
+    <% } %>
+
+    <% /* ADMINISTRATION */ %>
+    <% if (peut('admin.utilisateurs') || peut('admin.activites') || peut('admin.parametres') || peut('admin.audit')) { %>
+    <div class="sidebar-group-title"><i class="bi bi-gear"></i> Administration</div>
+    <% if (peut('admin.utilisateurs') || peut('admin.activites') || peut('admin.parametres')) { %>
+    <a class="nav-sub <%= request_path === '/admin/' || request_path === '/admin' ? 'active' : '' %>" href="/admin/">Vue d'ensemble</a>
+    <% } %>
+    <% if (peut('admin.utilisateurs')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/comptes/utilisateurs') ? 'active' : '' %>" href="/comptes/utilisateurs">Utilisateurs</a>
+    <% } %>
+    <% if (peut('admin.activites')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/admin/activites') ? 'active' : '' %>" href="/admin/activites/">Activités</a>
+    <% } %>
+    <% if (peut('dashboard.consolide')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/admin/rapport-mensuel') ? 'active' : '' %>" href="/admin/rapport-mensuel/">Rapport mensuel</a>
+    <a class="nav-sub <%= request_path.startsWith('/admin/canal-web') ? 'active' : '' %>" href="/admin/canal-web/">Canal en ligne</a>
+    <a class="nav-sub <%= request_path.startsWith('/admin/promotions') ? 'active' : '' %>" href="/admin/promotions/"><i class="bi bi-megaphone"></i> Promotions</a>
+    <% } %>
+    <% if (peut('admin.parametres')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/admin/parametres') ? 'active' : '' %>" href="/admin/parametres/">Paramètres système</a>
+    <% } %>
+    <% if (peut('admin.audit')) { %>
+    <a class="nav-sub <%= request_path.startsWith('/admin/audit') ? 'active' : '' %>" href="/admin/audit/">Journal d'audit</a>
+    <% } %>
+    <% } %>
+</aside>

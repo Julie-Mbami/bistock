@@ -1,0 +1,943 @@
+    <div style="text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 0.75rem; background: var(--creme-fonce); border-top: 1px solid var(--border);">
+        © <%= new Date().getFullYear() %> <%= locals.ent_nom || 'Le Traiteur du Bistrot' %> · Tous droits réservés
+    </div>
+
+    <% if (locals.ent_whatsapp) { %>
+    <!-- Bouton WhatsApp flottant : vert WhatsApp officiel -->
+    <button type="button" id="wa-btn" class="wa-float"
+       title="Commander sur WhatsApp — <%= locals.ent_nom || 'Le Traiteur du Bistrot' %>"
+       aria-label="Commander sur WhatsApp — <%= locals.ent_nom || 'Le Traiteur du Bistrot' %>"
+       style="position: fixed; bottom: 20px; right: 20px; z-index: 95;
+              width: 58px; height: 58px; border-radius: 50%;
+              background: #25D366; color: #fff; border: none;
+              display: flex; align-items: center; justify-content: center;
+              box-shadow: 0 8px 24px rgba(37,211,102,0.4), 0 4px 8px rgba(0,0,0,0.15);
+              transition: transform 0.2s, box-shadow 0.2s;
+              font-size: 1.9rem; cursor: pointer;">
+        <i class="bi bi-whatsapp"></i>
+    </button>
+
+    <!-- Modal de sélection produits pour envoi WhatsApp -->
+    <div id="wa-modal" class="wa-modal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="wa-modal-backdrop"></div>
+        <div class="wa-modal-panel">
+            <header class="wa-modal-head">
+                <div class="wa-head-icon">
+                    <img src="/static/logos/bstock-icon.svg" alt="Logo <%= locals.ent_nom || 'Le Traiteur du Bistrot' %>"
+                         style="width: 100%; height: 100%; object-fit: contain; background: #fff; border-radius: 8px; padding: 3px;">
+                </div>
+                <div class="wa-head-text">
+                    <h3>Commander chez <span style="color: #B7F5C0;"><%= locals.ent_nom || 'Le Traiteur du Bistrot' %></span></h3>
+                    <p>Choisissez vos produits, notre équipe vous répond directement sur WhatsApp <i class="bi bi-whatsapp" style="color: #B7F5C0;"></i></p>
+                </div>
+                <button type="button" class="wa-modal-close" aria-label="Fermer">&times;</button>
+            </header>
+            <div class="wa-modal-filters">
+                <div class="wa-search-wrap">
+                    <i class="bi bi-search"></i>
+                    <input type="search" id="wa-search" placeholder="Rechercher un produit…" autocomplete="off">
+                </div>
+                <select id="wa-cat" aria-label="Filtrer par catégorie"><option value="">Toutes catégories</option></select>
+            </div>
+            <!-- Bannière offres du moment (remplie par JS) -->
+            <div id="wa-offres" style="display: none; padding: 10px 16px; background: linear-gradient(135deg, #FEF3C7, #FDE68A); border-bottom: 1px solid #FCD34D;"></div>
+            <div class="wa-modal-list" id="wa-list">
+                <div class="wa-empty">
+                    <div class="wa-spinner"></div>
+                    Chargement du catalogue…
+                </div>
+            </div>
+            <footer class="wa-modal-foot">
+                <!-- Coordonnées facultatives — aident le caissier à identifier -->
+                <div style="width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                    <input type="text" id="wa-nom-client" maxlength="60" placeholder="Votre nom (facultatif)"
+                           style="padding: 8px 10px; border-radius: 8px; border: 1px solid #CBD5E1;
+                                  font-size: 0.85rem; background: #fff; color: #0F172A;">
+                    <input type="tel" id="wa-tel-client" maxlength="20" placeholder="Téléphone (facultatif)"
+                           style="padding: 8px 10px; border-radius: 8px; border: 1px solid #CBD5E1;
+                                  font-size: 0.85rem; background: #fff; color: #0F172A;">
+                </div>
+                <!-- Champ code promo -->
+                <div class="wa-promo-bloc" style="width: 100%; padding: 8px 12px; background: rgba(202,138,4,0.06); border: 1px dashed rgba(202,138,4,0.3); border-radius: 8px; margin-bottom: 10px;">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <i class="bi bi-ticket-perforated" style="color: #92400E;"></i>
+                        <input type="text" id="wa-code-promo" maxlength="20" placeholder="Code promo (facultatif)"
+                               style="flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid #CBD5E1;
+                                      text-transform: uppercase; font-family: monospace; font-weight: 700;
+                                      font-size: 0.82rem; background: #fff; color: #0F172A;">
+                        <button type="button" id="wa-appliquer-promo"
+                                style="padding: 6px 12px; border-radius: 6px; border: none; background: #92400E;
+                                       color: #fff; font-weight: 700; cursor: pointer; font-size: 0.78rem;">Appliquer</button>
+                    </div>
+                    <div id="wa-promo-feedback" style="display: none; margin-top: 6px; font-size: 0.78rem; font-weight: 600;"></div>
+                </div>
+                <div class="wa-recap" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #64748B; margin-bottom: 4px;">
+                        <span><i class="bi bi-basket"></i> <span id="wa-count-articles">0 article</span></span>
+                        <span id="wa-sous-total">0 FCFA</span>
+                    </div>
+                    <div id="wa-ligne-remise" style="display: none; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #DC2626; margin-bottom: 4px;">
+                        <span>Remise <span id="wa-code-applique" style="font-weight: 700;"></span></span>
+                        <span>−<span id="wa-remise">0</span> FCFA</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 6px; border-top: 1px solid #E5E7EB;">
+                        <strong style="font-size: 0.9rem; color: #075E54;">Total</strong>
+                        <strong id="wa-total" style="font-size: 1.35rem; color: #075E54; font-weight: 800;">0 FCFA</strong>
+                    </div>
+                </div>
+                <div class="wa-actions" style="width: 100%; margin-top: 10px;">
+                    <button type="button" class="wa-btn-secondary" id="wa-reset">
+                        <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+                    </button>
+                    <button type="button" class="wa-btn-primary" id="wa-send" disabled>
+                        <i class="bi bi-whatsapp"></i> Envoyer la commande
+                    </button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <style>
+        .wa-float:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(37,211,102,0.55), 0 6px 12px rgba(0,0,0,0.2); }
+        .wa-float::before {
+            content: ''; position: absolute; inset: -4px;
+            border-radius: 50%; border: 2px solid #25D366;
+            opacity: 0; animation: wa-pulse 2.5s infinite; pointer-events: none;
+        }
+        @keyframes wa-pulse {
+            0%   { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+        @media (max-width: 480px) {
+            .wa-float { width: 52px; height: 52px; font-size: 1.65rem; bottom: 16px; right: 16px; }
+        }
+
+        /* ==== Modal ==== */
+        .wa-modal { position: fixed; inset: 0; z-index: 200; display: none; }
+        .wa-modal.open { display: block; animation: wa-fade 0.18s ease-out; }
+        @keyframes wa-fade { from { opacity: 0; } to { opacity: 1; } }
+        .wa-modal-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); }
+        .wa-modal-panel {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: min(620px, calc(100vw - 24px));
+            max-height: min(85vh, 820px);
+            background: #ffffff; border-radius: 16px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* Entête vert WhatsApp officiel */
+        .wa-modal-head {
+            display: flex; align-items: center; gap: 14px;
+            padding: 20px 22px;
+            background: linear-gradient(135deg, #075E54 0%, #128C7E 100%);
+            color: #fff;
+        }
+        .wa-head-icon {
+            width: 52px; height: 52px; border-radius: 12px;
+            background: rgba(255,255,255,0.95); display: flex; align-items: center; justify-content: center;
+            padding: 4px; flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .wa-head-text { flex: 1; min-width: 0; }
+        .wa-head-text h3 { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+        .wa-head-text p { margin: 3px 0 0; font-size: 0.78rem; opacity: 0.85; line-height: 1.35; }
+        .wa-modal-close {
+            background: rgba(255,255,255,0.15); color: #fff; border: none; font-size: 1.4rem; line-height: 1;
+            cursor: pointer; width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; transition: background 0.12s;
+        }
+        .wa-modal-close:hover { background: rgba(255,255,255,0.28); }
+
+        /* Barre de recherche + filtre catégorie */
+        .wa-modal-filters {
+            display: grid; grid-template-columns: 1fr 180px; gap: 10px;
+            padding: 14px 20px; background: #F8FAF9; border-bottom: 1px solid #E5E7EB;
+        }
+        .wa-search-wrap { position: relative; }
+        .wa-search-wrap i {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            color: #94A3B8; font-size: 0.95rem; pointer-events: none;
+        }
+        .wa-search-wrap input {
+            width: 100%; padding: 10px 12px 10px 36px; border-radius: 10px; border: 1px solid #CBD5E1;
+            font-size: 0.9rem; background: #fff; color: #0F172A; font-family: inherit;
+        }
+        .wa-modal-filters select {
+            width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #CBD5E1;
+            font-size: 0.88rem; background: #fff; color: #0F172A; font-family: inherit; cursor: pointer;
+        }
+        .wa-search-wrap input:focus, .wa-modal-filters select:focus {
+            outline: none; border-color: #25D366; box-shadow: 0 0 0 3px rgba(37,211,102,0.15);
+        }
+
+        /* Liste produits */
+        .wa-modal-list { flex: 1; overflow-y: auto; padding: 6px 0 10px; background: #fff; }
+        .wa-modal-list::-webkit-scrollbar { width: 8px; }
+        .wa-modal-list::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        .wa-modal-list::-webkit-scrollbar-track { background: transparent; }
+
+        .wa-cat-header {
+            position: sticky; top: 0; z-index: 2;
+            padding: 10px 20px 6px;
+            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+            color: #64748B; background: linear-gradient(#fff, rgba(255,255,255,0.9));
+            border-bottom: 1px solid #F1F5F9;
+        }
+
+        .wa-row {
+            display: grid; grid-template-columns: 52px 1fr auto auto; gap: 12px; align-items: center;
+            padding: 10px 20px; cursor: pointer; transition: background 0.12s;
+            border-bottom: 1px solid #F5F7FA;
+        }
+        .wa-row:hover { background: #F8FAFC; }
+        .wa-row.selected { background: rgba(37,211,102,0.07); }
+        .wa-row.selected::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #25D366;
+        }
+        .wa-row { position: relative; }
+
+        /* Vignette produit (image ou emoji) */
+        .wa-thumb {
+            width: 52px; height: 52px; border-radius: 10px; overflow: hidden;
+            background: linear-gradient(135deg, #FFF4E1 0%, #FEEDC7 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .wa-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .wa-row-info { min-width: 0; }
+        .wa-row-nom {
+            font-weight: 600; color: #0F172A; font-size: 0.93rem; line-height: 1.25;
+            overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; white-space: normal;
+        }
+        .wa-row-meta { font-size: 0.78rem; color: #64748B; margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+        .wa-row-prix { font-weight: 700; color: #075E54; }
+        .wa-row-unite { color: #94A3B8; font-weight: 500; }
+
+        /* Sélecteur quantité */
+        .wa-row-qte { display: flex; align-items: center; gap: 2px; background: #F1F5F9; border-radius: 999px; padding: 3px; }
+        .wa-row-qte button {
+            width: 26px; height: 26px; border-radius: 50%; border: none; background: transparent;
+            cursor: pointer; font-size: 1rem; line-height: 1; color: #475569; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .wa-row-qte button:hover { background: #fff; color: #25D366; }
+        .wa-row-qte input {
+            width: 32px; text-align: center; border: none; font-weight: 700; color: #0F172A;
+            font-size: 0.9rem; padding: 0; background: transparent; -moz-appearance: textfield;
+        }
+        .wa-row-qte input::-webkit-outer-spin-button,
+        .wa-row-qte input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .wa-check {
+            width: 20px; height: 20px; border-radius: 6px; border: 2px solid #CBD5E1;
+            display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+            flex-shrink: 0;
+        }
+        .wa-row.selected .wa-check {
+            background: #25D366; border-color: #25D366; color: #fff;
+        }
+        .wa-check i { font-size: 0.75rem; display: none; }
+        .wa-row.selected .wa-check i { display: block; }
+
+        /* Pied avec récap + actions */
+        .wa-modal-foot {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 16px 22px; border-top: 1px solid #E5E7EB;
+            background: linear-gradient(#F8FAF9, #EEF2F1);
+        }
+        .wa-recap { display: flex; flex-direction: column; gap: 2px; }
+        .wa-recap-label { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #64748B; font-weight: 500; }
+        .wa-recap strong { font-size: 1.35rem; color: #075E54; font-weight: 800; letter-spacing: -0.01em; }
+        .wa-actions { display: flex; gap: 8px; align-items: center; }
+        .wa-btn-primary {
+            background: linear-gradient(135deg, #25D366 0%, #1EAF56 100%);
+            color: #fff; border: none; padding: 11px 20px; border-radius: 10px;
+            font-weight: 700; cursor: pointer; font-size: 0.9rem;
+            display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 10px rgba(37,211,102,0.35);
+            transition: transform 0.12s, box-shadow 0.12s;
+        }
+        .wa-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37,211,102,0.45); }
+        .wa-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+        .wa-btn-secondary {
+            background: #fff; color: #475569; border: 1px solid #CBD5E1;
+            padding: 10px 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .wa-btn-secondary:hover { color: #0F172A; border-color: #94A3B8; background: #F8FAFC; }
+
+        /* Badge suppléments + panneau extensible */
+        .wa-supp-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+            color: #92400E; font-size: 0.68rem; font-weight: 700;
+            padding: 2px 7px; border-radius: 999px; margin-left: 6px;
+            border: 1px solid #FCD34D; cursor: pointer; user-select: none;
+            transition: transform 0.12s, box-shadow 0.12s;
+        }
+        .wa-supp-badge:hover { transform: scale(1.05); box-shadow: 0 2px 6px rgba(146,64,14,0.2); }
+        .wa-supp-badge i { font-size: 0.7rem; }
+
+        .wa-supp-panel {
+            grid-column: 1 / -1;
+            padding: 10px 12px 12px 68px;
+            background: #FFFBEB;
+            border-top: 1px dashed #FCD34D;
+            display: none;
+        }
+        .wa-row.expanded .wa-supp-panel { display: block; animation: wa-slide 0.18s ease-out; }
+        @keyframes wa-slide { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .wa-supp-title { font-size: 0.72rem; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+        .wa-supp-list { display: flex; flex-direction: column; gap: 4px; }
+        .wa-supp-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 8px; border-radius: 6px; cursor: pointer;
+            font-size: 0.85rem; color: #451A03; transition: background 0.1s;
+        }
+        .wa-supp-item:hover { background: rgba(252,211,77,0.2); }
+        .wa-supp-item input[type=checkbox] {
+            width: 16px; height: 16px; cursor: pointer; accent-color: #F59E0B;
+        }
+        .wa-supp-item-nom { flex: 1; }
+        .wa-supp-item-prix { font-weight: 700; color: #78350F; font-size: 0.82rem; }
+
+        .wa-empty {
+            text-align: center; padding: 50px 20px; color: #94A3B8; font-size: 0.9rem;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .wa-spinner {
+            width: 32px; height: 32px; border: 3px solid #E5E7EB; border-top-color: #25D366; border-radius: 50%;
+            animation: wa-spin 0.7s linear infinite;
+        }
+        @keyframes wa-spin { to { transform: rotate(360deg); } }
+
+        /* Responsive mobile */
+        @media (max-width: 520px) {
+            .wa-modal-panel { max-height: 92vh; }
+            .wa-modal-filters { grid-template-columns: 1fr; }
+            .wa-modal-head { padding: 16px 18px; }
+            .wa-head-text h3 { font-size: 0.98rem; }
+            .wa-head-text p { font-size: 0.73rem; }
+            .wa-row { grid-template-columns: 44px 1fr auto; gap: 10px; padding: 10px 16px; }
+            .wa-row .wa-check { display: none; }
+            .wa-thumb { width: 44px; height: 44px; font-size: 1.4rem; }
+            .wa-modal-foot { padding: 14px 16px; }
+            .wa-actions { width: 100%; justify-content: space-between; }
+            .wa-btn-primary { flex: 1; justify-content: center; }
+        }
+    </style>
+
+    <script>
+    (function() {
+        const btnOpen = document.getElementById('wa-btn');
+        const modal   = document.getElementById('wa-modal');
+        const btnClose = modal.querySelector('.wa-modal-close');
+        const backdrop = modal.querySelector('.wa-modal-backdrop');
+        const listEl  = document.getElementById('wa-list');
+        const searchInput = document.getElementById('wa-search');
+        const catSelect = document.getElementById('wa-cat');
+        const totalEl = document.getElementById('wa-total');
+        const sousTotalEl = document.getElementById('wa-sous-total');
+        const countEl = document.getElementById('wa-count-articles');
+        const btnSend = document.getElementById('wa-send');
+        const btnReset = document.getElementById('wa-reset');
+        const offresEl = document.getElementById('wa-offres');
+        const codeInput = document.getElementById('wa-code-promo');
+        const btnAppliquerPromo = document.getElementById('wa-appliquer-promo');
+        const promoFeedbackEl = document.getElementById('wa-promo-feedback');
+        const remiseRow = document.getElementById('wa-ligne-remise');
+        const remiseEl = document.getElementById('wa-remise');
+        const codeAppliqueEl = document.getElementById('wa-code-applique');
+
+        // Promo appliquée : { remise, code, message, livraison_offerte }
+        let promoActive = null;
+        // Promos automatiques actives (juste pour affichage — pas appliquées automatiquement ici)
+        let offresAuto = <%- JSON.stringify(locals.banniere_promos || []) %>;
+
+        const TEL_WA         = <%- JSON.stringify(String(locals.ent_whatsapp || '')) %>;
+        const NOM_ENTREPRISE = <%- JSON.stringify(String(locals.ent_nom || 'Le Traiteur du Bistrot')) %>;
+        const TEL_ENT        = <%- JSON.stringify(String(locals.ent_tel || '')) %>;
+        const ADRESSE_ENT    = <%- JSON.stringify(String(locals.ent_adresse || '')) %>;
+        const SITE_URL       = window.location.origin;
+
+        let produits = [];
+        // Structure: { produitId: { quantite: number, supplements: Set<supplementId> } }
+        let selection = {};
+
+        function fmtFCFA(n) {
+            return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA';
+        }
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, function(c) {
+                return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+            });
+        }
+
+        function chargerProduits() {
+            fetch('/commander/api/produits-liste')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.canal_desactive || !data.produits || !data.produits.length) {
+                        listEl.innerHTML = '<div class="wa-empty"><i class="bi bi-inbox" style="font-size:2rem;"></i>Aucun produit disponible pour le moment.</div>';
+                        return;
+                    }
+                    produits = data.produits;
+                    const cats = [...new Set(produits.map(p => p.categorie))].sort();
+                    catSelect.innerHTML = '<option value="">Toutes catégories</option>' +
+                        cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+                    afficher();
+                })
+                .catch(() => {
+                    listEl.innerHTML = '<div class="wa-empty"><i class="bi bi-wifi-off" style="font-size:2rem;"></i>Impossible de charger les produits.</div>';
+                });
+        }
+
+        function produitsFiltres() {
+            const q = (searchInput.value || '').trim().toLowerCase();
+            const cat = catSelect.value;
+            return produits.filter(p =>
+                (!cat || p.categorie === cat) &&
+                (!q || p.nom.toLowerCase().includes(q))
+            );
+        }
+
+        function afficher() {
+            const list = produitsFiltres();
+            if (!list.length) {
+                listEl.innerHTML = '<div class="wa-empty"><i class="bi bi-search" style="font-size:2rem;"></i>Aucun résultat pour votre recherche.</div>';
+                majTotal();
+                return;
+            }
+            const parCat = {};
+            for (const p of list) { (parCat[p.categorie] = parCat[p.categorie] || []).push(p); }
+            const groupes = Object.keys(parCat).sort();
+            const parts = [];
+            for (const cat of groupes) {
+                parts.push(`<div class="wa-cat-header">${escapeHtml(cat)}</div>`);
+                for (const p of parCat[cat]) {
+                    const s = selection[p.id];
+                    const q = s ? s.quantite : 0;
+                    const suppsChoisis = s ? s.supplements : new Set();
+                    const rowSel = q > 0 ? 'selected' : '';
+                    const rowExp = s && s.expanded ? 'expanded' : '';
+                    const vignette = p.image
+                        ? `<img src="${escapeHtml(p.image)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='${(p.emoji || '🍽').replace(/'/g, '&#39;')}'">`
+                        : (p.emoji || '🍽');
+                    const nbSupp = p.supplements ? p.supplements.length : 0;
+                    const suppBadge = nbSupp > 0
+                        ? `<span class="wa-supp-badge" data-supp-toggle="${p.id}" title="Voir les suppléments"><i class="bi bi-plus-circle"></i>${suppsChoisis.size}/${nbSupp} supp.</span>`
+                        : '';
+                    let panneau = '';
+                    if (nbSupp > 0) {
+                        const itemsSupp = p.supplements.map(sp => {
+                            const coche = suppsChoisis.has(sp.id) ? 'checked' : '';
+                            return `
+                                <label class="wa-supp-item" onclick="event.stopPropagation()">
+                                    <input type="checkbox" data-supp-id="${sp.id}" data-produit-id="${p.id}" ${coche}>
+                                    <span class="wa-supp-item-nom">${escapeHtml(sp.nom)}</span>
+                                    <span class="wa-supp-item-prix">+${fmtFCFA(sp.prix)}</span>
+                                </label>
+                            `;
+                        }).join('');
+                        panneau = `
+                            <div class="wa-supp-panel">
+                                <div class="wa-supp-title">Personnalisez votre produit</div>
+                                <div class="wa-supp-list">${itemsSupp}</div>
+                            </div>
+                        `;
+                    }
+                    parts.push(`
+                        <div class="wa-row ${rowSel} ${rowExp}" data-id="${p.id}">
+                            <div class="wa-thumb">${vignette}</div>
+                            <div class="wa-row-info">
+                                <div class="wa-row-nom">${escapeHtml(p.nom)}${suppBadge}</div>
+                                <div class="wa-row-meta">
+                                    <span class="wa-row-prix">${fmtFCFA(p.prix)}</span>
+                                    ${p.unite ? `<span class="wa-row-unite">· / ${escapeHtml(p.unite)}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="wa-row-qte" data-noselect="1">
+                                <button type="button" data-id="${p.id}" data-act="moins" aria-label="Diminuer">−</button>
+                                <input type="text" inputmode="numeric" data-id="${p.id}" value="${q}" aria-label="Quantité">
+                                <button type="button" data-id="${p.id}" data-act="plus" aria-label="Augmenter">+</button>
+                            </div>
+                            <div class="wa-check" aria-hidden="true"><i class="bi bi-check-lg"></i></div>
+                            ${panneau}
+                        </div>
+                    `);
+                }
+            }
+            listEl.innerHTML = parts.join('');
+            majTotal();
+        }
+
+        /** Retourne le prix unitaire d'un produit (base + suppléments choisis) */
+        function prixUnitAvecSupp(produitId) {
+            const p = produits.find(x => x.id == produitId);
+            const s = selection[produitId];
+            if (!p) return 0;
+            let px = p.prix;
+            if (s && s.supplements) {
+                for (const sid of s.supplements) {
+                    const sp = (p.supplements || []).find(x => x.id === sid);
+                    if (sp) px += sp.prix;
+                }
+            }
+            return px;
+        }
+
+        /** Calcule la meilleure remise auto applicable à la sélection courante.
+         *  Retourne { remise: number, promo: {...} } ou null. */
+        function calculerMeilleureRemiseAuto() {
+            if (!offresAuto || !offresAuto.length) return null;
+            // Détail de la sélection avec catégorie / activité
+            const items = [];
+            let sousTotal = 0;
+            for (const [id, s] of Object.entries(selection)) {
+                if (!s || !s.quantite) continue;
+                const p = produits.find(x => x.id == id);
+                if (!p) continue;
+                const totalLigne = prixUnitAvecSupp(id) * s.quantite;
+                sousTotal += totalLigne;
+                items.push({ id: p.id, total: totalLigne, categorie_id: p.categorie_id, activite_id: p.activite_id });
+            }
+            let meilleure = null, meilleureRemise = 0;
+            for (const promo of offresAuto) {
+                if (promo.panier_min > 0 && sousTotal < promo.panier_min) continue;
+                let base = sousTotal;
+                let filteredIds = items;
+                if (promo.produit_id) filteredIds = items.filter(it => it.id === promo.produit_id);
+                else if (promo.categorie_id) filteredIds = items.filter(it => it.categorie_id === promo.categorie_id);
+                else if (promo.activite_id) filteredIds = items.filter(it => it.activite_id === promo.activite_id);
+                if (promo.produit_id || promo.categorie_id || promo.activite_id) {
+                    base = filteredIds.reduce((s, it) => s + it.total, 0);
+                    if (base === 0) continue;
+                }
+                let remise = 0;
+                if (promo.type === 'POURCENTAGE') remise = Math.round(base * promo.valeur / 100);
+                else if (promo.type === 'MONTANT_FIXE') remise = Math.min(Math.round(promo.valeur), base);
+                else if (promo.type === 'LIVRAISON_OFFERTE') continue; // pas de remise sur commande WhatsApp (pas de livraison ici)
+                if (remise > meilleureRemise) {
+                    meilleure = promo;
+                    meilleureRemise = remise;
+                }
+            }
+            return meilleure ? { promo: meilleure, remise: meilleureRemise } : null;
+        }
+
+        function majTotal() {
+            let sousTotal = 0, nbArt = 0;
+            for (const [id, s] of Object.entries(selection)) {
+                if (!s || !s.quantite) continue;
+                sousTotal += prixUnitAvecSupp(id) * s.quantite;
+                nbArt += s.quantite;
+            }
+            // Priorité : code promo saisi > meilleure promo auto
+            let remiseAffichee = 0, labelRemise = '';
+            if (promoActive && promoActive.remise > 0) {
+                remiseAffichee = promoActive.remise;
+                labelRemise = promoActive.code ? '(' + promoActive.code + ')' : '';
+            } else {
+                const auto = calculerMeilleureRemiseAuto();
+                if (auto) {
+                    remiseAffichee = auto.remise;
+                    labelRemise = '(' + auto.promo.nom + ')';
+                }
+            }
+            const total = Math.max(0, sousTotal - remiseAffichee);
+            sousTotalEl.textContent = fmtFCFA(sousTotal);
+            totalEl.textContent = fmtFCFA(total);
+            countEl.textContent = nbArt + ' article' + (nbArt > 1 ? 's' : '');
+            btnSend.disabled = nbArt === 0;
+            if (remiseAffichee > 0) {
+                remiseRow.style.display = 'flex';
+                remiseEl.textContent = fmtFCFA(remiseAffichee).replace(/ FCFA$/, '');
+                codeAppliqueEl.textContent = labelRemise;
+            } else {
+                remiseRow.style.display = 'none';
+            }
+        }
+
+        /** Recalcule la remise du code promo actif si la sélection change */
+        function revaliderPromo() {
+            if (!promoActive || !promoActive.code) return;
+            // Refaire la requête pour recalculer le montant avec la nouvelle sélection
+            appliquerCodePromo(promoActive.code, true);
+        }
+
+        /** Construit la liste des items pour l'API à partir de la sélection */
+        function itemsPourApi() {
+            const items = [];
+            for (const [id, s] of Object.entries(selection)) {
+                if (!s || !s.quantite) continue;
+                items.push({ id: Number(id), quantite: s.quantite });
+            }
+            return items;
+        }
+
+        /** Appelle l'API pour vérifier/appliquer un code promo */
+        function appliquerCodePromo(code, silencieux) {
+            code = String(code || '').trim().toUpperCase();
+            if (!code) { promoActive = null; majTotal(); return; }
+            fetch('/commander/api/promo/verifier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, tel: '', items: itemsPourApi() }),
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok) {
+                        promoActive = { remise: data.remise || 0, code, message: data.message, livraison_offerte: data.livraison_offerte };
+                        if (!silencieux) {
+                            promoFeedbackEl.style.display = 'block';
+                            promoFeedbackEl.style.color = '#065F46';
+                            promoFeedbackEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> ' + data.message;
+                            codeInput.readOnly = true;
+                            btnAppliquerPromo.textContent = 'Retirer';
+                            btnAppliquerPromo.style.background = '#DC2626';
+                        }
+                    } else {
+                        promoActive = null;
+                        if (!silencieux) {
+                            promoFeedbackEl.style.display = 'block';
+                            promoFeedbackEl.style.color = '#991B1B';
+                            promoFeedbackEl.innerHTML = '<i class="bi bi-x-circle-fill"></i> ' + (data.message || 'Code invalide');
+                        }
+                    }
+                    majTotal();
+                })
+                .catch(() => {
+                    promoActive = null;
+                    if (!silencieux) {
+                        promoFeedbackEl.style.display = 'block';
+                        promoFeedbackEl.style.color = '#991B1B';
+                        promoFeedbackEl.textContent = 'Erreur de connexion, réessayez';
+                    }
+                    majTotal();
+                });
+        }
+
+        /** Affiche la bannière des offres du moment dans la modale */
+        function afficherOffres() {
+            if (!offresAuto || offresAuto.length === 0) return;
+            offresEl.style.display = 'block';
+            const parts = ['<div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #92400E; font-weight: 800; margin-bottom: 6px;"><i class="bi bi-tag-fill"></i> Offres du moment</div>'];
+            for (const o of offresAuto) {
+                let icone = '🎁', valeur = '';
+                if (o.type === 'POURCENTAGE') { valeur = '−' + o.valeur + '%'; icone = '⚡'; }
+                else if (o.type === 'MONTANT_FIXE') { valeur = '−' + fmtFCFA(o.valeur); icone = '🎯'; }
+                else if (o.type === 'LIVRAISON_OFFERTE') { valeur = 'Livraison offerte'; icone = '🚚'; }
+                const cible = o.produit ? ('sur ' + o.produit) : (o.categorie ? ('sur ' + o.categorie) : '');
+                parts.push('<div style="font-size: 0.82rem; color: #78350F; padding: 4px 0;">' +
+                    icone + ' <strong>' + o.nom + '</strong> : ' + valeur +
+                    (cible ? ' <span style="opacity: 0.75;">' + cible + '</span>' : '') +
+                    '</div>');
+            }
+            offresEl.innerHTML = parts.join('');
+        }
+
+        function ensureSel(id) {
+            if (!selection[id]) selection[id] = { quantite: 0, supplements: new Set(), expanded: false };
+            return selection[id];
+        }
+        function setQte(id, q) {
+            q = Math.max(0, Math.floor(Number(q) || 0));
+            if (q === 0) delete selection[id];
+            else ensureSel(id).quantite = q;
+        }
+
+        listEl.addEventListener('click', function(e) {
+            // Toggle panneau suppléments
+            const bBadge = e.target.closest('[data-supp-toggle]');
+            if (bBadge) {
+                e.stopPropagation();
+                const id = bBadge.dataset.suppToggle;
+                const s = ensureSel(id);
+                s.expanded = !s.expanded;
+                afficher();
+                return;
+            }
+            // Boutons quantité
+            const btnQte = e.target.closest('button[data-act]');
+            if (btnQte) {
+                const id = btnQte.dataset.id;
+                const cur = (selection[id] && selection[id].quantite) || 0;
+                setQte(id, btnQte.dataset.act === 'plus' ? cur + 1 : cur - 1);
+                afficher();
+                revaliderPromo();
+                return;
+            }
+            // Clic ligne = toggle sélection (quantité 0/1) — sauf si clic dans zone quantité
+            const insideQte = e.target.closest('[data-noselect]');
+            const row = e.target.closest('.wa-row');
+            if (row && !insideQte && e.target.tagName !== 'INPUT') {
+                const id = row.dataset.id;
+                if (selection[id] && selection[id].quantite) delete selection[id];
+                else setQte(id, 1);
+                afficher();
+                revaliderPromo();
+            }
+        });
+
+        listEl.addEventListener('change', function(e) {
+            // Case à cocher supplément
+            const cb = e.target.closest('input[data-supp-id]');
+            if (!cb) return;
+            const pid = cb.dataset.produitId;
+            const sid = Number(cb.dataset.suppId);
+            const s = ensureSel(pid);
+            if (cb.checked) s.supplements.add(sid); else s.supplements.delete(sid);
+            // Auto-sélectionner le produit si un supplément est coché
+            if (s.supplements.size > 0 && !s.quantite) s.quantite = 1;
+            afficher();
+        });
+
+        listEl.addEventListener('input', function(e) {
+            const inp = e.target.closest('input[type=text]');
+            if (!inp) return;
+            setQte(inp.dataset.id, inp.value);
+            majTotal();
+            revaliderPromo();
+            const row = inp.closest('.wa-row');
+            if (row) row.classList.toggle('selected', !!(selection[inp.dataset.id] && selection[inp.dataset.id].quantite));
+        });
+
+        searchInput.addEventListener('input', afficher);
+        catSelect.addEventListener('change', afficher);
+        btnReset.addEventListener('click', function() { selection = {}; afficher(); });
+
+        // Code promo : appliquer / retirer
+        btnAppliquerPromo.addEventListener('click', function() {
+            if (btnAppliquerPromo.textContent === 'Retirer') {
+                promoActive = null;
+                codeInput.value = '';
+                codeInput.readOnly = false;
+                btnAppliquerPromo.textContent = 'Appliquer';
+                btnAppliquerPromo.style.background = '#92400E';
+                promoFeedbackEl.style.display = 'none';
+                majTotal();
+            } else {
+                const code = (codeInput.value || '').trim().toUpperCase();
+                codeInput.value = code;
+                if (code) appliquerCodePromo(code, false);
+            }
+        });
+        // Entrée = appliquer
+        codeInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); btnAppliquerPromo.click(); }
+        });
+
+        /**
+         * Construit un message WhatsApp professionnel avec formatage :
+         *  - *gras* pour les titres via markdown WhatsApp
+         *  - lignes alignées, séparateurs
+         *  - liens produits vers le catalogue en ligne (le client peut voir la photo)
+         *  - footer avec coordonnées entreprise
+         */
+        /**
+         * Construit un message WhatsApp propre et professionnel.
+         * Utilise UNIQUEMENT des caractères Unicode standards bien supportés
+         * par tous les clients WhatsApp (mobile, web, desktop).
+         * Format WhatsApp : *gras* _italique_ ~barré~ ```mono```
+         */
+        function construireMessage() {
+            const items = [];
+            let total = 0;
+            for (const [id, s] of Object.entries(selection)) {
+                if (!s || !s.quantite) continue;
+                const p = produits.find(x => x.id == id);
+                if (!p) continue;
+                const suppsChoisis = (p.supplements || []).filter(sp => s.supplements.has(sp.id));
+                const prixSupp = suppsChoisis.reduce((sum, sp) => sum + sp.prix, 0);
+                const prixUnit = p.prix + prixSupp;
+                const sousTotal = prixUnit * s.quantite;
+                total += sousTotal;
+                items.push({
+                    nom: p.nom, quantite: s.quantite, prixBase: p.prix,
+                    supplements: suppsChoisis, prixSupp, prixUnit, sousTotal, id: p.id,
+                });
+            }
+            if (!items.length) return '';
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const heureStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            const SEP = '───────────────────';
+
+            const L = [];
+            // 100% symboles Unicode texte (★ ▸ ► ◆ ═ ─) + formatage WhatsApp natif (*bold* _italic_)
+            // Zéro emoji — garanti de fonctionner sur TOUS les WhatsApp
+            L.push('*━━━━━━━━━━━━━━━━━━*');
+            L.push('*   ★ NOUVELLE COMMANDE ★   *');
+            L.push('*━━━━━━━━━━━━━━━━━━*');
+            L.push('');
+            L.push('_' + dateStr.charAt(0).toUpperCase() + dateStr.slice(1) + ' à ' + heureStr + '_');
+            L.push('');
+            L.push('Bonjour *' + NOM_ENTREPRISE + '*,');
+            L.push('');
+            L.push('Je souhaite passer la commande suivante :');
+            L.push('');
+            L.push(SEP);
+            L.push('*◆ ARTICLES COMMANDÉS ◆*');
+            L.push(SEP);
+
+            for (const it of items) {
+                L.push('');
+                L.push('▸ *' + it.quantite + ' × ' + it.nom + '*');
+                L.push('     Prix unitaire : _' + fmtFCFA(it.prixBase) + '_');
+                if (it.supplements.length) {
+                    for (const sp of it.supplements) {
+                        L.push('     + _' + sp.nom + ' (+' + fmtFCFA(sp.prix) + ')_');
+                    }
+                }
+                L.push('     Sous-total : *' + fmtFCFA(it.sousTotal) + '*');
+            }
+
+            L.push('');
+            L.push(SEP);
+            L.push('*◆ RÉCAPITULATIF ◆*');
+            L.push(SEP);
+            L.push('Sous-total ........... _' + fmtFCFA(total) + '_');
+
+            // Priorité : code promo saisi > meilleure promo auto
+            if (promoActive && promoActive.remise > 0) {
+                L.push('Code *' + promoActive.code + '* ...... *−' + fmtFCFA(promoActive.remise) + '*');
+                total = Math.max(0, total - promoActive.remise);
+            } else if (promoActive && promoActive.livraison_offerte) {
+                L.push('Code *' + promoActive.code + '* ...... *Livraison offerte*');
+            } else {
+                const auto = calculerMeilleureRemiseAuto();
+                if (auto) {
+                    L.push('★ *' + auto.promo.nom + '* ... *−' + fmtFCFA(auto.remise) + '*');
+                    total = Math.max(0, total - auto.remise);
+                }
+            }
+            L.push(SEP);
+            L.push('*▶ TOTAL À PAYER : ' + fmtFCFA(total) + ' ◀*');
+            L.push(SEP);
+
+            L.push('');
+            L.push('*Merci de bien vouloir me confirmer :*');
+            L.push('   ► La disponibilité des articles');
+            L.push('   ► Le délai de préparation');
+            L.push('   ► Les modalités de livraison ou retrait');
+
+            // Offres actives (info bonus)
+            if (offresAuto && offresAuto.length > 0) {
+                L.push('');
+                L.push('*◆ OFFRES ACTIVES ◆*');
+                for (const o of offresAuto) {
+                    let val = '';
+                    if (o.type === 'POURCENTAGE') val = '−' + o.valeur + '%';
+                    else if (o.type === 'MONTANT_FIXE') val = '−' + fmtFCFA(o.valeur);
+                    else if (o.type === 'LIVRAISON_OFFERTE') val = 'Livraison offerte';
+                    const cible = o.produit ? ' sur ' + o.produit : (o.categorie ? ' sur ' + o.categorie : '');
+                    L.push('   ★ _' + o.nom + ' : ' + val + cible + '_');
+                }
+            }
+
+            L.push('');
+            L.push('_Bien cordialement._');
+
+            // ─── Signature entreprise (bloc pied de message, symboles texte uniquement)
+            L.push('');
+            L.push(SEP);
+            L.push('*● ' + NOM_ENTREPRISE + ' ●*');
+            if (ADRESSE_ENT) L.push('◈ ' + ADRESSE_ENT);
+            if (TEL_ENT) L.push('☎ ' + TEL_ENT);
+            L.push('▸ ' + SITE_URL + '/commander/');
+            L.push(SEP);
+
+            return L.join('\n');
+        }
+
+        btnSend.addEventListener('click', function() {
+            if (btnSend.disabled) return;
+            btnSend.disabled = true;
+            const oldTxt = btnSend.innerHTML;
+            btnSend.innerHTML = '<i class="bi bi-hourglass-split"></i> Envoi…';
+
+            const nomClient = (document.getElementById('wa-nom-client').value || '').trim();
+            const telClient = (document.getElementById('wa-tel-client').value || '').trim();
+            const codePromo = promoActive && promoActive.code ? promoActive.code : '';
+
+            // 1. Créer une commande BROUILLON WhatsApp côté serveur (visible au caissier)
+            fetch('/commander/api/whatsapp/creer-brouillon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: itemsPourApi().map(function(it) {
+                        // Ajouter les suppléments choisis pour chaque item
+                        const s = selection[it.id];
+                        return { id: it.id, quantite: it.quantite, supplements: s && s.supplements ? Array.from(s.supplements) : [] };
+                    }),
+                    nom: nomClient,
+                    tel: telClient,
+                    code_promo: codePromo,
+                }),
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    // 2. Construire le message WhatsApp (inclut le code de suivi si créé)
+                    let msg = construireMessage();
+                    if (data && data.ok && data.code_suivi) {
+                        // Ajouter la référence de suivi en haut du message
+                        msg = '*Réf. commande : ' + data.code_suivi + '*\n' + msg;
+                    }
+                    const url = 'https://wa.me/' + encodeURIComponent(TEL_WA) + '?text=' + encodeURIComponent(msg);
+                    window.open(url, '_blank', 'noopener');
+                    // Réinitialiser la modale pour éviter une double soumission
+                    setTimeout(function() {
+                        selection = {};
+                        promoActive = null;
+                        document.getElementById('wa-code-promo').value = '';
+                        document.getElementById('wa-nom-client').value = '';
+                        document.getElementById('wa-tel-client').value = '';
+                        promoFeedbackEl.style.display = 'none';
+                        afficher();
+                        btnSend.disabled = false;
+                        btnSend.innerHTML = oldTxt;
+                        fermer();
+                    }, 600);
+                })
+                .catch(function() {
+                    // Erreur serveur : on ouvre WhatsApp quand même pour ne pas bloquer le client
+                    const msg = construireMessage();
+                    if (msg) {
+                        const url = 'https://wa.me/' + encodeURIComponent(TEL_WA) + '?text=' + encodeURIComponent(msg);
+                        window.open(url, '_blank', 'noopener');
+                    }
+                    btnSend.disabled = false;
+                    btnSend.innerHTML = oldTxt;
+                });
+        });
+
+        function ouvrir() {
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            if (!produits.length) chargerProduits();
+            afficherOffres();
+            setTimeout(() => searchInput.focus(), 120);
+        }
+        function fermer() {
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        btnOpen.addEventListener('click', ouvrir);
+        btnClose.addEventListener('click', fermer);
+        backdrop.addEventListener('click', fermer);
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('open')) fermer();
+        });
+    })();
+    </script>
+    <% } %>
+</body>
+</html>

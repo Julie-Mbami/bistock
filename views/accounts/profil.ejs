@@ -1,0 +1,28 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Mon profil</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div style="display: flex; align-items: center; gap: 24px;">
+            <div class="avatar" style="width: 96px; height: 96px; font-size: 2rem;">
+                <%= (utilisateur.first_name || utilisateur.username || '?')[0].toUpperCase() %>
+            </div>
+            <div>
+                <h2 style="margin-bottom: 4px;"><%= ((utilisateur.first_name || '') + ' ' + (utilisateur.last_name || '')).trim() || utilisateur.username %></h2>
+                <div class="text-muted"><%= utilisateur.email || '—' %></div>
+                <span class="badge bg-secondary" style="margin-top: 6px;"><%= h.ROLE_LABEL[utilisateur.role] %></span>
+            </div>
+        </div>
+        <hr>
+        <dl class="row">
+            <dt class="col-sm-3">Utilisateur</dt><dd class="col-sm-9"><code><%= utilisateur.username %></code></dd>
+            <dt class="col-sm-3">Téléphone</dt><dd class="col-sm-9"><%= utilisateur.telephone || '—' %></dd>
+            <dt class="col-sm-3">Inscription</dt><dd class="col-sm-9"><%= h.formatDate(utilisateur.date_joined) %></dd>
+        </dl>
+    </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,122 @@
+<%- include('../partials/header') %>
+<style>
+.stats-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    box-shadow: var(--sh-sm);
+}
+.mini-stat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+.mini-stat-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.mini-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 1px;
+}
+.mini-stat-val {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+}
+.mini-stat-val small {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><%= fournisseur.raison_sociale %></h1>
+        <p class="page-subtitle"><%= fournisseur.contact || '—' %> · délai livraison <%= fournisseur.delai_livraison_jours %>j</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/produits/fournisseurs/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+        <% if (user.est_gestionnaire) { %><a href="/produits/fournisseurs/<%= fournisseur.id %>/modifier" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a><% } %>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-3"><div class="kpi-card primary"><div class="kpi-label">Produits</div><div class="kpi-value"><%= nb_produits %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-3"><div class="kpi-card info"><div class="kpi-label">Stock total</div><div class="kpi-value"><%= stock_total %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-3"><div class="kpi-card success"><div class="kpi-label">Valeur stock</div><div class="kpi-value"><%= h.formatNombre(valeur_totale) %><span class="unit"><%= devise %></span></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-3"><div class="kpi-card <%= nb_alertes ? 'danger' : 'success' %>"><div class="kpi-label">Alertes</div><div class="kpi-value"><%= nb_alertes %></div></div></div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <h5>Produits fournis</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Réf.</th><th>Désignation</th><th style="text-align: right;">Stock</th><th style="text-align: center;">État</th></tr></thead>
+                        <tbody>
+                        <% produits.forEach(function(p) { %>
+                            <tr>
+                                <td><code><%= p.reference %></code></td>
+                                <td><a href="/produits/<%= p.id %>"><%= p.designation %></a></td>
+                                <td style="text-align: right;"><%= p.stock_actuel %></td>
+                                <td style="text-align: center;">
+                                    <% if (p.niveau_stock === 'RUPTURE') { %><span class="badge badge-rupture">Rupture</span>
+                                    <% } else if (p.niveau_stock === 'ALERTE') { %><span class="badge badge-alerte">Alerte</span>
+                                    <% } else { %><span class="badge badge-ok">OK</span><% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                        <% if (!produits.length) { %><tr><td colspan="4" class="text-muted" style="text-align: center;">Aucun produit.</td></tr><% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h5>Coordonnées</h5>
+                <dl class="row">
+                    <dt class="col-4">Téléphone</dt><dd class="col-8"><%= fournisseur.telephone || '—' %></dd>
+                    <dt class="col-4">Email</dt><dd class="col-8"><%= fournisseur.email || '—' %></dd>
+                    <dt class="col-4">Adresse</dt><dd class="col-8"><%= fournisseur.adresse || '—' %></dd>
+                    <dt class="col-4">Délai</dt><dd class="col-8"><%= fournisseur.delai_livraison_jours %> jours</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-body">
+                <h5>Dernières réceptions</h5>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem;">
+                <% receptions.forEach(function(r) { %>
+                    <li style="padding: 6px 0; border-bottom: 1px solid var(--border);">
+                        <strong>+<%= r.quantite %></strong> <%= r.designation %>
+                        <small class="text-muted" style="display: block;"><%= h.formatDate(r.date_mouvement, true) %></small>
+                    </li>
+                <% }); %>
+                <% if (!receptions.length) { %><li class="text-muted">Aucune réception récente.</li><% } %>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

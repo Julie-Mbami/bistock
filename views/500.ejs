@@ -1,0 +1,8 @@
+<%- include('partials/header') %>
+<div style="text-align: center; padding: 80px 20px;">
+    <i class="bi bi-exclamation-octagon" style="font-size: 4rem; color: var(--danger);"></i>
+    <h1>Erreur serveur</h1>
+    <p class="text-muted"><%= typeof message !== 'undefined' && message ? message : "Une erreur inattendue est survenue. Notre équipe a été notifiée." %></p>
+    <a href="/" class="btn btn-primary">Retour à l'accueil</a>
+</div>
+<%- include('partials/footer') %>

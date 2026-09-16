@@ -1,0 +1,215 @@
+<%- include('../partials/header') %>
+<style>
+.besoin-ok { color: var(--success); }
+.besoin-manque { color: var(--danger); font-weight: 700; }
+.besoin-row { padding: 8px 12px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr 120px 120px 100px; gap: 12px; align-items: center; }
+.besoin-row.header { background: var(--bg-soft); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.besoin-row.header:last-child { border-bottom: 1px solid var(--border); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Nouvel ordre de production</h1>
+        <p class="page-subtitle">Fabriquer un produit fini à partir des ingrédients disponibles</p>
+    </div>
+    <a href="/productions/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<% if (!produitsFabricables.length) { %>
+    <div class="alert alert-warning">
+        <strong>Aucun produit avec fiche technique active.</strong> Créez d'abord la fiche technique d'un produit fini (recette) pour pouvoir lancer une production.
+        <a href="/produits/" class="alert-link">Aller au catalogue →</a>
+    </div>
+<% } else { %>
+<form method="post" id="form-production">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-clipboard-check"></i> Recette à fabriquer</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Produit à fabriquer <span style="color: var(--danger);">*</span></label>
+                            <select name="produit_id" id="produit-select" class="form-select" required onchange="recalculerBesoins()">
+                                <option value="">— Choisir le produit fini —</option>
+                                <% produitsFabricables.forEach(function(p) { %>
+                                    <option value="<%= p.id %>" data-unite="<%= p.unite %>" data-stock="<%= p.stock_actuel %>"
+                                        <%= preSelect && Number(preSelect.produit_id) === Number(p.id) ? 'selected' : '' %>>
+                                        <%= p.designation %> (<%= p.reference %>) — stock actuel : <%= p.stock_actuel %> <%= p.unite %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Quantité à produire <span style="color: var(--danger);">*</span></label>
+                            <input type="number" name="quantite" id="quantite-input" min="0.01" step="0.01" class="form-control form-control-lg" style="text-align: right; font-weight: 700;" value="<%= preSelect ? preSelect.quantite : 1 %>" required oninput="recalculerBesoins()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3" id="card-besoins" style="display: none;">
+                <div class="card-header"><i class="bi bi-basket3"></i> Ingrédients nécessaires</div>
+                <div class="besoin-row header">
+                    <div>Ingrédient</div>
+                    <div style="text-align: right;">Nécessaire</div>
+                    <div style="text-align: right;">Stock actuel</div>
+                    <div style="text-align: right;">État</div>
+                </div>
+                <div id="besoins-liste"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-chat-square-text"></i> Notes</div>
+                <div class="card-body">
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Observations, contexte, contrôle qualité..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card" style="position: sticky; top: 16px;">
+                <div class="card-header"><i class="bi bi-calculator"></i> Récapitulatif</div>
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                        <span class="text-muted">Coût matière estimé</span><strong id="cout-total">0 <%= devise %></strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border); margin-top: 4px;">
+                        <span>État global</span><strong id="etat-global" style="color: var(--text-muted);">—</strong>
+                    </div>
+
+                    <div id="warning-manques" class="alert alert-danger small mt-2" style="display: none;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Stock insuffisant</strong> pour certains ingrédients.
+                        <div style="margin-top: 10px;">
+                            <button type="button" class="btn btn-sm btn-warning" style="width: 100%;" onclick="alerterGestionnaire()">
+                                <i class="bi bi-bell"></i> Alerter le gestionnaire de stock
+                            </button>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 6px; margin-top: 10px;">
+                            <input type="checkbox" name="forcer" value="1">
+                            <span>Ou forcer la production (stocks négatifs autorisés)</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg mt-3" style="width: 100%;" id="btn-produire" disabled>
+                        <i class="bi bi-lightning"></i> Lancer la production
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<!-- MODALE : alerter le gestionnaire -->
+<div id="modale-alerte" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #fff; border-radius: 8px; width: min(560px, 90vw);">
+        <div style="padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--gold); color: #fff;">
+            <h5 style="margin: 0;"><i class="bi bi-bell"></i> Alerter le gestionnaire de stock</h5>
+        </div>
+        <div style="padding: 20px;">
+            <p class="text-muted small">Cette action va créer une alerte critique dans les alertes stock pour chaque ingrédient manquant. Le gestionnaire de stock verra la demande dans son tableau de bord et pourra lancer un réapprovisionnement.</p>
+            <div id="modale-recap"></div>
+            <div class="mb-2">
+                <label class="form-label">Note complémentaire (facultatif)</label>
+                <textarea id="alerte-notes" class="form-control" rows="3" placeholder="Ex : Commande urgente pour événement Hôtel Sawa demain 15h..."></textarea>
+            </div>
+        </div>
+        <div style="padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-outline-secondary" onclick="fermerModaleAlerte()">Annuler</button>
+            <button type="button" class="btn btn-warning" onclick="envoyerAlerte()"><i class="bi bi-send"></i> Envoyer l'alerte</button>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<script>
+let dernierEtat = { tous_disponibles: false, besoins: [] };
+
+async function recalculerBesoins() {
+    const produitId = document.querySelector('#produit-select').value;
+    const quantite = document.querySelector('#quantite-input').value;
+    const card = document.querySelector('#card-besoins');
+    const btn = document.querySelector('#btn-produire');
+    const warning = document.querySelector('#warning-manques');
+    if (!produitId || !quantite || Number(quantite) <= 0) {
+        card.style.display = 'none'; btn.disabled = true;
+        document.querySelector('#cout-total').textContent = '0 <%= devise %>';
+        document.querySelector('#etat-global').textContent = '—';
+        return;
+    }
+    const res = await fetch(`/productions/api/besoins?produit_id=${produitId}&quantite=${quantite}`);
+    const data = await res.json();
+    if (data.erreur) { card.style.display = 'none'; btn.disabled = true; return; }
+    dernierEtat = data;
+    card.style.display = 'block';
+    const html = data.besoins.map(b => {
+        const cls = b.suffisant ? 'besoin-ok' : 'besoin-manque';
+        const etat = b.suffisant ? '<i class="bi bi-check-circle-fill"></i> Suffisant' :
+                     `<i class="bi bi-x-circle-fill"></i> Manque ${format(b.manque)} ${b.unite}`;
+        return `<div class="besoin-row">
+            <div><strong>${b.designation}</strong> <small class="text-muted">(${b.reference})</small></div>
+            <div style="text-align: right; font-weight: 600;">${format(b.quantite_necessaire)} <small class="text-muted">${b.unite}</small></div>
+            <div style="text-align: right;">${format(b.stock_actuel)} <small class="text-muted">${b.unite}</small></div>
+            <div style="text-align: right;" class="${cls}">${etat}</div>
+        </div>`;
+    }).join('');
+    document.querySelector('#besoins-liste').innerHTML = html;
+    document.querySelector('#cout-total').innerHTML = format(data.cout_total) + ' <%= devise %>';
+    if (data.tous_disponibles) {
+        document.querySelector('#etat-global').innerHTML = '<span style="color: var(--success);"><i class="bi bi-check-circle-fill"></i> Prêt à produire</span>';
+        warning.style.display = 'none';
+        btn.disabled = false;
+    } else {
+        document.querySelector('#etat-global').innerHTML = '<span style="color: var(--danger);"><i class="bi bi-exclamation-triangle-fill"></i> Stock insuffisant</span>';
+        warning.style.display = 'block';
+        btn.disabled = !document.querySelector('input[name="forcer"]').checked;
+    }
+}
+
+document.addEventListener('change', (e) => {
+    if (e.target.name === 'forcer') {
+        document.querySelector('#btn-produire').disabled = !e.target.checked && !dernierEtat.tous_disponibles;
+    }
+});
+
+function format(n) {
+    n = Number(n) || 0;
+    return (Math.abs(n - Math.round(n)) < 0.005) ? Math.round(n).toLocaleString('fr-FR') : n.toFixed(2);
+}
+
+// ========== ALERTER LE GESTIONNAIRE DE STOCK ==========
+function alerterGestionnaire() {
+    const manquants = (dernierEtat.besoins || []).filter(b => !b.suffisant);
+    if (!manquants.length) { alert('Aucun ingrédient manquant à signaler.'); return; }
+    const html = manquants.map(m => `<li><strong>${m.designation}</strong> : besoin ${format(m.quantite_necessaire)} ${m.unite}, dispo ${format(m.stock_actuel)}, <span style="color:var(--danger);">manque ${format(m.manque)} ${m.unite}</span></li>`).join('');
+    document.querySelector('#modale-recap').innerHTML = `
+        <div class="alert alert-warning small">
+            <strong>${manquants.length} ingrédient(s) à réapprovisionner :</strong>
+            <ul class="mb-0 mt-1">${html}</ul>
+        </div>`;
+    document.querySelector('#alerte-notes').value = '';
+    document.querySelector('#modale-alerte').style.display = 'flex';
+}
+function fermerModaleAlerte() { document.querySelector('#modale-alerte').style.display = 'none'; }
+document.querySelector('#modale-alerte')?.addEventListener('click', (e) => { if (e.target.id === 'modale-alerte') fermerModaleAlerte(); });
+
+async function envoyerAlerte() {
+    const produitId = document.querySelector('#produit-select').value;
+    const quantite = document.querySelector('#quantite-input').value;
+    const notes = document.querySelector('#alerte-notes').value.trim();
+    const res = await fetch('/productions/api/alerter-manquants', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ produit_id: produitId, quantite, notes }),
+    });
+    const d = await res.json();
+    if (!res.ok) { alert('Erreur : ' + (d.erreur || 'inconnue')); return; }
+    fermerModaleAlerte();
+    alert(`✓ ${d.nb_alertes} alerte(s) créée(s) pour le gestionnaire de stock. Elle(s) apparaîtra(ont) dans "Stocks → Alertes".`);
+}
+
+// Pré-sélection depuis ?produit_id=... : déclencher le calcul auto au chargement
+<% if (preSelect) { %>
+document.addEventListener('DOMContentLoaded', () => { recalculerBesoins(); });
+<% } %>
+</script>
+<%- include('../partials/footer') %>

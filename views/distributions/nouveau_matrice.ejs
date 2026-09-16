@@ -1,0 +1,279 @@
+<%- include('../partials/header') %>
+<style>
+.achat-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-sm); margin-bottom: 20px; overflow: hidden; }
+.achat-header { padding: 14px 20px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.achat-header .achat-num { font-weight: 700; color: var(--navy); font-family: var(--font-mono); }
+.achat-header .achat-meta { font-size: 0.78rem; color: var(--text-muted); }
+.matrice-table { width: 100%; font-size: 0.86rem; margin: 0; }
+.matrice-table th { background: var(--surface-2); font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: center; }
+.matrice-table th.col-produit { text-align: left; min-width: 240px; }
+.matrice-table th.col-stat { text-align: right; width: 90px; }
+.matrice-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.matrice-table td.col-produit { font-weight: 600; }
+.matrice-table td.col-stat { text-align: right; font-variant-numeric: tabular-nums; }
+.matrice-table td.col-activite { text-align: center; }
+.matrice-table td.col-activite input { width: 80px; text-align: right; margin: 0 auto; }
+.matrice-table tr:last-child td { border-bottom: none; }
+.matrice-table tr.total-row { background: var(--navy-50); font-weight: 700; }
+.matrice-table tr.total-row td { border-top: 2px solid var(--border-strong); }
+.activite-header { padding: 6px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #fff; display: inline-block; }
+.hint-pressentie { background: var(--gold-50); }
+.reste-badge { padding: 2px 10px; border-radius: 9999px; font-size: 0.78rem; font-weight: 700; background: var(--gold-100); color: var(--gold-dark); transition: all 0.15s; display: inline-block; min-width: 40px; text-align: center; }
+.reste-badge.complet { background: var(--success); color: #fff; }
+.reste-badge.depassement { background: var(--danger); color: #fff; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Distribuer les achats</h1>
+        <p class="page-subtitle">
+            <%= groupes.length %> bon<%= groupes.length > 1 ? 's' : '' %> d'achat en attente de distribution ·
+            Pour chaque ligne, indiquez la quantité à envoyer vers chaque activité
+        </p>
+    </div>
+    <a href="/distributions/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<% if (!groupes.length) { %>
+<div class="card">
+    <div class="card-body" style="padding: 60px; text-align: center; color: var(--text-muted);">
+        <i class="bi bi-check-circle" style="font-size: 3rem; color: var(--success); display: block; margin-bottom: 12px;"></i>
+        <h4>Tous les achats sont distribués</h4>
+        <p>Il n'y a aucun bon d'achat en attente de distribution.</p>
+        <a href="/achats/" class="btn btn-outline-primary"><i class="bi bi-cart-check"></i> Voir les achats</a>
+    </div>
+</div>
+<% } else { %>
+
+<form method="post" id="form-matrice">
+    <input type="hidden" name="affectations" id="affectations-json" value="[]">
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <label class="form-label">Notes générales pour ces distributions (optionnel)</label>
+            <input type="text" name="notes" class="form-control" placeholder="Ex : Distribution matinale du 3 juillet">
+
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--gold-50); border: 1px solid var(--gold-100); border-radius: var(--r); margin-top: 12px;">
+                <input type="checkbox" name="marquer_remise" id="marquer_remise" value="1" checked style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="marquer_remise" style="cursor: pointer; margin: 0; flex: 1;">
+                    <strong>Marquer immédiatement comme "Remises"</strong>
+                    <br><small class="text-muted">Cochez si vous distribuez physiquement les produits aux gestionnaires maintenant. Ils verront tout de suite la réception à traiter. Décochez si vous préparez seulement.</small>
+                </label>
+            </div>
+
+            <p class="text-muted small mt-3" style="margin: 0;">
+                <i class="bi bi-info-circle"></i>
+                Vous pouvez répartir chaque ligne d'achat entre les 4 activités. Le total distribué ne peut pas dépasser la quantité disponible.
+                Les cellules avec l'activité <span class="reste-badge">pressentie</span> par Mme Sandra sont pré-remplies.
+            </p>
+        </div>
+    </div>
+
+    <% groupes.forEach(function(g) { %>
+    <div class="achat-block" data-achat-id="<%= g.achat.id %>">
+        <div class="achat-header">
+            <div>
+                <span class="achat-num"><%= g.achat.numero %></span>
+                <span class="achat-meta"> · <%= h.formatDate(g.achat.date_achat) %> · créé par <%= g.achat.cree_par_nom %></span>
+                <% if (g.achat.notes) { %><br><small class="text-muted">📝 <%= g.achat.notes %></small><% } %>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm btn-distribuer-achat" data-achat-id="<%= g.achat.id %>" data-achat-num="<%= g.achat.numero %>">
+                <i class="bi bi-check-lg"></i> Distribuer cet achat
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="matrice-table">
+                <thead>
+                    <tr>
+                        <th class="col-produit">Ligne d'achat (fournisseur · facture)</th>
+                        <th class="col-stat">Qté totale</th>
+                        <th class="col-stat">Restant</th>
+                        <% activites.forEach(function(a) { %>
+                            <th class="col-activite">
+                                <span class="activite-header" style="background: <%= a.couleur %>;">
+                                    <i class="bi <%= a.icone %>"></i> <%= a.code %>
+                                </span>
+                            </th>
+                        <% }); %>
+                        <th class="col-stat">Somme lignes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <% g.lignes.forEach(function(l) { %>
+                    <tr data-ligne-achat="<%= l.id %>" data-restant="<%= l.restant %>">
+                        <td class="col-produit">
+                            <%= l.designation %>
+                            <br>
+                            <small class="text-muted"><%= l.fournisseur_nom || '—' %> · facture <code><%= l.numero_facture_fournisseur || '—' %></code></small>
+                        </td>
+                        <td class="col-stat"><%= l.quantite %> <small class="text-muted"><%= l.unite %></small></td>
+                        <td class="col-stat"><span class="reste-badge reste-badge-dyn" data-original="<%= l.restant %>"><%= l.restant %></span></td>
+                        <% activites.forEach(function(a) { %>
+                            <% var isPressentie = (l.activite_pressentie_id === a.id); %>
+                            <td class="col-activite <%= isPressentie ? 'hint-pressentie' : '' %>">
+                                <input type="number" step="0.01" min="0" max="<%= l.restant %>"
+                                       class="form-control form-control-sm cell-input"
+                                       data-ligne-achat="<%= l.id %>"
+                                       data-activite="<%= a.id %>"
+                                       value="<%= isPressentie ? l.restant : '' %>"
+                                       placeholder="0">
+                            </td>
+                        <% }); %>
+                        <td class="col-stat" style="font-weight: 700; color: var(--navy);"><span class="somme-ligne">0</span></td>
+                    </tr>
+                <% }); %>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="3" style="text-align: right;">Total par activité →</td>
+                        <% activites.forEach(function(a) { %>
+                            <td class="col-activite total-activite" data-activite="<%= a.id %>">0</td>
+                        <% }); %>
+                        <td class="col-stat total-general" style="font-size: 1.05rem;">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <% }); %>
+
+    <div style="display: flex; gap: 10px; margin: 20px 0; align-items: center; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary btn-lg" id="btn-valider-tout"><i class="bi bi-check2-all"></i> Valider TOUS les achats à la fois</button>
+        <a href="/distributions/" class="btn btn-outline-secondary btn-lg">Annuler</a>
+        <span class="text-muted small" style="margin-left: 12px;">
+            💡 Vous pouvez aussi cliquer sur <strong>« Distribuer cet achat »</strong> en haut de chaque bloc pour ne traiter qu'un achat à la fois.
+        </span>
+    </div>
+</form>
+
+<script>
+function recalculer() {
+    const affectations = [];
+    document.querySelectorAll('.achat-block').forEach(block => {
+        // Somme par ligne (horizontal)
+        block.querySelectorAll('tbody tr').forEach(tr => {
+            let somme = 0;
+            tr.querySelectorAll('.cell-input').forEach(inp => {
+                const v = parseFloat(inp.value) || 0;
+                somme += v;
+                if (v > 0) affectations.push({
+                    ligne_achat_id: Number(inp.dataset.ligneAchat),
+                    activite_id: Number(inp.dataset.activite),
+                    quantite: v,
+                });
+            });
+            tr.querySelector('.somme-ligne').textContent = somme;
+            const restantOriginal = parseFloat(tr.dataset.restant);
+            const restantApres = Math.round((restantOriginal - somme) * 1000) / 1000;
+            // Mise à jour du badge "Restant" en temps réel
+            const badge = tr.querySelector('.reste-badge-dyn');
+            if (badge) {
+                badge.textContent = restantApres;
+                if (Math.abs(restantApres) < 0.001) {
+                    badge.classList.add('complet');
+                    badge.classList.remove('depassement');
+                } else if (restantApres < 0) {
+                    badge.classList.add('depassement');
+                    badge.classList.remove('complet');
+                } else {
+                    badge.classList.remove('complet', 'depassement');
+                }
+            }
+            // Colorer la ligne en cas de dépassement
+            if (somme > restantOriginal + 0.001) {
+                tr.querySelector('.somme-ligne').style.color = 'var(--danger)';
+                tr.style.background = 'var(--danger-50)';
+            } else if (Math.abs(somme - restantOriginal) < 0.001 && somme > 0) {
+                tr.querySelector('.somme-ligne').style.color = 'var(--success)';
+                tr.style.background = 'var(--success-50)';
+            } else {
+                tr.querySelector('.somme-ligne').style.color = 'var(--navy)';
+                tr.style.background = '';
+            }
+        });
+        // Total par activité (vertical, dans ce bloc)
+        const totaux = {};
+        block.querySelectorAll('.cell-input').forEach(inp => {
+            const a = inp.dataset.activite;
+            totaux[a] = (totaux[a] || 0) + (parseFloat(inp.value) || 0);
+        });
+        let totalGeneral = 0;
+        block.querySelectorAll('.total-activite').forEach(td => {
+            const a = td.dataset.activite;
+            td.textContent = totaux[a] || 0;
+            totalGeneral += totaux[a] || 0;
+        });
+        block.querySelector('.total-general').textContent = totalGeneral;
+    });
+    document.getElementById('affectations-json').value = JSON.stringify(affectations);
+}
+
+document.querySelectorAll('.cell-input').forEach(inp => {
+    inp.addEventListener('input', recalculer);
+    inp.addEventListener('change', recalculer);
+});
+
+// Récupère les affectations d'UN bloc d'achat spécifique (utilisé par le bouton "Distribuer cet achat")
+function affectationsPourBloc(bloc) {
+    const affs = [];
+    bloc.querySelectorAll('.cell-input').forEach(inp => {
+        const v = parseFloat(inp.value) || 0;
+        if (v > 0) affs.push({
+            ligne_achat_id: Number(inp.dataset.ligneAchat),
+            activite_id: Number(inp.dataset.activite),
+            quantite: v,
+        });
+    });
+    return affs;
+}
+
+// Détecte les dépassements dans un bloc donné
+function depassementsBloc(bloc) {
+    let deps = false;
+    bloc.querySelectorAll('tbody tr[data-ligne-achat]').forEach(tr => {
+        const somme = Array.from(tr.querySelectorAll('.cell-input')).reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+        if (somme > parseFloat(tr.dataset.restant) + 0.001) deps = true;
+    });
+    return deps;
+}
+
+// Boutons "Distribuer cet achat" (un par bloc)
+document.querySelectorAll('.btn-distribuer-achat').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const achatId = btn.dataset.achatId;
+        const achatNum = btn.dataset.achatNum;
+        const bloc = document.querySelector(`.achat-block[data-achat-id="${achatId}"]`);
+        if (!bloc) return;
+
+        recalculer();
+        const affs = affectationsPourBloc(bloc);
+        if (!affs.length) { toastError(`Aucune quantité renseignée pour l'achat ${achatNum}.`); return; }
+        if (depassementsBloc(bloc)) { toastError(`Une ligne de l'achat ${achatNum} dépasse le restant à distribuer.`); return; }
+
+        // On surcharge le champ "affectations" avec uniquement celles de ce bloc, puis on soumet
+        document.getElementById('affectations-json').value = JSON.stringify(affs);
+        document.getElementById('form-matrice').submit();
+    });
+});
+
+// Bouton global : soumission normale (envoie toutes les affectations)
+document.getElementById('form-matrice').addEventListener('submit', function(e) {
+    // Si la soumission vient d'un bouton "Distribuer cet achat", le JSON est déjà pré-rempli et ce handler ne re-recalcule pas
+    // (on détecte ça avec un flag posé par le bouton individuel — ici on refait recalculer uniquement si on soumet en global)
+    if (e.submitter && e.submitter.id === 'btn-valider-tout' || !e.submitter) {
+        recalculer();
+        const affs = JSON.parse(document.getElementById('affectations-json').value);
+        if (!affs.length) { e.preventDefault(); toastError('Renseignez au moins une quantité à distribuer.'); return; }
+        let depassement = false;
+        document.querySelectorAll('tbody tr[data-ligne-achat]').forEach(tr => {
+            const somme = Array.from(tr.querySelectorAll('.cell-input')).reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+            if (somme > parseFloat(tr.dataset.restant) + 0.001) depassement = true;
+        });
+        if (depassement) { e.preventDefault(); toastError('Une ou plusieurs lignes dépassent le restant à distribuer (en rouge).'); return; }
+    }
+});
+
+recalculer();
+</script>
+<% } %>
+<%- include('../partials/footer') %>

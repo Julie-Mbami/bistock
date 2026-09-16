@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Tableau de bord' %> · Bistock</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/logos/bstock-icon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/app.css?v=<%= Date.now() %>" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/modals.js"></script>
+    <style>
+    /* Sélecteur d'activité dans la topbar */
+    .activite-selector { display: flex; align-items: center; gap: 6px; }
+    .activite-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 12px; border-radius: 9999px;
+        font-size: 0.78rem; font-weight: 600;
+        border: 1.5px solid var(--border);
+        background: var(--surface);
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all 0.12s;
+        cursor: pointer;
+    }
+    .activite-chip:hover { border-color: var(--border-strong); background: var(--surface-2); }
+    .activite-chip.active { color: #fff; border-color: transparent; box-shadow: var(--sh-sm); }
+    .activite-chip i { font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+<% if (user) { %>
+<div id="app-wrapper">
+    <%- include('sidebar') %>
+    <div class="app-main">
+        <header class="topbar">
+            <h1 class="topbar-title"><%= page_title || 'Tableau de bord' %></h1>
+            <div class="topbar-actions">
+                <% /* Sélecteur d'activité pour DG, Distribution, Secrétariat */ %>
+                <% if (user.est_transversal && activites_accessibles && activites_accessibles.length > 1) { %>
+                <div class="activite-selector">
+                    <% activites_accessibles.forEach(function(a) { %>
+                        <a href="/activite/<%= a.id %>/selectionner"
+                           class="activite-chip <%= activite && activite.id === a.id ? 'active' : '' %>"
+                           style="<%= activite && activite.id === a.id ? 'background: ' + a.couleur + ';' : '' %>"
+                           title="<%= a.nom %>">
+                            <i class="bi <%= a.icone %>"></i>
+                            <%= a.code %>
+                        </a>
+                    <% }); %>
+                </div>
+                <% } %>
+
+                <div class="dropdown">
+                    <div class="user-menu" onclick="document.getElementById('user-dropdown').classList.toggle('show')">
+                        <div class="avatar"><%= (user.first_name || user.username || '?')[0].toUpperCase() %></div>
+                        <div class="user-info">
+                            <span class="user-name"><%= user.nom_affiche || user.username %></span>
+                            <span class="user-role"><%= user.role_label %><% if (activite && !user.est_transversal) { %> · <%= activite.code %><% } %></span>
+                        </div>
+                        <i class="bi bi-chevron-down text-muted"></i>
+                    </div>
+                    <ul class="dropdown-menu" id="user-dropdown">
+                        <li><a class="dropdown-item" href="/comptes/profil"><i class="bi bi-person"></i> Mon profil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/comptes/deconnexion"><i class="bi bi-box-arrow-right"></i> Déconnexion</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <main class="content">
+            <% messages.forEach(function(m) { %>
+                <div class="alert alert-<%= m.tags %>">
+                    <i class="bi bi-info-circle"></i>
+                    <span><%= m.text %></span>
+                    <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+                </div>
+            <% }); %>
+<% } %>

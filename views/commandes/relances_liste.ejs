@@ -1,0 +1,195 @@
+<%- include('../partials/header') %>
+<style>
+.kpi-relance { text-align: center; padding: 14px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); }
+.kpi-relance .n { font-size: 1.6rem; font-weight: 700; }
+.kpi-relance .lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+.retard-badge { padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+.retard-J7  { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; }
+.retard-J15 { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+.retard-J30 { background: rgba(220, 38, 38, 0.15); color: #b91c1c; }
+.retard-none { background: rgba(100, 116, 139, 0.1); color: var(--text-muted); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Factures à relancer</h1>
+        <p class="page-subtitle">
+            <%= activite.nom %> · <%= kpi.nb_impayes %> facture<%= kpi.nb_impayes > 1 ? 's' : '' %> impayée<%= kpi.nb_impayes > 1 ? 's' : '' %>
+            · <strong style="color: var(--danger);"><%= h.formatNombre(kpi.total_du) %> <%= devise %></strong> en souffrance
+        </p>
+    </div>
+    <a href="/commandes/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="row" style="margin-bottom: 18px;">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-relance">
+            <div class="n" style="color: var(--text-muted);"><%= kpi.nb_a_ech %></div>
+            <div class="lbl">Non échues ou &lt; 7j</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-relance">
+            <div class="n" style="color: #1d4ed8;"><%= kpi.nb_J7 %></div>
+            <div class="lbl">Retard 7 à 14 jours</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-relance">
+            <div class="n" style="color: #b45309;"><%= kpi.nb_J15 %></div>
+            <div class="lbl">Retard 15 à 29 jours</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-relance">
+            <div class="n" style="color: #b91c1c;"><%= kpi.nb_J30 %></div>
+            <div class="lbl">Retard 30 jours et +</div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 14px;">
+    <div class="card-body" style="padding: 12px 14px;">
+        <%- include('../partials/filtre_periode', { periode }) %>
+    </div>
+</div>
+
+<% if (!factures.length) { %>
+    <div class="card">
+        <div class="card-body" style="text-align: center; padding: 60px;">
+            <i class="bi bi-check-circle-fill" style="font-size: 3rem; color: var(--success);"></i>
+            <h4 style="margin-top: 12px;">Aucune facture impayée <% if (periode.preset !== 'tous') { %>sur cette période<% } %></h4>
+            <p class="text-muted"><% if (periode.preset !== 'tous') { %>Essayez d'élargir la plage de dates ci-dessus.<% } else { %>Toutes vos factures sont à jour de paiement.<% } %></p>
+        </div>
+    </div>
+<% } else { %>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Facture</th>
+                    <th>Client</th>
+                    <th>Échéance</th>
+                    <th style="text-align: center;">Retard</th>
+                    <th style="text-align: right;">Reste dû</th>
+                    <th>Dernière relance</th>
+                    <th style="text-align: center;">Action recommandée</th>
+                </tr>
+            </thead>
+            <tbody>
+            <% factures.forEach(function(f) {
+                const derniere = f.relances[f.relances.length - 1];
+                const retard = f.analyse.jours_retard;
+                let niveauCss = 'retard-none';
+                if (retard >= 30) niveauCss = 'retard-J30';
+                else if (retard >= 15) niveauCss = 'retard-J15';
+                else if (retard >= 7) niveauCss = 'retard-J7';
+            %>
+                <tr>
+                    <td>
+                        <a href="/commandes/<%= f.id %>"><code style="font-weight: 700;"><%= f.numero_facture || f.numero %></code></a>
+                        <br><small class="text-muted"><%= h.formatDate(f.date_commande) %></small>
+                    </td>
+                    <td>
+                        <div><%= f.client_nom %></div>
+                        <% if (f.client_contact || f.client_tel) { %><small class="text-muted"><%= [f.client_contact, f.client_tel].filter(Boolean).join(' — ') %></small><% } %>
+                    </td>
+                    <td><%= f.date_echeance ? h.formatDate(f.date_echeance) : '—' %></td>
+                    <td style="text-align: center;">
+                        <% if (f.analyse.en_retard) { %>
+                            <span class="retard-badge <%= niveauCss %>"><%= retard %>j</span>
+                        <% } else { %>
+                            <span class="retard-badge retard-none"><%= retard < 0 ? Math.abs(retard) + 'j restants' : 'à échéance' %></span>
+                        <% } %>
+                    </td>
+                    <td style="text-align: right; font-weight: 700; color: var(--danger);"><%= h.formatNombre(f.montant_restant) %> <%= devise %></td>
+                    <td>
+                        <% if (derniere) { %>
+                            <span class="badge <%= couleurs[derniere.niveau] %>"><%= derniere.niveau %></span>
+                            <br><small class="text-muted"><%= h.formatDate(derniere.date_envoi) %></small>
+                        <% } else { %>
+                            <span class="text-muted small">Jamais</span>
+                        <% } %>
+                    </td>
+                    <td style="text-align: center;">
+                        <% if (f.analyse.prochain_niveau) { %>
+                            <button type="button" class="btn btn-sm btn-warning"
+                                    onclick="ouvrirModaleRelance(<%= f.id %>, '<%= f.analyse.prochain_niveau %>', '<%= f.numero_facture || f.numero %>', '<%= f.client_nom.replace(/'/g, '&apos;') %>')">
+                                <i class="bi bi-envelope-exclamation"></i> <%= labels[f.analyse.prochain_niveau] %>
+                            </button>
+                            <br><a href="/commandes/<%= f.id %>/pdf/relance/<%= f.analyse.prochain_niveau %>" target="_blank" class="small mt-1 d-inline-block"><i class="bi bi-file-pdf"></i> Aperçu PDF</a>
+                        <% } else if (f.analyse.dernier_niveau === 'J30') { %>
+                            <span class="text-muted small"><i class="bi bi-exclamation-triangle"></i> Contentieux</span>
+                        <% } else { %>
+                            <span class="text-muted small">—</span>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<% } %>
+
+<!-- Modale : enregistrer une relance -->
+<div id="modale-relance" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #fff; border-radius: 8px; width: min(500px, 90vw); max-height: 90vh; overflow-y: auto;">
+        <form id="form-relance" method="post">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--gold); color: #fff;">
+                <h5 style="margin: 0;"><i class="bi bi-envelope-exclamation"></i> Enregistrer une relance</h5>
+            </div>
+            <div style="padding: 20px;">
+                <div class="mb-3">
+                    <div class="text-muted small">Facture <strong id="relance-facture"></strong> — Client <strong id="relance-client"></strong></div>
+                </div>
+                <input type="hidden" name="niveau" id="relance-niveau">
+                <input type="hidden" name="retour" value="/commandes/relances/">
+                <div class="mb-3">
+                    <label class="form-label">Niveau de relance</label>
+                    <div id="relance-niveau-affichage" class="badge" style="font-size: 1rem; padding: 8px 16px;"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Canal utilisé</label>
+                    <select name="canal" class="form-select">
+                        <option value="IMPRIMEE">Imprimée / remise en main propre</option>
+                        <option value="EMAIL">Email</option>
+                        <option value="TELEPHONE">Téléphone</option>
+                        <option value="SMS">SMS</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notes / commentaires (optionnel)</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Ex : client a promis de payer sous 3 jours, contact avec Mme Ngo..."></textarea>
+                </div>
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i> Cette action enregistre la relance pour traçabilité. Utilisez le lien "Aperçu PDF" avant fermeture pour générer et imprimer le courrier officiel.
+                </div>
+            </div>
+            <div style="padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline-secondary" onclick="fermerModaleRelance()">Annuler</button>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg"></i> Enregistrer la relance</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const labelsJs = <%- JSON.stringify(labels) %>;
+const couleursJs = <%- JSON.stringify(couleurs) %>;
+function ouvrirModaleRelance(cmdId, niveau, facture, client) {
+    document.querySelector('#form-relance').action = '/commandes/' + cmdId + '/relance';
+    document.querySelector('#relance-niveau').value = niveau;
+    document.querySelector('#relance-facture').textContent = facture;
+    document.querySelector('#relance-client').textContent = client;
+    const badge = document.querySelector('#relance-niveau-affichage');
+    badge.textContent = labelsJs[niveau];
+    badge.className = 'badge ' + couleursJs[niveau];
+    document.querySelector('#modale-relance').style.display = 'flex';
+}
+function fermerModaleRelance() { document.querySelector('#modale-relance').style.display = 'none'; }
+document.querySelector('#modale-relance').addEventListener('click', (e) => { if (e.target.id === 'modale-relance') fermerModaleRelance(); });
+</script>
+<%- include('../partials/footer') %>

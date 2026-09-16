@@ -1,0 +1,137 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Produits</h1>
+        <p class="page-subtitle"><%= produits.length %> produit<%= produits.length > 1 ? 's' : '' %> dans le catalogue</p>
+    </div>
+    <% if (user.est_gestionnaire) { %>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="/produits/fiches-techniques/import" class="btn btn-outline-primary" title="Importer les recettes en masse"><i class="bi bi-clipboard-check"></i> Import fiches techniques</a>
+            <a href="/produits/import" class="btn btn-outline-secondary" title="Importer plusieurs produits depuis Excel"><i class="bi bi-file-earmark-excel"></i> Import produits</a>
+            <a href="/produits/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouveau produit</a>
+        </div>
+    <% } %>
+</div>
+
+<!-- Onglets par type de produit -->
+<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+    <a href="?<%= q ? 'q=' + encodeURIComponent(q) : '' %>" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= !type_filtre ? 'var(--gold)' : 'var(--surface)' %>; color: <%= !type_filtre ? '#fff' : 'var(--text)' %>; border: 1px solid <%= !type_filtre ? 'var(--gold)' : 'var(--border)' %>; font-weight: 600; font-size: 0.9rem;">
+        Tous <span style="opacity: 0.7;">(<%= produits.length + (type_filtre ? compteurs_types.PRODUIT_FINI + compteurs_types.INGREDIENT + compteurs_types.REVENTE + compteurs_types.CONSOMMABLE - produits.length : 0) %>)</span>
+    </a>
+    <% ['PRODUIT_FINI', 'INGREDIENT', 'REVENTE', 'CONSOMMABLE'].forEach(function(t) {
+        const info = types_produit[t];
+        const n = compteurs_types[t] || 0;
+        const actif = type_filtre === t;
+    %>
+        <a href="?type=<%= t %><%= q ? '&q=' + encodeURIComponent(q) : '' %>" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= actif ? info.couleur : info.bg %>; color: <%= actif ? '#fff' : info.couleur %>; border: 1px solid <%= actif ? info.couleur : info.bg %>; font-weight: 600; font-size: 0.9rem;">
+            <i class="bi <%= info.icone %>"></i> <%= info.libelle %> <span style="opacity: 0.8;">(<%= n %>)</span>
+        </a>
+    <% }); %>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row" style="margin-bottom: 16px;">
+            <% if (type_filtre) { %><input type="hidden" name="type" value="<%= type_filtre %>"><% } %>
+            <div class="col-md-5 mb-2">
+                <div style="position: relative;">
+                    <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint);"></i>
+                    <input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Rechercher par nom ou référence..." style="padding-left: 38px;">
+                </div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <select name="categorie" class="form-select">
+                    <option value="">Toutes catégories</option>
+                    <% categories.forEach(function(c) { %>
+                        <option value="<%= c.id %>" <%= String(cat_filtre) === String(c.id) ? 'selected' : '' %>><%= c.nom %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="col-md-2 mb-2">
+                <select name="etat" class="form-select">
+                    <option value="">Tous états</option>
+                    <option value="alerte" <%= etat_filtre === 'alerte' ? 'selected' : '' %>>En alerte</option>
+                    <option value="rupture" <%= etat_filtre === 'rupture' ? 'selected' : '' %>>En rupture</option>
+                </select>
+            </div>
+            <div class="col-md-2 mb-2">
+                <button type="submit" class="btn btn-secondary" style="width: 100%;"><i class="bi bi-funnel"></i> Filtrer</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 60px;"></th>
+                    <th>Référence</th>
+                    <th>Désignation</th>
+                    <th>Catégorie</th>
+                    <th style="text-align: right;">Prix vente</th>
+                    <th style="text-align: center;">Stock</th>
+                    <th style="text-align: center;">Seuil d'alerte</th>
+                    <th style="text-align: center;">État</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% produits.forEach(function(p) { %>
+                <tr>
+                    <td>
+                        <% if (p.image) { %>
+                            <img src="/media<%= p.image %>" alt="<%= p.designation %>" style="width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
+                        <% } else { %>
+                            <div style="width: 44px; height: 44px; border-radius: 8px; background: var(--surface-muted); border: 1px solid var(--border); color: var(--text-faint); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                <i class="bi <%= p.icone %>"></i>
+                            </div>
+                        <% } %>
+                    </td>
+                    <td><code><%= p.reference %></code></td>
+                    <td>
+                        <a href="/produits/<%= p.id %>" style="font-weight: 500; color: var(--text);"><%= p.designation %></a>
+                        <% if (p.type_produit && types_produit[p.type_produit]) { const t = types_produit[p.type_produit]; %>
+                            <br><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; background: <%= t.bg %>; color: <%= t.couleur %>; margin-top: 2px;">
+                                <i class="bi <%= t.icone %>"></i> <%= t.libelle %>
+                            </span>
+                        <% } %>
+                    </td>
+                    <td><span class="badge bg-secondary"><%= p.categorie_nom || '—' %></span></td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 500;"><%= h.formatNombre(p.prix_vente) %> <span class="text-muted"><%= devise %></span></td>
+                    <td style="text-align: center; font-variant-numeric: tabular-nums; font-weight: 600;"><%= p.stock_actuel %></td>
+                    <td style="text-align: center; font-variant-numeric: tabular-nums; color: var(--text-muted);"><%= p.stock_minimum %></td>
+                    <td style="text-align: center;">
+                        <% if (p.niveau_stock === 'RUPTURE') { %>
+                            <span class="badge badge-rupture">● Rupture</span>
+                        <% } else if (p.niveau_stock === 'ALERTE') { %>
+                            <span class="badge badge-alerte">● Alerte</span>
+                        <% } else { %>
+                            <span class="badge badge-ok">● OK</span>
+                        <% } %>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="/produits/<%= p.id %>" class="btn btn-sm btn-outline-secondary" title="Voir le détail"><i class="bi bi-eye"></i></a>
+                        <a href="/produits/<%= p.id %>/fiche-technique" class="btn btn-sm btn-outline-primary" title="Fiche technique / recette"><i class="bi bi-clipboard-check"></i></a>
+                        <% if (user.est_gestionnaire) { %>
+                        <a href="/produits/<%= p.id %>/modifier" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                        <form action="/produits/<%= p.id %>/supprimer" method="post" style="display: inline;"
+                              data-confirm="Voulez-vous vraiment supprimer <strong><%= p.designation %></strong> ? Cette action est irréversible."
+                              data-confirm-title="Supprimer le produit" data-confirm-danger="true" data-confirm-ok="Supprimer">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                        </form>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!produits.length) { %>
+                <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 8px;"></i>
+                    Aucun produit ne correspond aux critères.
+                </td></tr>
+            <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

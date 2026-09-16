@@ -1,0 +1,117 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-megaphone-fill" style="color: var(--or);"></i> <%= promo.nom %></h1>
+        <p class="page-subtitle">
+            <% if (promo.code) { %><code style="background: #F1F5F9; padding: 2px 8px; border-radius: 4px; font-weight: 700; margin-right: 6px;"><%= promo.code %></code><% } %>
+            <% if (promo.type === 'POURCENTAGE') { %><span style="color: #DC2626; font-weight: 700;">-<%= promo.valeur %>%</span>
+            <% } else if (promo.type === 'MONTANT_FIXE') { %><span style="color: #DC2626; font-weight: 700;">-<%= Math.round(promo.valeur).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span>
+            <% } else { %><span style="color: #10B981; font-weight: 700;">🚚 Livraison offerte</span><% } %>
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/admin/promotions/<%= promo.id %>/modifier" class="btn btn-outline-primary"><i class="bi bi-pencil"></i> Modifier</a>
+        <a href="/admin/promotions/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card primary">
+            <div class="kpi-label">Utilisations</div>
+            <div class="kpi-value"><%= promo.usage_count %><% if (promo.usage_max) { %><small style="font-size: 0.5em; color: var(--text-muted);"> / <%= promo.usage_max %></small><% } %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card success">
+            <div class="kpi-label">Remise totale</div>
+            <div class="kpi-value"><%= Math.round(totalRemise).toLocaleString('fr-FR').replace(/,/g, ' ') %> <small style="font-size: 0.6em;">FCFA</small></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Statut</div>
+            <div class="kpi-value" style="font-size: 1.2rem;"><%= promo.actif ? '● Active' : '⏸ Suspendue' %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Créée le</div>
+            <div class="kpi-value" style="font-size: 1rem;"><%= (promo.cree_le || '').slice(0, 10) %></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Paramètres</div>
+            <div class="card-body">
+                <table class="table table-sm" style="margin: 0;">
+                    <tr><td class="text-muted">Type</td><td><strong><%= promo.type %></strong></td></tr>
+                    <tr><td class="text-muted">Valeur</td><td><strong><%= promo.valeur %><%= promo.type === 'POURCENTAGE' ? '%' : ' F' %></strong></td></tr>
+                    <tr><td class="text-muted">Panier min.</td><td><%= promo.panier_min > 0 ? Math.round(promo.panier_min).toLocaleString('fr-FR').replace(/,/g, ' ') + ' F' : '—' %></td></tr>
+                    <tr><td class="text-muted">Cible</td><td>
+                        <% if (promo.produit_nom) { %>Produit : <strong><%= promo.produit_nom %></strong>
+                        <% } else if (promo.categorie_nom) { %>Catégorie : <strong><%= promo.categorie_nom %></strong>
+                        <% } else if (promo.activite_nom) { %>Activité : <strong><%= promo.activite_code %></strong>
+                        <% } else { %>Tout le catalogue<% } %>
+                    </td></tr>
+                    <tr><td class="text-muted">Début</td><td><%= promo.date_debut || 'Immédiat' %></td></tr>
+                    <tr><td class="text-muted">Fin</td><td><%= promo.date_fin || 'Aucune' %></td></tr>
+                    <tr><td class="text-muted">Max total</td><td><%= promo.usage_max || 'Illimité' %></td></tr>
+                    <tr><td class="text-muted">Max / client</td><td><%= promo.usage_par_client || 'Illimité' %></td></tr>
+                </table>
+                <% if (promo.description) { %>
+                <hr>
+                <p class="small text-muted mb-0"><em><%= promo.description %></em></p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-list-check"></i> Historique des utilisations (<%= usages.length %>)</div>
+            <div class="card-body" style="padding: 0;">
+                <% if (usages.length) { %>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" style="margin: 0;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Commande</th>
+                                <th>Client</th>
+                                <th>Téléphone</th>
+                                <th class="text-end">Remise</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% usages.forEach(function(u) { %>
+                            <tr>
+                                <td class="small"><%= u.date_usage %></td>
+                                <td>
+                                    <% if (u.code_suivi) { %>
+                                        <a href="/ventes-web/<%= u.commande_web_id %>"><%= u.code_suivi %></a>
+                                    <% } else { %><span class="text-muted">—</span><% } %>
+                                </td>
+                                <td><%= u.client_nom || '—' %></td>
+                                <td class="small"><%= u.client_tel || '—' %></td>
+                                <td class="text-end"><strong><%= Math.round(u.remise_appliquee).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</strong></td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } else { %>
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="bi bi-inbox" style="font-size: 2.5rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                    Aucune utilisation pour le moment.
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

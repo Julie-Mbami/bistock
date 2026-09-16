@@ -1,0 +1,95 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><%= produit.designation %></h1>
+        <p class="page-subtitle">
+            <code><%= produit.reference %></code> · <%= produit.categorie_nom %>
+            <% if (produit.type_produit && types_produit[produit.type_produit]) { const t = types_produit[produit.type_produit]; %>
+                · <span style="display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; background: <%= t.bg %>; color: <%= t.couleur %>;">
+                    <i class="bi <%= t.icone %>"></i> <%= t.libelle %>
+                </span>
+                <span class="text-muted" style="font-size: 0.85rem;">— <%= t.desc %></span>
+            <% } %>
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/produits/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+        <a href="/produits/<%= produit.id %>/fiche-technique" class="btn btn-outline-primary"><i class="bi bi-clipboard-check"></i> Fiche technique</a>
+        <% if (user.est_gestionnaire) { %>
+            <a href="/produits/<%= produit.id %>/modifier" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+        <% } %>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5>Caractéristiques</h5>
+                <dl class="row">
+                    <dt class="col-sm-4">Prix d'achat</dt><dd class="col-sm-8"><%= h.formatNombre(produit.prix_achat) %> <%= devise %></dd>
+                    <dt class="col-sm-4">Prix de vente</dt><dd class="col-sm-8"><strong><%= h.formatNombre(produit.prix_vente) %> <%= devise %></strong></dd>
+                    <dt class="col-sm-4">Marge</dt><dd class="col-sm-8"><%= h.formatNombre(produit.marge) %> <%= devise %> (<%= produit.taux_marge.toFixed(1) %>%)</dd>
+                    <dt class="col-sm-4">Stock actuel</dt><dd class="col-sm-8"><%= produit.stock_actuel %> <%= produit.unite %></dd>
+                    <dt class="col-sm-4">Seuil d'alerte</dt><dd class="col-sm-8"><%= produit.stock_minimum %></dd>
+                    <dt class="col-sm-4">Stock maximum</dt><dd class="col-sm-8"><%= produit.stock_maximum %></dd>
+                    <dt class="col-sm-4">Valeur en stock</dt><dd class="col-sm-8"><%= h.formatNombre(produit.valeur_stock) %> <%= devise %></dd>
+                    <dt class="col-sm-4">Fournisseur</dt><dd class="col-sm-8"><%= produit.fournisseur_nom || '—' %></dd>
+                    <% if (produit.description) { %>
+                    <dt class="col-sm-4">Description</dt><dd class="col-sm-8"><%= produit.description %></dd>
+                    <% } %>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-body">
+                <h5>Derniers mouvements de stock</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Date</th><th>Type</th><th style="text-align: right;">Qté</th><th>Motif</th><th>Utilisateur</th></tr></thead>
+                        <tbody>
+                        <% mouvements.forEach(function(m) { %>
+                            <tr>
+                                <td><%= h.formatDate(m.date_mouvement, true) %></td>
+                                <td><%= h.TYPE_MOUVEMENT_LABEL[m.type] || m.type %></td>
+                                <td style="text-align: right;"><%= m.quantite %></td>
+                                <td><%= m.motif || '—' %></td>
+                                <td class="text-muted"><%= m.username || '—' %></td>
+                            </tr>
+                        <% }); %>
+                        <% if (!mouvements.length) { %><tr><td colspan="5" class="text-muted" style="text-align: center;">Aucun mouvement.</td></tr><% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body" style="text-align: center;">
+                <% if (produit.image) { %>
+                    <img src="/media<%= produit.image %>" alt="<%= produit.designation %>" style="max-width: 100%; border-radius: 12px;">
+                <% } else { %>
+                    <div style="width: 100%; height: 260px; background: <%= produit.couleur_hex %>; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 5rem;">
+                        <i class="bi <%= produit.icone %>"></i>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-body">
+                <h6>État du stock</h6>
+                <% if (produit.niveau_stock === 'RUPTURE') { %>
+                    <div class="alert alert-danger"><i class="bi bi-exclamation-octagon"></i> Rupture de stock !</div>
+                <% } else if (produit.niveau_stock === 'ALERTE') { %>
+                    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Stock bas.</div>
+                <% } else { %>
+                    <div class="alert alert-success"><i class="bi bi-check-circle"></i> Stock OK.</div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

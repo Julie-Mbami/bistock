@@ -1,0 +1,492 @@
+<%- include('../partials/header') %>
+<style>
+.step-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-left: 3px solid var(--border); margin-bottom: 4px; }
+.step-item.done { border-left-color: var(--success); background: rgba(34, 197, 94, 0.06); }
+.step-item.current { border-left-color: var(--gold); background: rgba(202, 138, 4, 0.08); font-weight: 700; }
+.step-item.pending { color: var(--text-faint); }
+.step-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--border); color: var(--text-muted); flex-shrink: 0; }
+.step-item.done .step-icon { background: var(--success); color: #fff; }
+.step-item.current .step-icon { background: var(--gold); color: #fff; }
+.doc-link { display: inline-block; padding: 6px 12px; background: var(--bg-soft, #F8FAFC); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; margin: 4px; font-size: 0.9rem; }
+.doc-link:hover { border-color: var(--gold); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><%= cmd.numero %></h1>
+        <p class="page-subtitle">
+            <%= cmd.client_nom %> · Créée par <%= cmd.cree_par_prenom || cmd.cree_par_username %> le <%= h.formatDate(cmd.date_commande, true) %>
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="badge <%= statuts_badge[cmd.statut] %>" style="font-size: 0.9rem; padding: 8px 12px;"><%= statuts_label[cmd.statut] %></span>
+        <a href="/commandes/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Progression du workflow -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-diagram-3"></i> Progression</div>
+            <div class="card-body" style="padding: 8px;">
+                <%
+                    const etapes = [
+                        { code: 'PROFORMA',     label: 'Proforma émis',        icone: 'file-text',   num: cmd.numero_proforma },
+                        { code: 'VALIDE',       label: 'Bon de commande',      icone: 'check2-square', num: cmd.numero_bon_commande },
+                        { code: 'LIVREE',       label: 'Marchandise livrée',   icone: 'truck',       num: cmd.numero_bl },
+                        { code: 'FACTUREE',     label: 'Facture émise',        icone: 'receipt',     num: cmd.numero_facture },
+                        { code: 'PAYEE',        label: 'Soldée',               icone: 'cash-coin',   num: null },
+                    ];
+                    const ordre = ['PROFORMA', 'VALIDE', 'EN_PRODUCTION', 'LIVREE', 'FACTUREE', 'PAYEE'];
+                    const currentIdx = ordre.indexOf(cmd.statut);
+                %>
+                <% etapes.forEach(function(e) {
+                    const idx = ordre.indexOf(e.code);
+                    const isDone = idx <= currentIdx && cmd.statut !== 'ANNULEE';
+                    const isCurrent = idx === currentIdx;
+                %>
+                    <div class="step-item <%= isCurrent ? 'current' : (isDone ? 'done' : 'pending') %>">
+                        <div class="step-icon"><i class="bi bi-<%= isDone ? 'check-lg' : e.icone %>"></i></div>
+                        <div style="flex: 1;">
+                            <%= e.label %>
+                            <% if (e.num) { %><br><code style="font-size: 0.8rem;"><%= e.num %></code><% } %>
+                        </div>
+                        <% if (e.num && cmd.statut !== 'ANNULEE') { %>
+                            <% const type = e.code === 'PROFORMA' ? 'proforma' : e.code === 'VALIDE' ? 'bon-commande' : e.code === 'LIVREE' ? 'bon-livraison' : e.code === 'FACTUREE' ? 'facture' : null; %>
+                            <% if (type) { %>
+                                <a href="/commandes/<%= cmd.id %>/pdf/<%= type %>" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-pdf"></i> PDF</a>
+                            <% } %>
+                        <% } %>
+                    </div>
+                <% }); %>
+                <% if (cmd.statut === 'ANNULEE') { %>
+                    <div class="alert alert-danger mt-2" style="margin-bottom: 0;"><i class="bi bi-x-circle"></i> Commande annulée</div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Lignes de la commande -->
+        <div class="card mb-3">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-list-ul"></i> Détail de la commande</span>
+                <% if (cmd.statut === 'PROFORMA' && (user.est_secretariat || user.est_dg)) { %>
+                    <a href="/commandes/<%= cmd.id %>/modifier" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Modifier</a>
+                <% } %>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Réf.</th>
+                            <th>Désignation</th>
+                            <th style="text-align: right;">Qté</th>
+                            <th style="text-align: right;">PU</th>
+                            <th style="text-align: right;">Rem.%</th>
+                            <th style="text-align: right;">Total HT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% cmd.lignes.forEach(function(l) {
+                            const total = Number(l.quantite) * Number(l.prix_unitaire) * (1 - Number(l.remise || 0) / 100);
+                        %>
+                            <tr>
+                                <td><code><%= l.produit_ref %></code></td>
+                                <td><%= l.designation %></td>
+                                <td style="text-align: right;"><%= l.quantite %> <%= l.produit_unite %></td>
+                                <td style="text-align: right;"><%= h.formatNombre(l.prix_unitaire) %></td>
+                                <td style="text-align: right;"><%= l.remise || 0 %>%</td>
+                                <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(total) %></td>
+                            </tr>
+                        <% }); %>
+                        <% if (Number(cmd.frais_livraison) > 0) { %>
+                            <tr style="background: rgba(202, 138, 4, 0.05);">
+                                <td><i class="bi bi-scooter"></i></td>
+                                <td><strong>Livraison</strong></td>
+                                <td style="text-align: right;">1</td>
+                                <td style="text-align: right;"><%= h.formatNombre(cmd.frais_livraison) %></td>
+                                <td style="text-align: right;">0%</td>
+                                <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(cmd.frais_livraison) %></td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                    <tfoot>
+                        <tr><td colspan="5" style="text-align: right; font-weight: 600;">Sous-total HT</td><td style="text-align: right; font-weight: 700;"><%= h.formatNombre(cmd.montant_ht) %> <%= devise %></td></tr>
+                        <% if (Number(cmd.montant_remise) > 0) { %>
+                            <tr><td colspan="5" style="text-align: right; color: var(--danger);">Remise</td><td style="text-align: right; color: var(--danger);">-<%= h.formatNombre(cmd.montant_remise) %> <%= devise %></td></tr>
+                        <% } %>
+                        <% if (Number(cmd.montant_tva) > 0) { %>
+                            <tr><td colspan="5" style="text-align: right;">TVA totale (par ligne)</td><td style="text-align: right;"><%= h.formatNombre(cmd.montant_tva) %> <%= devise %></td></tr>
+                        <% } %>
+                        <tr style="background: rgba(202, 138, 4, 0.08);">
+                            <td colspan="5" style="text-align: right; font-size: 1.1rem; font-weight: 700; color: var(--gold-dark);">Total TTC</td>
+                            <td style="text-align: right; font-size: 1.1rem; font-weight: 700; color: var(--gold-dark);"><%= h.formatNombre(cmd.montant_total) %> <%= devise %></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Historique des relances -->
+        <% if (cmd.statut === 'FACTUREE' && cmd.montant_restant > 0.01) { %>
+        <div class="card mb-3" style="<%= cmd.analyse_relance.en_retard ? 'border-color: var(--danger);' : '' %>">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-envelope-exclamation"></i> Relances de paiement
+                    <% if (cmd.analyse_relance.en_retard) { %>
+                        <span class="badge bg-danger" style="margin-left: 8px;"><%= cmd.analyse_relance.jours_retard %> j de retard</span>
+                    <% } %>
+                </span>
+                <% if (cmd.analyse_relance.prochain_niveau && (user.est_secretariat || user.est_dg)) { %>
+                    <button type="button" class="btn btn-sm btn-warning"
+                            onclick="ouvrirModaleRelance('<%= cmd.analyse_relance.prochain_niveau %>')">
+                        <i class="bi bi-envelope-plus"></i> Enregistrer <%= cmd.analyse_relance.prochain_niveau %>
+                    </button>
+                <% } %>
+            </div>
+            <div class="card-body" style="padding-top: 0;">
+                <% if (cmd.relances.length === 0) { %>
+                    <p class="text-muted small" style="margin-bottom: 0; padding: 10px 0;">
+                        <% if (cmd.analyse_relance.prochain_niveau) { %>
+                            Aucune relance enregistrée. Le retard atteint le seuil <strong><%= cmd.analyse_relance.prochain_niveau %></strong>, il est temps d'envoyer un <%= cmd.analyse_relance.prochain_niveau === 'J30' ? 'courrier de mise en demeure' : 'rappel' %>.
+                        <% } else if (cmd.analyse_relance.en_retard) { %>
+                            La facture est en retard mais moins de 7 jours — attendre encore.
+                        <% } else { %>
+                            La facture n'est pas encore échue.
+                        <% } %>
+                    </p>
+                <% } else { %>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Niveau</th><th>Date</th><th>Canal</th><th>Envoyé par</th><th>Notes</th><th></th></tr></thead>
+                        <tbody>
+                            <% cmd.relances.forEach(function(r) { %>
+                                <tr>
+                                    <td><span class="badge bg-<%= r.niveau === 'J30' ? 'danger' : r.niveau === 'J15' ? 'warning' : 'info' %>"><%= r.niveau %></span></td>
+                                    <td class="small text-muted"><%= h.formatDate(r.date_envoi, true) %></td>
+                                    <td class="small"><%= r.canal %></td>
+                                    <td class="small"><%= r.envoye_par_prenom || r.envoye_par_username || '—' %></td>
+                                    <td class="small"><%= r.notes || '' %></td>
+                                    <td>
+                                        <a href="/commandes/<%= cmd.id %>/pdf/relance/<%= r.niveau %>" target="_blank" class="btn btn-sm btn-outline-secondary" title="Reproduire le PDF"><i class="bi bi-file-pdf"></i></a>
+                                        <% if (user.est_dg) { %>
+                                            <form action="/commandes/<%= cmd.id %>/relance/<%= r.id %>/supprimer" method="post" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Supprimer cette relance de l'historique ?" title="Supprimer"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
+
+        <!-- Historique paiements -->
+        <% if (['VALIDE', 'EN_PRODUCTION', 'LIVREE', 'FACTUREE', 'PAYEE'].includes(cmd.statut)) { %>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-cash-stack"></i> Encaissements</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead><tr><th>N° reçu</th><th>Date</th><th>Mode</th><th>Réf.</th><th style="text-align: right;">Montant</th><th style="text-align: center;">Pièce</th><th></th></tr></thead>
+                    <tbody>
+                        <% cmd.paiements.forEach(function(p) { %>
+                            <tr>
+                                <td><code><%= p.numero_recu %></code></td>
+                                <td class="small text-muted"><%= h.formatDate(p.date_paiement, true) %></td>
+                                <td><%= p.mode_paiement %></td>
+                                <td class="small"><%= p.reference_transaction || '—' %></td>
+                                <td style="text-align: right; font-weight: 600; color: var(--success);"><%= h.formatNombre(p.montant) %> <%= devise %></td>
+                                <td style="text-align: center;">
+                                    <% if (p.piece_jointe) {
+                                        const est_pdf = p.piece_jointe.toLowerCase().endsWith('.pdf');
+                                    %>
+                                        <a href="/media<%= p.piece_jointe %>" target="_blank" class="btn btn-sm btn-outline-primary" title="Voir la pièce justificative">
+                                            <i class="bi bi-<%= est_pdf ? 'file-pdf' : 'image' %>"></i>
+                                        </a>
+                                    <% } else { %>
+                                        <span class="text-muted small">—</span>
+                                    <% } %>
+                                </td>
+                                <td><a href="/commandes/<%= cmd.id %>/pdf/recu/<%= p.id %>" target="_blank" class="btn btn-sm btn-outline-secondary" title="Reçu PDF"><i class="bi bi-file-pdf"></i></a></td>
+                            </tr>
+                        <% }); %>
+                        <% if (!cmd.paiements.length) { %>
+                            <tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">Aucun encaissement enregistré</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <% } %>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Actions selon statut -->
+        <% if ((user.est_secretariat || user.est_dg) && cmd.statut !== 'ANNULEE') { %>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-lightning"></i> Actions</div>
+            <div class="card-body">
+                <% if (cmd.statut === 'PROFORMA') { %>
+                    <form action="/commandes/<%= cmd.id %>/valider" method="post" style="margin-bottom: 8px;">
+                        <button type="submit" class="btn btn-success" style="width: 100%;" data-confirm="Valider ce proforma et le transformer en bon de commande ?">
+                            <i class="bi bi-check2-square"></i> Client a validé → Bon de commande
+                        </button>
+                    </form>
+                <% } %>
+                <% if (cmd.statut === 'VALIDE') { %>
+                    <form action="/commandes/<%= cmd.id %>/production" method="post" style="margin-bottom: 8px;">
+                        <button type="submit" class="btn btn-outline-primary" style="width: 100%;">
+                            <i class="bi bi-hammer"></i> Démarrer la production
+                        </button>
+                    </form>
+                <% } %>
+
+                <% if (['VALIDE', 'EN_PRODUCTION'].includes(cmd.statut)) { %>
+                    <button type="button" class="btn btn-outline-secondary" style="width: 100%; margin-bottom: 8px;" onclick="document.getElementById('form-frais-liv').style.display='block'; this.style.display='none';">
+                        <i class="bi bi-scooter"></i>
+                        <%= Number(cmd.frais_livraison || 0) > 0 ? 'Modifier les frais de livraison (' + h.formatNombre(cmd.frais_livraison) + ' ' + devise + ')' : 'Facturer la livraison' %>
+                    </button>
+                <% } %>
+                <% if (['VALIDE', 'EN_PRODUCTION'].includes(cmd.statut)) { %>
+                    <% if (cmd.montant_restant > 0.01) { %>
+                        <button type="button" class="btn btn-primary" style="width: 100%; margin-bottom: 8px; opacity: 0.5; cursor: not-allowed;" disabled title="Le client doit solder la commande avant livraison">
+                            <i class="bi bi-lock"></i> Livrer (solde requis)
+                        </button>
+                        <div class="alert alert-warning" style="padding: 8px; font-size: 0.85rem; margin-bottom: 8px;">
+                            <i class="bi bi-info-circle"></i> Livraison bloquée : reste <strong><%= h.formatNombre(cmd.montant_restant) %> <%= devise %></strong> à encaisser.
+                        </div>
+                    <% } else { %>
+                        <form action="/commandes/<%= cmd.id %>/livrer" method="post" style="margin-bottom: 8px;">
+                            <button type="submit" class="btn btn-primary" style="width: 100%;" data-confirm="Émettre le bon de livraison et décrémenter le stock ?">
+                                <i class="bi bi-truck"></i> Livrer et émettre le BL
+                            </button>
+                        </form>
+                    <% } %>
+                <% } %>
+                <% if (cmd.statut === 'LIVREE') { %>
+                    <form action="/commandes/<%= cmd.id %>/facturer" method="post" style="margin-bottom: 8px;">
+                        <button type="submit" class="btn btn-warning" style="width: 100%;" data-confirm="Émettre la facture définitive ?">
+                            <i class="bi bi-receipt"></i> Émettre la facture
+                        </button>
+                    </form>
+                <% } %>
+                <% if (['VALIDE', 'EN_PRODUCTION', 'LIVREE', 'FACTUREE'].includes(cmd.statut) && cmd.montant_restant > 0.01) { %>
+                    <button type="button" class="btn btn-success" style="width: 100%; margin-bottom: 8px;" onclick="document.querySelector('#form-paiement').style.display = 'block'; this.style.display = 'none';">
+                        <i class="bi bi-cash-coin"></i> Enregistrer un règlement
+                    </button>
+                <% } %>
+                <% if (cmd.statut !== 'PAYEE') { %>
+                    <hr>
+                    <form action="/commandes/<%= cmd.id %>/annuler" method="post">
+                        <button type="submit" class="btn btn-outline-danger btn-sm" style="width: 100%;" data-confirm="Annuler définitivement cette commande ?">
+                            <i class="bi bi-x-circle"></i> Annuler cette commande
+                        </button>
+                    </form>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Formulaire frais de livraison (statut VALIDE ou EN_PRODUCTION) -->
+        <% if (['VALIDE', 'EN_PRODUCTION'].includes(cmd.statut)) { %>
+        <div class="card mb-3" id="form-frais-liv" style="display: none; border-color: var(--gold);">
+            <div class="card-header" style="background: var(--gold-50, #fefce8); color: var(--gold-dark);">
+                <i class="bi bi-scooter"></i> Frais de livraison
+            </div>
+            <div class="card-body">
+                <p class="text-muted small" style="margin-bottom: 12px;">
+                    Facturez la livraison si le client la paie. Laissez à <strong>0</strong> pour offrir la livraison.
+                </p>
+                <form action="/commandes/<%= cmd.id %>/frais-livraison" method="post">
+                    <div class="mb-2">
+                        <label class="form-label">Montant des frais (FCFA)</label>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <input type="number" name="frais_livraison" class="form-control" min="0" step="100" value="<%= cmd.frais_livraison || 0 %>" required>
+                            <span style="color: var(--text-muted); font-weight: 600;"><%= devise %></span>
+                        </div>
+                        <div class="form-text">Ce montant s'ajoute au total TTC de la commande.</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('form-frais-liv').style.display='none';">Annuler</button>
+                        <button type="submit" class="btn btn-primary btn-sm" style="flex: 1;">
+                            <i class="bi bi-check-lg"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <% } %>
+
+        <!-- Formulaire de paiement (caché par défaut) -->
+        <% if (cmd.montant_restant > 0.01 && !['PROFORMA', 'ANNULEE'].includes(cmd.statut)) { %>
+        <div class="card mb-3" id="form-paiement" style="display: none;">
+            <div class="card-header" style="background: var(--success); color: #fff;"><i class="bi bi-cash-coin"></i> Nouvel encaissement</div>
+            <div class="card-body">
+                <form action="/commandes/<%= cmd.id %>/paiement" method="post" enctype="multipart/form-data">
+                    <div class="mb-2">
+                        <label class="form-label">Montant (max <%= h.formatNombre(cmd.montant_restant) %> <%= devise %>)</label>
+                        <input type="number" name="montant" step="0.01" min="0.01" max="<%= cmd.montant_restant %>" value="<%= cmd.montant_restant %>" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Mode</label>
+                        <select name="mode_paiement" class="form-select" id="paiement-mode" onchange="mettreAJourLibelleFichier()">
+                            <% modes_paiement.forEach(function(m) { %>
+                                <option value="<%= m[0] %>" <%= cmd.mode_paiement === m[0] ? 'selected' : '' %>><%= m[1] %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" id="lbl-reference">Référence (n° chèque, virement...)</label>
+                        <input type="text" name="reference_transaction" class="form-control" placeholder="Optionnel">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" id="lbl-piece">Pièce justificative <span class="text-muted small" style="font-weight: normal;">— facultatif</span></label>
+                        <input type="file" name="piece_jointe" class="form-control" accept="image/*,application/pdf">
+                        <div class="form-text" id="hint-piece">Optionnel : joindre un chèque scanné, une photo ou un ordre de virement. JPG, PNG ou PDF · max 5 Mo.</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('#form-paiement').style.display = 'none';">Annuler</button>
+                        <button type="submit" class="btn btn-success" style="flex: 1;">
+                            <i class="bi bi-check-lg"></i> Enregistrer le reçu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script>
+        function mettreAJourLibelleFichier() {
+            const mode = document.querySelector('#paiement-mode').value;
+            const lblPiece = document.querySelector('#lbl-piece');
+            const lblRef = document.querySelector('#lbl-reference');
+            const hint = document.querySelector('#hint-piece');
+            const facultatif = ' <span class="text-muted small" style="font-weight: normal;">— facultatif</span>';
+            if (mode === 'CHEQUE') {
+                lblRef.innerHTML = 'N° du chèque';
+                lblPiece.innerHTML = 'Copie du chèque' + facultatif;
+                hint.textContent = 'Optionnel : scan ou photo du chèque signé. JPG, PNG ou PDF · max 5 Mo.';
+            } else if (mode === 'VIREMENT') {
+                lblRef.innerHTML = 'Référence du virement';
+                lblPiece.innerHTML = 'Ordre de virement' + facultatif;
+                hint.textContent = "Optionnel : copie de l'avis ou de l'ordre de virement. JPG, PNG ou PDF · max 5 Mo.";
+            } else {
+                lblRef.innerHTML = 'Référence';
+                lblPiece.innerHTML = 'Pièce justificative' + facultatif;
+                hint.textContent = 'Optionnel : reçu, photo... JPG, PNG ou PDF · max 5 Mo.';
+            }
+        }
+        mettreAJourLibelleFichier();
+        </script>
+        <% } %>
+        <% } %>
+
+        <!-- Résumé paiement -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-cash"></i> État financier</div>
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                    <span>Total commande</span><strong><%= h.formatNombre(cmd.montant_total) %> <%= devise %></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; color: var(--success);">
+                    <span>Déjà réglé</span><strong><%= h.formatNombre(cmd.montant_paye) %> <%= devise %></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 8px;">
+                    <span style="font-weight: 700;">Reste dû</span>
+                    <strong style="color: <%= cmd.montant_restant > 0 ? 'var(--danger)' : 'var(--success)' %>;"><%= h.formatNombre(cmd.montant_restant) %> <%= devise %></strong>
+                </div>
+                <div class="mt-2" style="text-align: center;">
+                    <span class="badge <%= cmd.statut_paiement.couleur %>"><%= cmd.statut_paiement.libelle %></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Infos client -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-person-vcard"></i> Client</div>
+            <div class="card-body">
+                <div style="font-weight: 700; font-size: 1.05rem;"><%= cmd.client_nom %></div>
+                <div class="small text-muted"><%= cmd.type_client === 'ENTR' ? 'Entreprise' : 'Particulier' %></div>
+                <% if (cmd.client_tel) { %><div class="mt-2 small"><i class="bi bi-telephone"></i> <%= cmd.client_tel %></div><% } %>
+                <% if (cmd.client_email) { %><div class="small"><i class="bi bi-envelope"></i> <%= cmd.client_email %></div><% } %>
+                <% if (cmd.client_adresse) { %><div class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> <%= cmd.client_adresse %></div><% } %>
+                <% if (cmd.client_niu) { %><div class="small text-muted mt-1">NIU : <%= cmd.client_niu %></div><% } %>
+                <% if (cmd.client_rccm) { %><div class="small text-muted">RCCM : <%= cmd.client_rccm %></div><% } %>
+            </div>
+        </div>
+
+        <!-- Dates clés -->
+        <div class="card">
+            <div class="card-header"><i class="bi bi-calendar3"></i> Dates</div>
+            <div class="card-body small">
+                <div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="text-muted">Créée</span><span><%= h.formatDate(cmd.date_commande) %></span></div>
+                <% if (cmd.date_livraison_prevue) { %><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="text-muted">Livraison prévue</span><span><%= h.formatDate(cmd.date_livraison_prevue) %></span></div><% } %>
+                <% if (cmd.date_livraison_reelle) { %><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="text-muted">Livrée le</span><span><%= h.formatDate(cmd.date_livraison_reelle) %></span></div><% } %>
+                <% if (cmd.date_echeance) { %><div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="text-muted">Échéance</span><span><%= h.formatDate(cmd.date_echeance) %></span></div><% } %>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modale : enregistrer une relance -->
+<% if (cmd.statut === 'FACTUREE' && cmd.montant_restant > 0.01) { %>
+<div id="modale-relance" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #fff; border-radius: 8px; width: min(500px, 90vw);">
+        <form action="/commandes/<%= cmd.id %>/relance" method="post">
+            <input type="hidden" name="niveau" id="modale-niveau">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--gold); color: #fff;">
+                <h5 style="margin: 0;"><i class="bi bi-envelope-exclamation"></i> Enregistrer une relance</h5>
+            </div>
+            <div style="padding: 20px;">
+                <div class="mb-3">
+                    <div class="text-muted small">Facture <strong><%= cmd.numero_facture || cmd.numero %></strong> — <strong><%= cmd.client_nom %></strong></div>
+                    <div class="text-muted small">Reste dû : <strong style="color: var(--danger);"><%= h.formatNombre(cmd.montant_restant) %> <%= devise %></strong> · <%= cmd.analyse_relance.jours_retard %> jours de retard</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Niveau de relance</label>
+                    <div id="modale-niveau-badge" class="badge" style="font-size: 1rem; padding: 8px 16px;"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Canal utilisé</label>
+                    <select name="canal" class="form-select">
+                        <option value="IMPRIMEE">Imprimée / remise en main propre</option>
+                        <option value="EMAIL">Email</option>
+                        <option value="TELEPHONE">Téléphone</option>
+                        <option value="SMS">SMS</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notes / commentaires</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Ex : client a promis de payer sous 3 jours..."></textarea>
+                </div>
+                <div class="alert alert-info small" style="margin-bottom: 0;">
+                    <i class="bi bi-info-circle"></i> Générez le courrier PDF avant fermeture pour l'imprimer ou l'envoyer.
+                    <a href="#" id="lien-pdf-relance" target="_blank" style="font-weight: 600;">Ouvrir le PDF</a>
+                </div>
+            </div>
+            <div style="padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline-secondary" onclick="fermerModaleRelance()">Annuler</button>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+const labelsRelance = { J7: 'Rappel amical (J+7)', J15: 'Rappel ferme (J+15)', J30: 'Mise en demeure (J+30)' };
+const couleursRelance = { J7: 'bg-info', J15: 'bg-warning', J30: 'bg-danger' };
+function ouvrirModaleRelance(niveau) {
+    document.querySelector('#modale-niveau').value = niveau;
+    const badge = document.querySelector('#modale-niveau-badge');
+    badge.textContent = labelsRelance[niveau];
+    badge.className = 'badge ' + couleursRelance[niveau];
+    document.querySelector('#lien-pdf-relance').href = '/commandes/<%= cmd.id %>/pdf/relance/' + niveau;
+    document.querySelector('#modale-relance').style.display = 'flex';
+}
+function fermerModaleRelance() { document.querySelector('#modale-relance').style.display = 'none'; }
+document.querySelector('#modale-relance').addEventListener('click', (e) => { if (e.target.id === 'modale-relance') fermerModaleRelance(); });
+</script>
+<% } %>
+<%- include('../partials/footer') %>

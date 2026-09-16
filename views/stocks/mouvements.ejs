@@ -1,0 +1,128 @@
+<%- include('../partials/header') %>
+<style>
+.day-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 16px; }
+.day-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 20px; background: var(--surface-2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.day-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--navy); font-size: 0.95rem; }
+.day-title i { color: var(--gold); }
+.day-date { font-weight: 500; color: var(--text-muted); font-size: 0.78rem; }
+.day-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.day-stat { font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.day-body { display: flex; flex-direction: column; }
+.mvt-row { display: grid; grid-template-columns: 60px 38px 1fr 80px 130px 1fr 18px; align-items: center; gap: 14px; padding: 11px 20px; border-bottom: 1px solid var(--border); transition: background 0.1s; text-decoration: none; color: var(--text); }
+.mvt-row:last-child { border-bottom: none; }
+.mvt-row:hover { background: var(--surface-2); text-decoration: none; color: var(--text); }
+.mvt-time { font-size: 0.82rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.mvt-type-badge { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }
+.mvt-type-badge.entree { background: var(--success-50); color: var(--success); }
+.mvt-type-badge.sortie { background: var(--danger-50); color: var(--danger); }
+.mvt-info { min-width: 0; }
+.mvt-produit { font-weight: 600; font-size: 0.88rem; color: var(--text); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mvt-type-libelle { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+.mvt-qte { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1rem; }
+.mvt-stock { text-align: right; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.mvt-user { font-size: 0.8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mvt-user i { color: var(--text-faint); margin-right: 3px; }
+.mvt-arrow { color: var(--text-faint); }
+.mvt-row:hover .mvt-arrow { color: var(--navy); }
+@media (max-width: 992px) { .mvt-row { grid-template-columns: 1fr; gap: 6px; } .mvt-stock, .mvt-time, .mvt-arrow { text-align: left; } }
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Mouvements de stock</h1>
+        <p class="page-subtitle">Historique des entrées, sorties et ajustements</p>
+    </div>
+    <a href="/stocks/mouvements/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouveau mouvement</a>
+</div>
+
+<!-- Onglets par source de mouvement -->
+<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+    <a href="/stocks/mouvements/" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= !source_filtre ? 'var(--gold)' : 'var(--surface)' %>; color: <%= !source_filtre ? '#fff' : 'var(--text)' %>; border: 1px solid <%= !source_filtre ? 'var(--gold)' : 'var(--border)' %>; font-weight: 600; font-size: 0.9rem;">
+        Tous les mouvements
+    </a>
+    <a href="?source=reception" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= source_filtre === 'reception' ? '#2563EB' : '#EFF6FF' %>; color: <%= source_filtre === 'reception' ? '#fff' : '#2563EB' %>; border: 1px solid <%= source_filtre === 'reception' ? '#2563EB' : '#EFF6FF' %>; font-weight: 600; font-size: 0.9rem;">
+        <i class="bi bi-truck"></i> Réceptions distribution
+    </a>
+    <a href="?source=production" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= source_filtre === 'production' ? '#CA8A04' : '#FEF3C7' %>; color: <%= source_filtre === 'production' ? '#fff' : '#CA8A04' %>; border: 1px solid <%= source_filtre === 'production' ? '#CA8A04' : '#FEF3C7' %>; font-weight: 600; font-size: 0.9rem;">
+        <i class="bi bi-fire"></i> Productions cuisine
+    </a>
+    <a href="?source=vente" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= source_filtre === 'vente' ? '#059669' : '#ECFDF5' %>; color: <%= source_filtre === 'vente' ? '#fff' : '#059669' %>; border: 1px solid <%= source_filtre === 'vente' ? '#059669' : '#ECFDF5' %>; font-weight: 600; font-size: 0.9rem;">
+        <i class="bi bi-cart-check"></i> Ventes & livraisons
+    </a>
+    <a href="?source=ajustement" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= source_filtre === 'ajustement' ? '#DC2626' : '#FEF2F2' %>; color: <%= source_filtre === 'ajustement' ? '#fff' : '#DC2626' %>; border: 1px solid <%= source_filtre === 'ajustement' ? '#DC2626' : '#FEF2F2' %>; font-weight: 600; font-size: 0.9rem;">
+        <i class="bi bi-arrow-repeat"></i> Ajustements
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row mb-2">
+            <% if (source_filtre) { %><input type="hidden" name="source" value="<%= source_filtre %>"><% } %>
+            <input type="hidden" name="preset" value="<%= periode.preset %>">
+            <% if (periode.preset === 'personnalise') { %>
+                <input type="hidden" name="debut" value="<%= periode.debut %>">
+                <input type="hidden" name="fin" value="<%= periode.fin %>">
+            <% } %>
+            <div class="col-md-6 mb-2"><input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Rechercher..."></div>
+            <div class="col-md-3 mb-2">
+                <select name="type" class="form-select">
+                    <option value="">Tous types</option>
+                    <% types.forEach(function(t) { %>
+                        <option value="<%= t[0] %>" <%= type_filtre === t[0] ? 'selected' : '' %>><%= t[1] %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="col-md-3 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;"><i class="bi bi-funnel"></i> Filtrer</button></div>
+        </form>
+        <div style="padding: 8px 0 12px; border-top: 1px dashed var(--border);">
+            <%- include('../partials/filtre_periode', { periode, autresFiltres: { q, type: type_filtre, source: source_filtre } }) %>
+        </div>
+    </div>
+</div>
+
+<% groupes.forEach(function(g) { %>
+<div class="card" style="margin-top: 16px;">
+    <div class="card-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h5 style="margin: 0;"><%= g.label %></h5>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+                <% if (g.nb_entrees) { %><span style="color: var(--success);">↑ <%= g.qte_entrees %> entrées (<%= g.nb_entrees %>)</span><% } %>
+                <% if (g.nb_sorties) { %> · <span style="color: var(--danger);">↓ <%= g.qte_sorties %> sorties (<%= g.nb_sorties %>)</span><% } %>
+                <% if (g.nb_ajust) { %> · <%= g.nb_ajust %> ajustement<%= h.pluralize(g.nb_ajust) %><% } %>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Heure</th><th>Source</th><th>Produit</th><th style="text-align: right;">Qté</th><th>Motif</th><th></th></tr></thead>
+                <tbody>
+                <% g.mouvements.forEach(function(m) { %>
+                    <tr>
+                        <td class="text-muted"><%= m.date_mouvement.substring(11, 16) %></td>
+                        <td>
+                            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; background: <%= m.source_info.bg %>; color: <%= m.source_info.couleur %>;">
+                                <i class="bi <%= m.source_info.icone %>"></i> <%= m.source_info.label %>
+                            </span>
+                        </td>
+                        <td><a href="/produits/<%= m.produit_id %>"><%= m.designation %></a></td>
+                        <td style="text-align: right; font-weight: 600; color: <%= m.signe === 1 ? 'var(--success)' : 'var(--danger)' %>;">
+                            <%= m.signe === 1 ? '+' : '-' %><%= m.quantite %>
+                        </td>
+                        <td class="text-muted small"><%= m.motif || '—' %></td>
+                        <td><a href="/stocks/mouvements/<%= m.id %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<% }); %>
+<% if (!groupes.length) { %>
+<div class="card"><div class="card-body" style="text-align: center; padding: 40px; color: var(--text-muted);">
+    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+    <p>Aucun mouvement.</p>
+</div></div>
+<% } %>
+<div class="card mt-3">
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,15 @@
+node_modules/
+.env
+data/*.db
+public/uploads/
+npm-debug.log
+.DS_Store
+
+# Sauvegardes et verrous de la base
+data/backups/
+data/*.db-journal
+data/app.db.lock/
+
+# Fichiers temporaires Office et journaux
+~$*
+*.log

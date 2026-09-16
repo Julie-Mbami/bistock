@@ -1,0 +1,311 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-graph-up-arrow" style="color: var(--or);"></i> Statistiques Marketing</h1>
+        <p class="page-subtitle">Performance de vos promotions du <%= isoDebut %> à aujourd'hui</p>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="btn-group">
+            <a href="?periode=7j" class="btn btn-sm <%= periode === '7j' ? 'btn-primary' : 'btn-outline-secondary' %>">7 jours</a>
+            <a href="?periode=30j" class="btn btn-sm <%= periode === '30j' ? 'btn-primary' : 'btn-outline-secondary' %>">30 jours</a>
+            <a href="?periode=90j" class="btn btn-sm <%= periode === '90j' ? 'btn-primary' : 'btn-outline-secondary' %>">90 jours</a>
+            <a href="?periode=365j" class="btn btn-sm <%= periode === '365j' ? 'btn-primary' : 'btn-outline-secondary' %>">1 an</a>
+        </div>
+        <a href="/admin/promotions/stats/export.csv?periode=<%= periode %>" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-download"></i> Export CSV
+        </a>
+        <a href="/admin/promotions/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    </div>
+</div>
+
+<!-- KPIs Globaux -->
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card success">
+            <div class="kpi-label">Remise totale accordée</div>
+            <div class="kpi-value"><%= Math.round(kpis.totalRemise).toLocaleString('fr-FR').replace(/,/g, ' ') %> <small style="font-size: 0.55em;">FCFA</small></div>
+            <div class="kpi-sub"><%= kpis.totalUsages %> utilisation<%= kpis.totalUsages > 1 ? 's' : '' %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card primary">
+            <div class="kpi-label">Taux avec promo</div>
+            <div class="kpi-value"><%= kpis.tauxConversion.toFixed(1) %> <small style="font-size: 0.55em;">%</small></div>
+            <div class="kpi-sub"><%= kpis.totalCmdPromo %> sur <%= kpis.totalCmd %> commandes</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Panier moyen avec promo</div>
+            <div class="kpi-value"><%= Math.round(kpis.panierMoyenPromo).toLocaleString('fr-FR').replace(/,/g, ' ') %> <small style="font-size: 0.55em;">FCFA</small></div>
+            <div class="kpi-sub" style="color: <%= kpis.panierMoyenPromo > kpis.panierMoyenNormal ? '#10B981' : '#94A3B8' %>;">
+                <% if (kpis.panierMoyenNormal > 0) { %>
+                    vs <%= Math.round(kpis.panierMoyenNormal).toLocaleString('fr-FR').replace(/,/g, ' ') %> F sans promo
+                <% } else { %>
+                    Pas de comparaison possible
+                <% } %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">CA généré avec promo</div>
+            <div class="kpi-value"><%= Math.round(kpis.totalCAPromo).toLocaleString('fr-FR').replace(/,/g, ' ') %> <small style="font-size: 0.55em;">FCFA</small></div>
+            <div class="kpi-sub">sur <%= Math.round(kpis.totalCA).toLocaleString('fr-FR').replace(/,/g, ' ') %> F au total</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Graphique évolution -->
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-graph-up"></i> Évolution quotidienne des utilisations</div>
+            <div class="card-body" style="position: relative; height: 320px;">
+                <% if (evolution.length) { %>
+                    <canvas id="chart-evolution"></canvas>
+                <% } else { %>
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="bi bi-inbox" style="font-size: 2.5rem; opacity: 0.4;"></i>
+                        <p class="mt-2">Aucune utilisation de promo sur cette période</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Distribution horaire -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-clock"></i> Meilleurs créneaux horaires</div>
+            <div class="card-body" style="position: relative; height: 260px;">
+                <canvas id="chart-heures"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Répartition par type -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-pie-chart"></i> Répartition par type</div>
+            <div class="card-body" style="position: relative; height: 260px;">
+                <% if (repartitionTypes.length) { %>
+                    <canvas id="chart-types"></canvas>
+                <% } else { %>
+                    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                        <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4;"></i>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Répartition par jour de semaine -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-calendar-week"></i> Par jour de la semaine</div>
+            <div class="card-body" style="position: relative; height: 260px;">
+                <canvas id="chart-jours"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top codes promo -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-trophy" style="color: #F59E0B;"></i> Top codes promo utilisés</div>
+            <div class="card-body" style="padding: 0;">
+                <% if (topCodes.length) { %>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" style="margin: 0;">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th>Code / Nom</th>
+                                <th class="text-end">Usages</th>
+                                <th class="text-end">Remise</th>
+                                <th class="text-end">CA généré</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% topCodes.forEach(function(p, i) { %>
+                            <tr>
+                                <td>
+                                    <% if (i === 0) { %><span style="font-size: 1.2rem;">🥇</span>
+                                    <% } else if (i === 1) { %><span style="font-size: 1.2rem;">🥈</span>
+                                    <% } else if (i === 2) { %><span style="font-size: 1.2rem;">🥉</span>
+                                    <% } else { %><span class="text-muted"><%= i + 1 %></span><% } %>
+                                </td>
+                                <td>
+                                    <code style="background: #F1F5F9; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.82rem;"><%= p.code %></code>
+                                    <br><small class="text-muted"><%= p.nom %></small>
+                                </td>
+                                <td class="text-end"><strong><%= p.nb_usages %></strong></td>
+                                <td class="text-end"><span style="color: #DC2626;"><%= Math.round(p.total_remise).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></td>
+                                <td class="text-end"><%= Math.round(p.ca_genere).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } else { %>
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4;"></i>
+                    <p class="mt-2">Aucun code promo utilisé sur cette période</p>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-lightning-charge" style="color: #10B981;"></i> Top promotions automatiques</div>
+            <div class="card-body" style="padding: 0;">
+                <% if (topAutoPromos.length) { %>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover" style="margin: 0;">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th>Nom</th>
+                                <th class="text-end">Applications</th>
+                                <th class="text-end">Remise</th>
+                                <th class="text-end">CA généré</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% topAutoPromos.forEach(function(p, i) { %>
+                            <tr>
+                                <td>
+                                    <% if (i === 0) { %><span style="font-size: 1.2rem;">🥇</span>
+                                    <% } else if (i === 1) { %><span style="font-size: 1.2rem;">🥈</span>
+                                    <% } else if (i === 2) { %><span style="font-size: 1.2rem;">🥉</span>
+                                    <% } else { %><span class="text-muted"><%= i + 1 %></span><% } %>
+                                </td>
+                                <td>
+                                    <strong><%= p.nom %></strong>
+                                    <br><small class="text-muted">
+                                        <% if (p.type === 'POURCENTAGE') { %>-<%= p.valeur %>%
+                                        <% } else if (p.type === 'MONTANT_FIXE') { %>-<%= Math.round(p.valeur).toLocaleString('fr-FR').replace(/,/g, ' ') %> F
+                                        <% } else { %>🚚 Livraison offerte<% } %>
+                                    </small>
+                                </td>
+                                <td class="text-end"><strong><%= p.nb_usages %></strong></td>
+                                <td class="text-end"><span style="color: #DC2626;"><%= Math.round(p.total_remise).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></td>
+                                <td class="text-end"><%= Math.round(p.ca_genere).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } else { %>
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4;"></i>
+                    <p class="mt-2">Aucune promo auto appliquée sur cette période</p>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Palette gold
+const OR = '#CA8A04';
+const OR_CLAIR = 'rgba(202,138,4,0.15)';
+const ROUGE = '#DC2626';
+const VERT = '#10B981';
+const BLEU = '#3B82F6';
+
+<% if (evolution.length) { %>
+// Chart évolution quotidienne
+new Chart(document.getElementById('chart-evolution'), {
+    type: 'line',
+    data: {
+        labels: <%- JSON.stringify(evolution.map(e => e.jour.slice(5))) %>,
+        datasets: [
+            {
+                label: 'Utilisations',
+                data: <%- JSON.stringify(evolution.map(e => e.nb)) %>,
+                borderColor: OR, backgroundColor: OR_CLAIR,
+                fill: true, tension: 0.35, yAxisID: 'y',
+                pointRadius: 4, pointHoverRadius: 6,
+            },
+            {
+                label: 'Remise totale (FCFA)',
+                data: <%- JSON.stringify(evolution.map(e => Math.round(e.remise))) %>,
+                borderColor: ROUGE, backgroundColor: 'transparent',
+                borderDash: [5, 3], tension: 0.35, yAxisID: 'y1',
+                pointRadius: 3, pointHoverRadius: 5,
+            }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+            y: { position: 'left', beginAtZero: true, title: { display: true, text: 'Utilisations' } },
+            y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Remise (FCFA)' } },
+        },
+    }
+});
+<% } %>
+
+<% if (repartitionTypes.length) { %>
+// Chart répartition par type
+new Chart(document.getElementById('chart-types'), {
+    type: 'doughnut',
+    data: {
+        labels: <%- JSON.stringify(repartitionTypes.map(t => ({POURCENTAGE:'% Réduction', MONTANT_FIXE:'Montant fixe', LIVRAISON_OFFERTE:'Livraison offerte'}[t.type] || t.type))) %>,
+        datasets: [{
+            data: <%- JSON.stringify(repartitionTypes.map(t => t.nb)) %>,
+            backgroundColor: [OR, ROUGE, VERT],
+            borderColor: '#fff', borderWidth: 3,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+    }
+});
+<% } %>
+
+// Chart heures
+new Chart(document.getElementById('chart-heures'), {
+    type: 'bar',
+    data: {
+        labels: Array.from({length: 24}, (_, i) => i + 'h'),
+        datasets: [{
+            label: 'Utilisations',
+            data: <%- JSON.stringify(heatmapHeures) %>,
+            backgroundColor: <%- JSON.stringify(heatmapHeures) %>.map(v => v === 0 ? '#E5E7EB' : OR_CLAIR),
+            borderColor: OR, borderWidth: 1, borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+    }
+});
+
+// Chart jours semaine
+new Chart(document.getElementById('chart-jours'), {
+    type: 'bar',
+    data: {
+        labels: <%- JSON.stringify(jourSemNoms) %>,
+        datasets: [{
+            label: 'Utilisations',
+            data: <%- JSON.stringify(jourSemVals) %>,
+            backgroundColor: BLEU + '30', borderColor: BLEU, borderWidth: 2, borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+    }
+});
+</script>
+
+<%- include('../partials/footer') %>

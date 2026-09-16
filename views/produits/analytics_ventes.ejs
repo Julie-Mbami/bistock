@@ -1,0 +1,170 @@
+<%- include('../partials/header') %>
+<style>
+.periode-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.periode-tab { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: var(--text-muted); font-size: 0.85rem; background: var(--surface); }
+.periode-tab.active { background: var(--gold); color: #fff; border-color: var(--gold); font-weight: 600; }
+.rank-1 { color: #EAB308; font-weight: 800; }
+.rank-2 { color: #94a3b8; font-weight: 700; }
+.rank-3 { color: #CD7F32; font-weight: 700; }
+.progress-bar-mini { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.progress-bar-mini > div { height: 100%; background: var(--gold); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Top produits vendus</h1>
+        <p class="page-subtitle">Analyse des ventes du <strong><%= h.formatDate(periode.debut) %></strong> au <strong><%= h.formatDate(periode.fin) %></strong></p>
+    </div>
+    <a href="/produits/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body" style="padding: 14px 16px;">
+        <div class="periode-tabs mb-2">
+            <a href="?preset=7j" class="periode-tab <%= periode.preset === '7j' ? 'active' : '' %>">7 jours</a>
+            <a href="?preset=30j" class="periode-tab <%= periode.preset === '30j' ? 'active' : '' %>">30 jours</a>
+            <a href="?preset=mois" class="periode-tab <%= periode.preset === 'mois' ? 'active' : '' %>">Ce mois</a>
+            <a href="?preset=mois_precedent" class="periode-tab <%= periode.preset === 'mois_precedent' ? 'active' : '' %>">Mois précédent</a>
+            <a href="?preset=annee" class="periode-tab <%= periode.preset === 'annee' ? 'active' : '' %>">Année en cours</a>
+        </div>
+        <form method="get" style="display: flex; gap: 8px; align-items: end;">
+            <div>
+                <label class="form-label small">Du</label>
+                <input type="date" name="debut" value="<%= periode.debut %>" class="form-control form-control-sm" style="width: 150px;">
+            </div>
+            <div>
+                <label class="form-label small">Au</label>
+                <input type="date" name="fin" value="<%= periode.fin %>" class="form-control form-control-sm" style="width: 150px;">
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Appliquer</button>
+        </form>
+    </div>
+</div>
+
+<!-- KPIs -->
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="card" style="border-left: 4px solid var(--success);">
+            <div class="card-body" style="padding: 12px 14px;">
+                <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">CA B2C (caisse)</div>
+                <div style="font-size: 1.4rem; font-weight: 700; color: var(--success);"><%= h.formatNombre(kpi.totalCA_B2C) %> <%= devise %></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="card" style="border-left: 4px solid var(--primary);">
+            <div class="card-body" style="padding: 12px 14px;">
+                <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">CA B2B (commandes)</div>
+                <div style="font-size: 1.4rem; font-weight: 700;"><%= h.formatNombre(kpi.totalCA_B2B) %> <%= devise %></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="card" style="border-left: 4px solid var(--gold);">
+            <div class="card-body" style="padding: 12px 14px;">
+                <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">CA total</div>
+                <div style="font-size: 1.4rem; font-weight: 700; color: var(--gold-dark);"><%= h.formatNombre(kpi.totalCA) %> <%= devise %></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="card">
+            <div class="card-body" style="padding: 12px 14px;">
+                <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">Produits vendus</div>
+                <div style="font-size: 1.4rem; font-weight: 700;"><%= kpi.nbProduitsUniques %></div>
+                <div class="small text-muted">Références distinctes</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<% if (parActivite.length > 0) { %>
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-pie-chart"></i> Répartition par activité</div>
+    <div class="card-body">
+        <div class="row">
+            <% parActivite.forEach(function(a) {
+                const pct = kpi.totalCA > 0 ? Math.round(a.ca / kpi.totalCA * 100) : 0;
+            %>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <div style="padding: 10px; border-radius: 6px; background: <%= a.couleur %>10; border-left: 4px solid <%= a.couleur %>;">
+                        <div style="font-weight: 700; color: <%= a.couleur %>;"><%= a.nom %></div>
+                        <div style="font-size: 1.15rem; font-weight: 700; margin-top: 2px;"><%= h.formatNombre(a.ca) %> <%= devise %></div>
+                        <div class="small text-muted"><%= pct %>% du CA · <%= h.formatNombre(a.qte) %> unités</div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<div class="row">
+    <!-- Top B2C -->
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-cart"></i> Top ventes B2C (caisse Pâtisserie / Bona Burger)</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover" style="margin-bottom: 0;">
+                    <thead><tr><th>#</th><th>Produit</th><th>Activité</th><th style="text-align: right;">Qté</th><th style="text-align: right;">CA HT</th><th style="text-align: right;">Part</th></tr></thead>
+                    <tbody>
+                        <% topB2C.forEach(function(p, i) { %>
+                            <tr onclick="location='/produits/<%= p.id %>'" style="cursor: pointer;">
+                                <td class="<%= i < 3 ? 'rank-' + (i + 1) : 'text-muted' %>"><%= i + 1 %></td>
+                                <td>
+                                    <div><strong><%= p.designation %></strong></div>
+                                    <small class="text-muted"><%= p.reference %></small>
+                                    <% if (p.a_fiche) { %><span class="badge bg-info" style="font-size: 0.65rem; margin-left: 4px;" title="Fiche technique active">FT</span><% } %>
+                                </td>
+                                <td><span class="badge" style="background: <%= p.activite_couleur %>20; color: <%= p.activite_couleur %>; font-size: 0.72rem;"><%= p.activite_nom %></span></td>
+                                <td style="text-align: right;"><%= h.formatNombre(p.qte_totale) %> <small class="text-muted"><%= p.unite %></small></td>
+                                <td style="text-align: right; font-weight: 700;"><%= h.formatNombre(p.ca_ht) %></td>
+                                <td style="text-align: right;">
+                                    <div><%= p.part_pct %>%</div>
+                                    <div class="progress-bar-mini"><div style="width: <%= Math.min(100, p.part_pct * 3) %>%; background: <%= p.activite_couleur %>;"></div></div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                        <% if (!topB2C.length) { %>
+                            <tr><td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">Aucune vente B2C sur la période.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top B2B -->
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-briefcase"></i> Top ventes B2B (commandes Traiteur / Cantine)</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover" style="margin-bottom: 0;">
+                    <thead><tr><th>#</th><th>Produit</th><th>Activité</th><th style="text-align: right;">Qté</th><th style="text-align: right;">CA HT</th><th style="text-align: right;">Part</th></tr></thead>
+                    <tbody>
+                        <% topB2B.forEach(function(p, i) { %>
+                            <tr onclick="location='/produits/<%= p.id %>'" style="cursor: pointer;">
+                                <td class="<%= i < 3 ? 'rank-' + (i + 1) : 'text-muted' %>"><%= i + 1 %></td>
+                                <td>
+                                    <div><strong><%= p.designation %></strong></div>
+                                    <small class="text-muted"><%= p.reference %></small>
+                                </td>
+                                <td><span class="badge" style="background: <%= p.activite_couleur %>20; color: <%= p.activite_couleur %>; font-size: 0.72rem;"><%= p.activite_nom %></span></td>
+                                <td style="text-align: right;"><%= h.formatNombre(p.qte_totale) %> <small class="text-muted"><%= p.unite %></small></td>
+                                <td style="text-align: right; font-weight: 700;"><%= h.formatNombre(p.ca_ht) %></td>
+                                <td style="text-align: right;">
+                                    <div><%= p.part_pct %>%</div>
+                                    <div class="progress-bar-mini"><div style="width: <%= Math.min(100, p.part_pct * 3) %>%; background: <%= p.activite_couleur %>;"></div></div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                        <% if (!topB2B.length) { %>
+                            <tr><td colspan="6" style="text-align: center; padding: 30px; color: var(--text-muted);">Aucune commande B2B sur la période.</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

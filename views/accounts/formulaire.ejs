@@ -1,0 +1,144 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><%= mode === 'creer' ? 'Nouvel utilisateur' : 'Modifier utilisateur' %></h1>
+        <p class="page-subtitle">Compte, rôle et activité rattachée</p>
+    </div>
+    <a href="/comptes/utilisateurs" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <% if (erreurs && erreurs.length) { %>
+            <div class="alert alert-danger">
+                <ul style="margin: 0;"><% erreurs.forEach(function(e) { %><li><%= e %></li><% }); %></ul>
+            </div>
+        <% } %>
+        <form method="post" enctype="multipart/form-data" id="user-form">
+            <div class="row">
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Titre</label>
+                    <select class="form-select" name="titre">
+                        <% ['', 'Mme', 'M.', 'Mlle', 'Chef'].forEach(function(t) { %>
+                            <option value="<%= t %>" <%= utilisateur && (utilisateur.titre || '') === t ? 'selected' : '' %>><%= t || '—' %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label">Prénom</label>
+                    <input type="text" class="form-control" name="first_name" value="<%= utilisateur && utilisateur.first_name || '' %>">
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label">Nom</label>
+                    <input type="text" class="form-control" name="last_name" value="<%= utilisateur && utilisateur.last_name || '' %>">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nom d'utilisateur *</label>
+                    <input type="text" class="form-control" name="username" value="<%= utilisateur && utilisateur.username || '' %>" <%= mode === 'modifier' ? 'readonly' : 'required' %> pattern="[a-zA-Z0-9_.]+" title="Lettres, chiffres, underscore et point uniquement">
+                    <small class="text-muted">Sans espaces. Lettres, chiffres, underscore ou point uniquement.</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Rôle *</label>
+                    <select class="form-select" name="role" id="role-select">
+                        <% Object.keys(roles).forEach(function(r) { %>
+                            <option value="<%= r %>" <%= utilisateur && utilisateur.role === r ? 'selected' : '' %>><%= roles[r] %></option>
+                        <% }); %>
+                    </select>
+                    <small class="text-muted" id="role-hint"></small>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" value="<%= utilisateur && utilisateur.email || '' %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Téléphone</label>
+                    <input type="text" class="form-control" name="telephone" value="<%= utilisateur && utilisateur.telephone || '' %>" placeholder="+237 690 00 00 00">
+                </div>
+
+                <div class="col-md-6 mb-3" id="activite-wrapper">
+                    <label class="form-label">Activité rattachée</label>
+                    <select class="form-select" name="activite_id" id="activite-select">
+                        <option value="">— Aucune (rôle transversal) —</option>
+                        <% activites.forEach(function(a) { %>
+                            <option value="<%= a.id %>" <%= utilisateur && utilisateur.activite_id == a.id ? 'selected' : '' %>><%= a.nom %> (<%= a.code %>)</option>
+                        <% }); %>
+                    </select>
+                    <small class="text-muted" id="activite-hint">Requise pour Gestionnaire, Caissier et Cuisinier.</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Photo</label>
+                    <input type="file" class="form-control" name="photo" accept="image/*">
+                    <% if (utilisateur && utilisateur.photo) { %>
+                        <small class="text-muted">Photo actuelle : <code><%= utilisateur.photo %></code></small>
+                    <% } %>
+                </div>
+
+                <% if (mode === 'creer') { %>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Mot de passe *</label>
+                        <input type="password" class="form-control" name="password1" required minlength="6">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Confirmation *</label>
+                        <input type="password" class="form-control" name="password2" required minlength="6">
+                    </div>
+                <% } else { %>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check" style="margin-top: 30px;">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="is_active" <%= utilisateur && utilisateur.is_active ? 'checked' : '' %>>
+                            <label class="form-check-label" for="is_active">Utilisateur actif (autorisé à se connecter)</label>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+                <a href="/comptes/utilisateurs" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Gestion dynamique de l'activité selon le rôle
+const ROLES_TRANSVERSAUX = ['DG', 'SECRETARIAT', 'DISTRIBUTION'];
+const ROLES_ACTIVITE_REQUISE = ['GESTIONNAIRE', 'CAISSIER', 'CUISINIER'];
+
+const HINTS = {
+    DG:           'Direction Générale — accès total et transversal.',
+    SECRETARIAT:  'Secrétariat — saisie commandes/factures Traiteur + Cantine.',
+    DISTRIBUTION: 'Distribution — lecture seule stocks, gère achats et distributions internes.',
+    GESTIONNAIRE: 'Gestionnaire de stock — cloisonné à UNE activité.',
+    CAISSIER:     'Caissier B2C — cloisonné à UNE activité (caisse quotidienne).',
+    CUISINIER:    'Cuisinier — recettes et productions d\'UNE activité.',
+};
+
+function majActivite() {
+    const role = document.getElementById('role-select').value;
+    const wrap = document.getElementById('activite-wrapper');
+    const sel = document.getElementById('activite-select');
+    const hint = document.getElementById('activite-hint');
+    const roleHint = document.getElementById('role-hint');
+    roleHint.textContent = HINTS[role] || '';
+    if (ROLES_TRANSVERSAUX.includes(role)) {
+        sel.value = '';
+        sel.disabled = true;
+        wrap.style.opacity = '0.5';
+        hint.textContent = 'Non applicable — rôle transversal.';
+    } else if (ROLES_ACTIVITE_REQUISE.includes(role)) {
+        sel.disabled = false;
+        sel.required = true;
+        wrap.style.opacity = '1';
+        hint.textContent = 'Activité obligatoire pour ce rôle.';
+    } else {
+        sel.disabled = false;
+        sel.required = false;
+        wrap.style.opacity = '1';
+    }
+}
+document.getElementById('role-select').addEventListener('change', majActivite);
+majActivite();
+</script>
+<%- include('../partials/footer') %>

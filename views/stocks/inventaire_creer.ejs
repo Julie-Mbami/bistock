@@ -1,0 +1,35 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div><h1 class="page-title">Nouvel inventaire</h1></div>
+    <a href="/stocks/inventaires/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p class="text-muted">Créer un inventaire capture l'état actuel du stock théorique. Vous saisirez ensuite les stocks physiques comptés, et validerez pour créer les ajustements automatiques.</p>
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Libellé (optionnel)</label>
+                <input type="text" class="form-control" name="libelle" placeholder="Ex : Inventaire mensuel Juin">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Catégorie (optionnel)</label>
+                <select class="form-select" name="categorie">
+                    <option value="">Toutes catégories</option>
+                    <% categories.forEach(function(c) { %>
+                        <option value="<%= c.id %>"><%= c.nom %></option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea class="form-control" name="notes" rows="2"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-play-circle"></i> Démarrer l'inventaire</button>
+                <a href="/stocks/inventaires/" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+<%- include('../partials/footer') %>

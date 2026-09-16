@@ -1,0 +1,287 @@
+<%- include('../partials/header') %>
+<style>
+.prev-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 0 0 var(--r) var(--r);
+    box-shadow: var(--sh-lg);
+    max-height: min(560px, 70vh);
+    overflow-y: auto;
+    z-index: 200;
+    display: none;
+    margin-top: -1px;
+}
+.prev-dropdown.show { display: block; }
+.prev-option {
+    padding: 10px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+}
+.prev-option:last-child { border-bottom: none; }
+.prev-option:hover, .prev-option.hl { background: var(--navy-50); }
+.prev-option .icon-wrap {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--surface-muted);
+    color: var(--text-faint);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.prev-option .nom { font-weight: 600; color: var(--text); }
+.prev-option .meta { font-size: 0.74rem; color: var(--text-muted); }
+.prev-option .stock-pill {
+    margin-left: auto;
+    padding: 2px 9px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--success-50);
+    color: var(--success);
+}
+.prev-option .stock-pill.bas { background: var(--gold-50); color: var(--gold-dark); }
+.prev-option .stock-pill.rupture { background: var(--danger-50); color: var(--danger); }
+.prev-empty {
+    padding: 18px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.86rem;
+}
+.prev-empty i { display: block; margin-bottom: 4px; color: var(--text-faint); font-size: 1.3rem; }
+
+.synth-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+}
+.synth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px 18px;
+    box-shadow: var(--sh-sm);
+    position: relative;
+    overflow: hidden;
+}
+.synth-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.synth-card.primary::before { background: var(--navy); }
+.synth-card.warning::before { background: var(--gold); }
+.synth-card.danger::before { background: var(--danger); }
+.synth-card.success::before { background: var(--success); }
+.synth-card.info::before { background: var(--info); }
+.synth-label {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.synth-label i { color: var(--gold); margin-right: 4px; }
+.synth-val { font-size: 1.6rem; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.synth-val small { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); }
+.synth-sub { font-size: 0.76rem; color: var(--text-muted); margin-top: 4px; }
+
+.insight-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: var(--r-lg);
+    margin-bottom: 18px;
+    font-size: 0.92rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid;
+}
+.insight-box i { font-size: 1.4rem; margin-top: 1px; flex-shrink: 0; }
+.insight-box.hausse  { border-left-color: var(--success); }
+.insight-box.hausse i { color: var(--success); }
+.insight-box.baisse  { border-left-color: var(--danger); }
+.insight-box.baisse i { color: var(--danger); }
+.insight-box.stable  { border-left-color: var(--gold); }
+.insight-box.stable i { color: var(--gold); }
+
+.scenario-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+}
+.scenario-row.pessimiste { background: var(--danger-50); border-color: var(--danger-100); }
+.scenario-row.probable   { background: var(--navy-50); border-color: var(--navy-100); }
+.scenario-row.optimiste  { background: var(--success-50); border-color: var(--success-100); }
+.scenario-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+}
+.scenario-row.pessimiste .scenario-icon { color: var(--danger); }
+.scenario-row.probable .scenario-icon { color: var(--navy); }
+.scenario-row.optimiste .scenario-icon { color: var(--success); }
+.scenario-label { font-weight: 700; }
+.scenario-sub { font-size: 0.74rem; color: var(--text-muted); }
+.scenario-val { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.scenario-row.pessimiste .scenario-val { color: var(--danger); }
+.scenario-row.probable .scenario-val { color: var(--navy); }
+.scenario-row.optimiste .scenario-val { color: var(--success); }
+
+.day-pattern { display: flex; flex-direction: column; gap: 12px; }
+.day-best, .day-worst {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--surface-muted);
+}
+.day-best i, .day-worst i { font-size: 1.6rem; flex-shrink: 0; }
+
+.comp-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+    justify-content: space-between;
+}
+.comp-val { font-size: 1.6rem; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
+.comp-val small { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); }
+.comp-evolution {
+    text-align: center;
+    font-size: 1rem;
+    padding: 6px 0;
+    color: var(--text-muted);
+}
+.comp-evolution.up { color: var(--success); }
+.comp-evolution.down { color: var(--danger); }
+
+.quality-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    text-align: center;
+}
+.quality-item {
+    background: var(--surface-muted);
+    padding: 12px;
+    border-radius: 10px;
+}
+.quality-label {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.quality-val {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--navy);
+    font-variant-numeric: tabular-nums;
+}
+.quality-val.haute { color: var(--success); }
+.quality-val.moyenne { color: var(--gold-dark); }
+.quality-val.basse { color: var(--danger); }
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Prévisions de ventes</h1>
+        <p class="page-subtitle">Régression linéaire sur historique 90 jours · horizon 30 jours</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="row">
+            <div class="col-md-8">
+                <label class="form-label">Produit à analyser</label>
+                <select name="produit" class="form-select" onchange="this.form.submit()">
+                    <option value="">Sélectionner un produit...</option>
+                    <% produits.forEach(function(p) { %>
+                        <option value="<%= p.id %>" <%= produit_selectionne && produit_selectionne.id === p.id ? 'selected' : '' %>><%= p.designation %></option>
+                    <% }); %>
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<% if (resultat) { %>
+<div class="row mt-3">
+    <div class="col-md-3 mb-3"><div class="kpi-card primary"><div class="kpi-label">Prévu 30 jours</div><div class="kpi-value"><%= resultat.quantite_prevue_30j %></div><div class="kpi-meta">entre <%= resultat.quantite_prevue_basse_30j %> et <%= resultat.quantite_prevue_haute_30j %></div></div></div>
+    <div class="col-md-3 mb-3"><div class="kpi-card info"><div class="kpi-label">Tendance</div><div class="kpi-value"><%= resultat.tendance %></div><div class="kpi-meta"><%= resultat.pente_pct %>% / jour</div></div></div>
+    <div class="col-md-3 mb-3"><div class="kpi-card success"><div class="kpi-label">Fiabilité</div><div class="kpi-value"><%= resultat.fiabilite %></div><div class="kpi-meta">R² = <%= resultat.r2 %></div></div></div>
+    <div class="col-md-3 mb-3"><div class="kpi-card <%= resultat.jours_avant_rupture !== null && resultat.jours_avant_rupture < 15 ? 'danger' : 'success' %>"><div class="kpi-label">Rupture estimée</div><div class="kpi-value"><%= resultat.jours_avant_rupture !== null ? resultat.jours_avant_rupture + 'j' : '—' %></div><div class="kpi-meta">stock actuel <%= resultat.stock_actuel %></div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5><i class="bi bi-graph-up"></i> Prévision sur 30 jours</h5>
+        <div style="position: relative; height: 380px;"><canvas id="chartPrev"></canvas></div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card"><div class="card-body">
+            <h5>Insights</h5>
+            <p><strong>Jour fort :</strong> <%= resultat.jour_fort_label %> (moy. <%= resultat.jour_fort_moyenne %>/j)</p>
+            <p><strong>Jour creux :</strong> <%= resultat.jour_creux_label %> (moy. <%= resultat.jour_creux_moyenne %>/j)</p>
+            <p><strong>Ventes 30j récents :</strong> <%= resultat.ventes_30j_recents %></p>
+            <p><strong>Évolution :</strong> <%= resultat.evolution_pct %>%</p>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card"><div class="card-body">
+            <h5>Scénarios</h5>
+            <p><span class="badge badge-alerte">Pessimiste</span> <%= resultat.scenarios.pessimiste %> unités</p>
+            <p><span class="badge bg-primary">Probable</span> <%= resultat.scenarios.probable %> unités</p>
+            <p><span class="badge badge-ok">Optimiste</span> <%= resultat.scenarios.optimiste %> unités</p>
+            <hr>
+            <p><strong>Quantité à réapprovisionner :</strong> <%= resultat.quantite_recommandee %></p>
+        </div></div>
+    </div>
+</div>
+
+<script>
+const histo = <%- points_historique_json %>;
+const prev = <%- points_prevision_json %>;
+const prevBasse = <%- points_prevision_basse_json %>;
+const prevHaute = <%- points_prevision_haute_json %>;
+const NAVY = '#1e3a8a', GOLD = '#ca8a04';
+
+new Chart(document.getElementById('chartPrev'), {
+    type: 'line',
+    data: {
+        labels: [...histo.map(p => p[0]), ...prev.map(p => p[0])],
+        datasets: [
+            { label: 'Historique', data: [...histo.map(p => p[1]), ...prev.map(() => null)], borderColor: NAVY, backgroundColor: 'rgba(30,58,138,0.1)', fill: true, tension: 0.3, pointRadius: 0 },
+            { label: 'Prévision', data: [...histo.map(() => null), ...prev.map(p => p[1])], borderColor: GOLD, borderDash: [5,5], fill: false, tension: 0.3, pointRadius: 0 },
+            { label: 'Fourchette basse', data: [...histo.map(() => null), ...prevBasse.map(p => p[1])], borderColor: 'rgba(200,200,200,0.5)', fill: false, tension: 0.3, pointRadius: 0 },
+            { label: 'Fourchette haute', data: [...histo.map(() => null), ...prevHaute.map(p => p[1])], borderColor: 'rgba(200,200,200,0.5)', fill: '-1', backgroundColor: 'rgba(202,138,4,0.1)', tension: 0.3, pointRadius: 0 },
+        ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 10 } }, y: { beginAtZero: true } } }
+});
+</script>
+<% } else { %>
+<div class="card mt-3"><div class="card-body" style="padding: 40px; text-align: center; color: var(--text-muted);">
+    <i class="bi bi-arrow-up" style="font-size: 2rem;"></i>
+    <p>Sélectionnez un produit pour analyser ses prévisions.</p>
+</div></div>
+<% } %>
+<%- include('../partials/footer') %>

@@ -1,0 +1,133 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Achat <%= achat.numero %></h1>
+        <p class="page-subtitle">
+            Fournisseur : <strong><%= achat.fournisseur_affichage || '—' %></strong> ·
+            Créé le <%= h.formatDate(achat.date_achat, true) %> par <%= achat.cree_par_nom %>
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="/achats/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+        <% if (achat.statut === 'SAISI' && peut_receptionner) { %>
+            <form method="post" action="/achats/<%= achat.id %>/receptionner" style="margin: 0;"
+                  data-confirm="Confirmer avoir <strong>réceptionné physiquement</strong> cet achat auprès du fournisseur ? Vous pourrez ensuite créer les bons de distribution vers les activités."
+                  data-confirm-title="Réceptionner l'achat ?"
+                  data-confirm-ok="Oui, j'ai reçu">
+                <button class="btn btn-primary"><i class="bi bi-box-arrow-in-down"></i> Marquer réceptionné</button>
+            </form>
+        <% } %>
+        <% if (['RECEPTIONNE', 'DISTRIBUE'].includes(achat.statut) && peut_distribuer) { %>
+            <a href="/distributions/nouveau" class="btn btn-primary"><i class="bi bi-truck"></i> Distribuer</a>
+        <% } %>
+        <% if (!['CLOTURE', 'ANNULE'].includes(achat.statut) && peut_annuler) { %>
+            <form method="post" action="/achats/<%= achat.id %>/annuler" style="margin: 0;"
+                  data-confirm="Annuler ce bon d'achat ? Il ne sera plus modifiable ni distribuable."
+                  data-confirm-title="Annuler l'achat ?"
+                  data-confirm-ok="Oui, annuler"
+                  data-confirm-danger="true">
+                <button class="btn btn-outline-danger"><i class="bi bi-x-circle"></i> Annuler l'achat</button>
+            </form>
+        <% } %>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card <%= { SAISI: 'primary', RECEPTIONNE: 'info', DISTRIBUE: 'success', CLOTURE: '', ANNULE: 'danger' }[achat.statut] || '' %>">
+            <div class="kpi-label">Statut</div>
+            <div class="kpi-value" style="font-size: 1.2rem;"><%= { SAISI: 'Saisi', RECEPTIONNE: 'Réceptionné', DISTRIBUE: 'Distribué', CLOTURE: 'Clôturé', ANNULE: 'Annulé' }[achat.statut] %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card"><div class="kpi-label">Montant total</div><div class="kpi-value" style="font-size: 1.2rem;"><%= h.formatNombre(achat.montant_total) %> <%= devise %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card"><div class="kpi-label">Lignes</div><div class="kpi-value"><%= lignes.length %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card"><div class="kpi-label">Distributions liées</div><div class="kpi-value"><%= distributions.length %></div></div></div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h5>Lignes de l'achat</h5>
+        <p class="text-muted small">Groupées par fournisseur et par facture.</p>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th style="min-width: 200px;">Fournisseur / Facture</th>
+                        <th>Désignation</th>
+                        <th style="text-align: right;">Qté achetée</th>
+                        <th>Unité</th>
+                        <th style="text-align: right;">P.U.</th>
+                        <th>Activité pressentie</th>
+                        <th style="text-align: right;">Qté distribuée</th>
+                        <th style="text-align: right;">Qté reçue</th>
+                        <th style="text-align: center;">Écart</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <% var dernierGroupe = null; %>
+                <% lignes.forEach(function(l) { %>
+                    <% var restant = l.quantite - l.qte_dist_annoncee; var ecart = l.qte_dist_annoncee - l.qte_dist_recue; %>
+                    <% var groupe = (l.fournisseur_id || 0) + '|' + (l.numero_facture_fournisseur || ''); %>
+                    <% var nouveauGroupe = groupe !== dernierGroupe; dernierGroupe = groupe; %>
+                    <tr <%= nouveauGroupe ? 'style="border-top: 2px solid var(--border-strong);"' : '' %>>
+                        <td>
+                            <% if (nouveauGroupe) { %>
+                                <strong><%= l.fournisseur_ligne_nom || '—' %></strong><br>
+                                <small class="text-muted">Facture : <code><%= l.numero_facture_fournisseur || '—' %></code></small>
+                            <% } else { %>
+                                <span class="text-muted" style="font-size: 0.72rem;">↳ idem</span>
+                            <% } %>
+                        </td>
+                        <td><strong><%= l.designation %></strong> <% if (l.notes) { %><small class="text-muted d-block"><%= l.notes %></small><% } %></td>
+                        <td style="text-align: right; font-weight: 700;"><%= l.quantite %></td>
+                        <td class="text-muted"><%= l.unite %></td>
+                        <td style="text-align: right;"><%= h.formatNombre(l.prix_unitaire) %></td>
+                        <td><%= l.activite_pressentie_nom || '—' %></td>
+                        <td style="text-align: right;">
+                            <%= l.qte_dist_annoncee %>
+                            <% if (restant > 0) { %><br><small style="color: var(--gold-dark);">reste <%= restant %></small><% } %>
+                        </td>
+                        <td style="text-align: right;"><%= l.qte_dist_recue %></td>
+                        <td style="text-align: center;">
+                            <% if (Math.abs(ecart) < 0.01) { %><span class="badge badge-ok">OK</span>
+                            <% } else if (ecart > 0) { %><span class="badge badge-alerte">-<%= ecart %></span>
+                            <% } else { %><span class="badge badge-rupture"><%= ecart %></span><% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5>Distributions liées</h5>
+        <% if (!distributions.length) { %>
+            <p class="text-muted">Aucune distribution créée pour cet achat.</p>
+        <% } else { %>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>N°</th><th>Activité</th><th>Statut</th><th>Créée</th><th>Par</th><th></th></tr></thead>
+                <tbody>
+                <% distributions.forEach(function(d) { %>
+                    <tr>
+                        <td><a href="/distributions/<%= d.id %>"><code><%= d.numero %></code></a></td>
+                        <td><span style="padding: 2px 10px; background: <%= d.activite_couleur %>15; color: <%= d.activite_couleur %>; border-radius: 9999px; font-weight: 600; font-size: 0.78rem;"><%= d.activite_nom %></span></td>
+                        <td>
+                            <% var sb = { PREPAREE: ['badge-alerte', 'Préparée'], REMISE: ['bg-primary', 'Remise'], RECEPTIONNEE: ['badge-ok', 'Réceptionnée'], REFUSEE: ['badge-rupture', 'Refusée'], ANNULEE: ['bg-secondary', 'Annulée'] }[d.statut] || ['bg-secondary', d.statut]; %>
+                            <span class="badge <%= sb[0] %>"><%= sb[1] %></span>
+                        </td>
+                        <td class="text-muted small"><%= h.formatDate(d.date_creation, true) %></td>
+                        <td class="text-muted small"><%= d.cree_par_nom %></td>
+                        <td><a href="/distributions/<%= d.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <% } %>
+    </div>
+</div>
+<%- include('../partials/footer') %>

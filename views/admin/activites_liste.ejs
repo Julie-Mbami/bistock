@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Activités</h1>
+        <p class="page-subtitle">Les activités de l'entreprise — <%= activites.length %> au total</p>
+    </div>
+    <a href="/admin/activites/nouvelle" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvelle activité</a>
+</div>
+
+<div class="row">
+<% activites.forEach(function(a) { %>
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%; border-left: 4px solid <%= a.couleur %>; <%= a.actif ? '' : 'opacity: 0.5;' %>">
+            <div class="card-body">
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+                    <div style="width: 52px; height: 52px; border-radius: 12px; background: <%= a.couleur %>; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.7rem;">
+                        <i class="bi <%= a.icone %>"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0;"><%= a.nom %></h4>
+                        <small class="text-muted"><code><%= a.code %></code> · <%= a.type === 'B2B_COMMANDE' ? 'Sur commande (B2B)' : 'Caisse quotidienne (B2C)' %></small>
+                    </div>
+                    <% if (a.actif) { %><span class="badge badge-ok">Active</span>
+                    <% } else { %><span class="badge badge-rupture">Désactivée</span><% } %>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.82rem; margin-top: 12px;">
+                    <div><div class="text-muted small">Utilisateurs</div><strong><%= a.nb_utilisateurs %></strong></div>
+                    <div><div class="text-muted small">Produits</div><strong><%= a.nb_produits %></strong></div>
+                    <div><div class="text-muted small">CA total</div><strong><%= h.formatNombre(a.ca_total) %></strong></div>
+                </div>
+                <div style="margin-top: 14px; display: flex; gap: 6px;">
+                    <a href="/admin/activites/<%= a.id %>/modifier" class="btn btn-sm btn-outline-primary" style="flex: 1;"><i class="bi bi-pencil"></i> Modifier</a>
+                    <form method="post" action="/admin/activites/<%= a.id %>/basculer" style="flex: 1; margin: 0;"
+                          data-confirm="<%= a.actif ? 'Désactiver' : 'Réactiver' %> l'activité <strong><%= a.nom %></strong> ?<br><br><%= a.actif ? 'Elle disparaîtra du sélecteur pour tous les utilisateurs.' : 'Elle sera à nouveau accessible.' %>"
+                          data-confirm-title="<%= a.actif ? 'Désactiver' : 'Réactiver' %> l'activité"
+                          data-confirm-danger="<%= a.actif ? 'true' : 'false' %>"
+                          data-confirm-ok="<%= a.actif ? 'Désactiver' : 'Réactiver' %>">
+                        <button type="submit" class="btn btn-sm <%= a.actif ? 'btn-outline-danger' : 'btn-outline-success' %>" style="width: 100%;">
+                            <i class="bi <%= a.actif ? 'bi-slash-circle' : 'bi-check-circle' %>"></i>
+                            <%= a.actif ? 'Désactiver' : 'Réactiver' %>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+<% }); %>
+</div>
+<%- include('../partials/footer') %>

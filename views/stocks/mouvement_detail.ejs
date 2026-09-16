@@ -1,0 +1,24 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div><h1 class="page-title">Mouvement #<%= mvt.id %></h1></div>
+    <a href="/stocks/mouvements/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Date</dt><dd class="col-sm-9"><%= h.formatDate(mvt.date_mouvement, true) %></dd>
+            <dt class="col-sm-3">Type</dt><dd class="col-sm-9"><%= mvt.type_label %></dd>
+            <dt class="col-sm-3">Produit</dt><dd class="col-sm-9"><a href="/produits/<%= mvt.produit_id %>"><%= mvt.designation %></a> (<code><%= mvt.reference %></code>)</dd>
+            <dt class="col-sm-3">Quantité</dt><dd class="col-sm-9"><strong><%= mvt.quantite %></strong></dd>
+            <dt class="col-sm-3">Stock avant → après</dt><dd class="col-sm-9"><%= mvt.stock_avant %> → <%= mvt.stock_apres %></dd>
+            <dt class="col-sm-3">Motif</dt><dd class="col-sm-9"><%= mvt.motif || '—' %></dd>
+            <dt class="col-sm-3">Référence document</dt><dd class="col-sm-9"><%= mvt.reference_doc || '—' %></dd>
+            <dt class="col-sm-3">Utilisateur</dt><dd class="col-sm-9"><%= mvt.username || '—' %></dd>
+            <% if (vente) { %>
+                <dt class="col-sm-3">Vente associée</dt><dd class="col-sm-9"><a href="/ventes/<%= vente.id %>">Vente <%= vente.numero %></a></dd>
+            <% } %>
+        </dl>
+    </div>
+</div>
+<%- include('../partials/footer') %>

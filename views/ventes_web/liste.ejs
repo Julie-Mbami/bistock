@@ -1,0 +1,336 @@
+<%- include('../partials/header') %>
+<style>
+.web-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.web-kpi .kpi { background: var(--surface); border-radius: 10px; padding: 14px 18px; border-left: 4px solid; }
+.web-kpi .kpi .n { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.web-kpi .kpi .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; margin-top: 3px; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.pill-WHATSAPP_ATTENTE { background: #DCFCE7; color: #14532D; border: 1px solid #22C55E; }
+.pill-NOUVELLE { background: #FEF3C7; color: #92400E; }
+.pill-CONFIRMEE { background: #DBEAFE; color: #1E40AF; }
+.pill-PRETE { background: #D1FAE5; color: #065F46; }
+.pill-RECUPEREE, .pill-LIVREE { background: var(--navy-50); color: var(--navy); }
+.pill-ANNULEE { background: #FEE2E2; color: #991B1B; }
+.act-mini { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; margin-right: 4px; }
+.mode-badge { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
+tr.row-nouvelle { background: #FFFBEB !important; }
+tr.row-nouvelle:hover { background: #FEF3C7 !important; }
+tr.row-whatsapp { background: #F0FDF4 !important; }
+tr.row-whatsapp:hover { background: #DCFCE7 !important; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-basket-fill"></i> Commandes en ligne</h1>
+        <p class="page-subtitle">Commandes reçues via le site public /commander/ · Confirmez, préparez, remettez.</p>
+    </div>
+</div>
+
+<div class="web-kpi">
+    <% if (stats.whatsapp > 0) { %>
+    <div class="kpi" style="border-color: #16A34A;"><div class="n" style="color: #16A34A;"><%= stats.whatsapp %></div><div class="lbl"><i class="bi bi-whatsapp"></i> WhatsApp à confirmer</div></div>
+    <% } %>
+    <div class="kpi" style="border-color: #CA8A04;"><div class="n" style="color: #CA8A04;"><%= stats.nouvelle %></div><div class="lbl">🔔 Nouvelles à confirmer</div></div>
+    <div class="kpi" style="border-color: #2563EB;"><div class="n" style="color: #2563EB;"><%= stats.confirmee %></div><div class="lbl">En préparation</div></div>
+    <div class="kpi" style="border-color: #059669;"><div class="n" style="color: #059669;"><%= stats.prete %></div><div class="lbl">Prêtes à remettre</div></div>
+    <div class="kpi" style="border-color: var(--navy);"><div class="n" style="color: var(--navy);"><%= stats.fin %></div><div class="lbl">Traitées</div></div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+            <a href="?statut=ACTIVES" class="btn btn-sm <%= statut_filtre === 'ACTIVES' ? 'btn-primary' : 'btn-outline-secondary' %>">À traiter (<%= stats.whatsapp + stats.nouvelle + stats.confirmee + stats.prete %>)</a>
+            <% if (stats.whatsapp > 0) { %>
+            <a href="?statut=WHATSAPP_ATTENTE" class="btn btn-sm <%= statut_filtre === 'WHATSAPP_ATTENTE' ? 'btn-success' : 'btn-outline-success' %>"><i class="bi bi-whatsapp"></i> WhatsApp (<%= stats.whatsapp %>)</a>
+            <% } %>
+            <a href="?statut=NOUVELLE" class="btn btn-sm <%= statut_filtre === 'NOUVELLE' ? 'btn-primary' : 'btn-outline-secondary' %>">Nouvelles</a>
+            <a href="?statut=CONFIRMEE" class="btn btn-sm <%= statut_filtre === 'CONFIRMEE' ? 'btn-primary' : 'btn-outline-secondary' %>">Confirmées</a>
+            <a href="?statut=PRETE" class="btn btn-sm <%= statut_filtre === 'PRETE' ? 'btn-primary' : 'btn-outline-secondary' %>">Prêtes</a>
+            <a href="?statut=RECUPEREE" class="btn btn-sm <%= statut_filtre === 'RECUPEREE' ? 'btn-primary' : 'btn-outline-secondary' %>">Récupérées</a>
+            <a href="?statut=LIVREE" class="btn btn-sm <%= statut_filtre === 'LIVREE' ? 'btn-primary' : 'btn-outline-secondary' %>">Livrées</a>
+            <a href="?statut=ANNULEE" class="btn btn-sm <%= statut_filtre === 'ANNULEE' ? 'btn-primary' : 'btn-outline-secondary' %>">Annulées</a>
+            <a href="?statut=TOUTES" class="btn btn-sm <%= statut_filtre === 'TOUTES' ? 'btn-primary' : 'btn-outline-secondary' %>">Toutes</a>
+        </div>
+        <div style="padding: 8px 0 12px; border-top: 1px dashed var(--border);">
+            <%- include('../partials/filtre_periode', { periode, autresFiltres: { statut: statut_filtre } }) %>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Code</th><th>Client</th><th>Mode</th>
+                    <th>Activités</th>
+                    <th style="text-align: center;">Articles</th>
+                    <th style="text-align: right;">Total</th>
+                    <th>Paiement prévu</th>
+                    <th>Statut</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% commandes.forEach(function(c) { %>
+                    <tr class="<%= c.statut === 'NOUVELLE' ? 'row-nouvelle' : (c.statut === 'WHATSAPP_ATTENTE' ? 'row-whatsapp' : '') %>" style="cursor: pointer;" onclick="if(!event.target.closest('a,button,form')) location='/ventes-web/<%= c.id %>'">
+                        <td>
+                            <a href="/ventes-web/<%= c.id %>"><code style="font-weight: 700; color: var(--marron);"><%= c.code_suivi %></code></a>
+                            <br><small class="text-muted"><%= h.formatDate(c.date_creation, true) %></small>
+                        </td>
+                        <td>
+                            <strong><%= c.client_nom %></strong>
+                            <br><small class="text-muted"><a href="tel:<%= c.client_tel %>" style="color: inherit;"><i class="bi bi-telephone"></i> <%= c.client_tel %></a></small>
+                        </td>
+                        <td>
+                            <% if (c.mode_recuperation === 'LIVRAISON') { %>
+                                <span class="mode-badge"><i class="bi bi-scooter"></i> Livraison</span>
+                                <br><small class="text-muted"><%= c.quartier %></small>
+                            <% } else { %>
+                                <span class="mode-badge"><i class="bi bi-shop"></i> Retrait</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <% c.activites_concernees.forEach(function(a) { %>
+                                <span class="act-mini" style="background: <%= a.couleur %>20; color: <%= a.couleur %>;"><%= a.code %></span>
+                            <% }); %>
+                        </td>
+                        <td style="text-align: center; font-weight: 700;"><%= c.nb_articles %></td>
+                        <td style="text-align: right; font-weight: 700; color: var(--marron); font-variant-numeric: tabular-nums;"><%= h.formatNombre(c.total) %></td>
+                        <td>
+                            <% var mp = c.mode_paiement_prevu; %>
+                            <% if (mp === 'ESPECES') { %><span style="font-size: 0.78rem; color: #059669; font-weight: 700;"><i class="bi bi-cash-stack"></i> Espèces</span>
+                            <% } else if (mp === 'ORANGE') { %><span style="font-size: 0.78rem; color: #EA580C; font-weight: 700;"><i class="bi bi-phone-vibrate"></i> Orange</span>
+                            <% } else if (mp === 'MTN') { %><span style="font-size: 0.78rem; color: #CA8A04; font-weight: 700;"><i class="bi bi-phone-vibrate"></i> MTN</span>
+                            <% } else { %><span style="font-size: 0.72rem; color: var(--text-muted);">—</span><% } %>
+                        </td>
+                        <td>
+                            <span class="pill pill-<%= c.statut %>"><%= c.statut === 'WHATSAPP_ATTENTE' ? '💬 WhatsApp' : c.statut %></span>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <% if (c.statut === 'WHATSAPP_ATTENTE') { %>
+                                <form method="post" action="/ventes-web/<%= c.id %>/statut" style="display: inline;"
+                                    data-confirm="Confirmer que vous avez bien reçu la commande <strong><%= c.code_suivi %></strong> via WhatsApp et que les infos client (nom, téléphone, adresse) sont valides ?"
+                                    data-confirm-title="Valider commande WhatsApp" data-confirm-ok="Valider">
+                                    <input type="hidden" name="statut" value="NOUVELLE">
+                                    <input type="hidden" name="retour" value="liste">
+                                    <button class="btn btn-sm btn-success" title="Valider WhatsApp"><i class="bi bi-whatsapp"></i> Valider</button>
+                                </form>
+                            <% } else if (c.statut === 'NOUVELLE') { %>
+                                <form method="post" action="/ventes-web/<%= c.id %>/statut" style="display: inline;"
+                                    data-confirm="Confirmer la commande <strong><%= c.code_suivi %></strong> ? Le client sera informé qu'elle est en préparation."
+                                    data-confirm-title="Confirmer la commande" data-confirm-ok="Confirmer">
+                                    <input type="hidden" name="statut" value="CONFIRMEE">
+                                    <input type="hidden" name="retour" value="liste">
+                                    <button class="btn btn-sm btn-primary" title="Confirmer"><i class="bi bi-check-lg"></i> Confirmer</button>
+                                </form>
+                            <% } else if (c.statut === 'CONFIRMEE') { %>
+                                <form method="post" action="/ventes-web/<%= c.id %>/statut" style="display: inline;"
+                                    data-confirm="Marquer <strong><%= c.code_suivi %></strong> comme <strong>prête à remettre</strong> ?"
+                                    data-confirm-title="Marquer comme prête" data-confirm-ok="Prête">
+                                    <input type="hidden" name="statut" value="PRETE">
+                                    <input type="hidden" name="retour" value="liste">
+                                    <button class="btn btn-sm btn-warning" title="Marquer comme prête"><i class="bi bi-fire"></i> Prête</button>
+                                </form>
+                            <% } else if (c.statut === 'PRETE') { %>
+                                <button type="button" class="btn btn-sm btn-success btn-encaisser"
+                                        data-id="<%= c.id %>"
+                                        data-code="<%= c.code_suivi %>"
+                                        data-client="<%= c.client_nom %>"
+                                        data-total="<%= c.total %>"
+                                        data-mode-prevu="<%= c.mode_paiement_prevu || 'ESPECES' %>"
+                                        data-mode-recup="<%= c.mode_recuperation %>">
+                                    <i class="bi bi-cash-coin"></i> Encaisser
+                                </button>
+                            <% } %>
+                            <a href="/ventes-web/<%= c.id %>" class="btn btn-sm btn-outline-primary" title="Détail"><i class="bi bi-eye"></i></a>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (!commandes.length) { %>
+                    <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 8px;"></i>
+                        Aucune commande dans ce filtre.
+                    </td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+
+<!-- Modale d'encaissement inline -->
+<div id="modal-encaisser" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 400; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #fff; border-radius: 18px; max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.35);">
+        <form id="form-encaisser" method="post">
+            <div style="padding: 24px 26px 8px; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #ECFDF5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; color: var(--marron);">Encaisser <span id="me-code" style="font-family: monospace; color: var(--gold-dark);"></span></h3>
+                        <div style="font-size: 0.82rem; color: var(--text-muted);" id="me-client">—</div>
+                    </div>
+                </div>
+                <div style="background: var(--gold-50, #FEF3C7); padding: 12px 14px; border-radius: 10px; margin-top: 14px; text-align: center;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Montant à encaisser</div>
+                    <div style="font-size: 1.9rem; font-weight: 900; color: var(--gold-dark, #92400E); font-variant-numeric: tabular-nums;" id="me-total">—</div>
+                </div>
+            </div>
+            <div style="padding: 20px 26px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--navy); margin-bottom: 4px;">Mode de paiement</label>
+                <div id="me-hint-prevu" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;"></div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                    <label style="cursor: pointer; margin: 0;">
+                        <input type="radio" name="mode_paiement" value="ESPECES" required class="me-radio" style="display: none;">
+                        <div class="me-card" data-mode="ESPECES" style="padding: 14px 6px; text-align: center; border: 2px solid var(--border); border-radius: 10px; background: #fff; transition: all 0.15s;">
+                            <i class="bi bi-cash-stack" style="font-size: 1.6rem; color: #059669; display: block; margin-bottom: 4px;"></i>
+                            <strong style="font-size: 0.82rem;">Espèces</strong>
+                        </div>
+                    </label>
+                    <label style="cursor: pointer; margin: 0;">
+                        <input type="radio" name="mode_paiement" value="ORANGE" required class="me-radio" style="display: none;">
+                        <div class="me-card" data-mode="ORANGE" style="padding: 14px 6px; text-align: center; border: 2px solid var(--border); border-radius: 10px; background: #fff; transition: all 0.15s;">
+                            <i class="bi bi-phone-vibrate" style="font-size: 1.6rem; color: #EA580C; display: block; margin-bottom: 4px;"></i>
+                            <strong style="font-size: 0.82rem;">Orange</strong>
+                        </div>
+                    </label>
+                    <label style="cursor: pointer; margin: 0;">
+                        <input type="radio" name="mode_paiement" value="MTN" required class="me-radio" style="display: none;">
+                        <div class="me-card" data-mode="MTN" style="padding: 14px 6px; text-align: center; border: 2px solid var(--border); border-radius: 10px; background: #fff; transition: all 0.15s;">
+                            <i class="bi bi-phone-vibrate" style="font-size: 1.6rem; color: #CA8A04; display: block; margin-bottom: 4px;"></i>
+                            <strong style="font-size: 0.82rem;">MTN</strong>
+                        </div>
+                    </label>
+                </div>
+                <input type="hidden" name="statut" id="me-statut">
+                <input type="hidden" name="retour" value="liste">
+            </div>
+            <div style="display: flex; gap: 10px; padding: 8px 26px 24px;">
+                <button type="button" onclick="fermerModaleEncaisser()" style="flex: 1; padding: 12px; background: transparent; border: 1.5px solid var(--border); border-radius: 10px; font-weight: 700; color: var(--text); cursor: pointer;">
+                    Annuler
+                </button>
+                <button type="submit" style="flex: 2; padding: 12px; background: #059669; border: none; color: #fff; border-radius: 10px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.3);">
+                    <i class="bi bi-check-circle-fill"></i> Confirmer l'encaissement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function ouvrirModaleEncaisser(btn) {
+    const modal = document.getElementById('modal-encaisser');
+    const form = document.getElementById('form-encaisser');
+    document.getElementById('me-code').textContent = btn.dataset.code;
+    document.getElementById('me-client').textContent = btn.dataset.client;
+    document.getElementById('me-total').innerHTML = Math.round(Number(btn.dataset.total)).toLocaleString('fr-FR').replace(/,/g,' ') + ' <span style="font-size: 0.85rem; font-weight: 500;">FCFA</span>';
+    document.getElementById('me-statut').value = btn.dataset.modeRecup === 'LIVRAISON' ? 'LIVREE' : 'RECUPEREE';
+    form.action = '/ventes-web/' + btn.dataset.id + '/statut';
+    const modePrevu = btn.dataset.modePrevu || 'ESPECES';
+    document.querySelectorAll('.me-radio').forEach(r => r.checked = false);
+    document.querySelectorAll('.me-card').forEach(c => { c.style.borderColor = 'var(--border)'; c.style.background = '#fff'; });
+    const radio = document.querySelector('.me-radio[value="' + modePrevu + '"]');
+    if (radio) {
+        radio.checked = true;
+        const card = radio.nextElementSibling;
+        card.style.borderColor = 'var(--gold, #CA8A04)';
+        card.style.background = 'var(--gold-50, #FEF3C7)';
+    }
+    const labelMode = { ESPECES: 'espèces', ORANGE: 'Orange Money', MTN: 'MTN Mobile Money' }[modePrevu] || modePrevu;
+    document.getElementById('me-hint-prevu').innerHTML = '<i class="bi bi-info-circle"></i> Le client a coché <strong>' + labelMode + '</strong> à la commande — modifiable si besoin.';
+    modal.style.display = 'flex';
+}
+function fermerModaleEncaisser() { document.getElementById('modal-encaisser').style.display = 'none'; }
+document.querySelectorAll('.btn-encaisser').forEach(b => b.addEventListener('click', () => ouvrirModaleEncaisser(b)));
+document.getElementById('modal-encaisser').addEventListener('click', function(e) { if (e.target === this) fermerModaleEncaisser(); });
+document.querySelectorAll('.me-radio').forEach(r => {
+    r.addEventListener('change', function() {
+        document.querySelectorAll('.me-card').forEach(c => { c.style.borderColor = 'var(--border)'; c.style.background = '#fff'; });
+        const card = this.nextElementSibling;
+        card.style.borderColor = 'var(--gold, #CA8A04)';
+        card.style.background = 'var(--gold-50, #FEF3C7)';
+    });
+});
+</script>
+
+<!-- Toast + son pour nouvelle commande temps réel -->
+<div id="toast-nouvelle" style="position: fixed; top: 90px; right: 20px; background: var(--gold); color: #fff; padding: 14px 20px; border-radius: 12px; box-shadow: 0 8px 24px rgba(202,138,4,0.4); z-index: 300; display: none; align-items: center; gap: 12px; max-width: 340px;">
+    <i class="bi bi-basket-fill" style="font-size: 1.6rem;"></i>
+    <div style="flex: 1;">
+        <div style="font-weight: 800; font-size: 0.95rem;">Nouvelle commande !</div>
+        <div id="toast-info" style="font-size: 0.82rem; opacity: 0.95;"></div>
+    </div>
+    <button onclick="document.getElementById('toast-nouvelle').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.4rem; cursor: pointer;">×</button>
+</div>
+
+<audio id="son-notif" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU..." type="audio/wav">
+</audio>
+
+<script>
+(function() {
+    // Polling toutes les 15s pour détecter :
+    // 1. Nouvelle commande arrivée → toast + son + reload
+    // 2. Commande existante modifiée/annulée par client → reload silencieux
+    let lastNouvellesCount = <%= stats.nouvelle %>;
+    let lastActivesCount = <%= stats.nouvelle + stats.confirmee + stats.prete %>;
+    let lastModifTs = null; // sera initialisé au premier appel
+
+    function beep(freq) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = ctx.createOscillator(); const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine'; o.frequency.value = freq || 880; g.gain.value = 0.1;
+            o.start(); o.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+            o.stop(ctx.currentTime + 0.3);
+        } catch(e) {}
+    }
+
+    function toastInfo(html, bg) {
+        const toast = document.getElementById('toast-nouvelle');
+        const info = document.getElementById('toast-info');
+        info.innerHTML = html;
+        if (bg) toast.style.background = bg;
+        toast.style.display = 'flex';
+    }
+
+    async function verifierNouvelles() {
+        try {
+            const r = await fetch('/ventes-web/api/count-nouvelles?_=' + Date.now(), { cache: 'no-store' });
+            if (!r.ok) return;
+            const data = await r.json();
+
+            // Nouvelle commande arrivée
+            const arrive = data.nb_nouvelles > lastNouvellesCount && data.derniere;
+            // Commande existante modifiée
+            const changement = lastModifTs !== null && data.derniere_modif !== lastModifTs;
+
+            if (arrive) {
+                toastInfo(data.derniere.code_suivi + ' · ' + data.derniere.client_nom + ' · ' + Math.round(data.derniere.total).toLocaleString('fr-FR').replace(/,/g,' ') + ' F', 'var(--gold)');
+                beep(880);
+                let orig = document.title; let alt = '🔔 Nouvelle commande !';
+                let count = 0;
+                const flip = setInterval(() => { document.title = (count++ % 2) ? alt : orig; if (count > 10) { clearInterval(flip); document.title = orig; } }, 800);
+                setTimeout(() => location.reload(), 3000);
+            } else if (changement) {
+                // Une commande a été modifiée ou annulée par le client → reload silencieux
+                beep(600);
+                toastInfo('Une commande a été mise à jour', '#2563EB');
+                setTimeout(() => location.reload(), 1500);
+            }
+
+            // Mise à jour compteurs KPI en direct (badge NOUVELLE)
+            const badgeNouv = document.querySelector('.web-kpi .kpi:nth-child(1) .n');
+            if (badgeNouv) badgeNouv.textContent = data.nb_nouvelles;
+
+            lastNouvellesCount = data.nb_nouvelles;
+            lastActivesCount = data.nb_actives;
+            lastModifTs = data.derniere_modif;
+        } catch(e) { /* ignore */ }
+    }
+    // Init : premier appel immédiat pour capturer le timestamp de référence, puis polling toutes les 5s
+    verifierNouvelles();
+    setInterval(verifierNouvelles, 5000);
+})();
+</script>
+
+<%- include('../partials/footer') %>

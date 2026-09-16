@@ -1,0 +1,125 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><%= activite.nom %> — Caisse</h1>
+        <p class="page-subtitle">Journée du <%= new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) %></p>
+    </div>
+    <a href="/ventes/caisse/" class="btn btn-primary btn-lg"><i class="bi bi-cart-plus"></i> Ouvrir la caisse</a>
+</div>
+
+<% if (!cloture_ouverte) { %>
+<div class="alert alert-warning" style="margin-bottom: 20px;">
+    <i class="bi bi-info-circle"></i>
+    <strong>Aucune session de caisse ouverte</strong> pour aujourd'hui. Pensez à ouvrir la caisse avec un fond de départ.
+</div>
+<% } %>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card success">
+            <div class="kpi-icon"><i class="bi bi-cash-coin"></i></div>
+            <div class="kpi-label">CA du jour</div>
+            <div class="kpi-value"><%= h.formatNombre(ca_jour) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta"><%= nb_ventes_jour %> vente<%= h.pluralize(nb_ventes_jour) %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card primary">
+            <div class="kpi-icon"><i class="bi bi-receipt"></i></div>
+            <div class="kpi-label">Nombre de tickets</div>
+            <div class="kpi-value"><%= nb_ventes_jour %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card info">
+            <div class="kpi-icon"><i class="bi bi-cart"></i></div>
+            <div class="kpi-label">Ticket moyen</div>
+            <div class="kpi-value"><%= h.formatNombre(ticket_moyen) %><span class="unit"><%= devise %></span></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= cloture_ouverte ? 'success' : '' %>">
+            <div class="kpi-icon"><i class="bi bi-<%= cloture_ouverte ? 'unlock' : 'lock' %>"></i></div>
+            <div class="kpi-label">État caisse</div>
+            <div class="kpi-value" style="font-size: 1.1rem;"><%= cloture_ouverte ? 'Ouverte' : 'Fermée' %></div>
+            <div class="kpi-meta"><% if (cloture_ouverte) { %>Fond : <%= h.formatNombre(cloture_ouverte.fond_ouverture) %><% } else { %>Ouvrez la caisse<% } %></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="color: var(--navy);"><i class="bi bi-graph-up" style="color: var(--gold);"></i> Ventes — 30 derniers jours</h5>
+                <div style="position: relative; height: 320px;"><canvas id="chartCA"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="color: var(--navy);"><i class="bi bi-wallet2" style="color: var(--gold);"></i> Modes de paiement (aujourd'hui)</h5>
+                <% if (!par_mode.length) { %>
+                    <p class="text-muted text-center py-4">Aucune vente encore aujourd'hui.</p>
+                <% } else { %>
+                <% par_mode.forEach(function(m) { %>
+                    <% var style = h.MODE_PAIEMENT_STYLES[m.mode_paiement] || {couleur: '#666', fond: '#eee', label: m.mode_paiement, icone: 'bi-wallet'}; %>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border);">
+                        <div style="width: 40px; height: 40px; border-radius: 10px; background: <%= style.fond %>; color: <%= style.couleur %>; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                            <i class="bi <%= style.icone %>"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600;"><%= style.label %></div>
+                            <small class="text-muted"><%= m.nb %> vente<%= m.nb > 1 ? 's' : '' %></small>
+                        </div>
+                        <div style="font-weight: 700; color: <%= style.couleur %>;"><%= h.formatNombre(m.ca) %></div>
+                    </div>
+                <% }); %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 style="color: var(--navy);"><i class="bi bi-trophy" style="color: var(--gold);"></i> Top 5 ventes du jour</h5>
+        <% if (!top_produits_jour.length) { %>
+            <p class="text-muted">Aucune vente aujourd'hui.</p>
+        <% } else { %>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Produit</th><th style="text-align: right;">Quantité</th><th style="text-align: right;">CA</th></tr></thead>
+                <tbody>
+                <% top_produits_jour.forEach(function(p) { %>
+                    <tr>
+                        <td><strong><%= p.designation %></strong> <small class="text-muted"><code><%= p.reference %></code></small></td>
+                        <td style="text-align: right; font-weight: 700;"><%= p.qte %></td>
+                        <td style="text-align: right;"><%= h.formatNombre(p.ca) %> <%= devise %></td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+const jours = <%- jours_labels %>;
+const ca = <%- ca_data %>;
+const nb = <%- nb_ventes_data %>;
+new Chart(document.getElementById('chartCA'), {
+    type: 'line',
+    data: { labels: jours, datasets: [
+        { label: 'CA (<%= devise %>)', data: ca, borderColor: '#047857', backgroundColor: 'rgba(4,120,87,0.1)', fill: true, tension: 0.3, yAxisID: 'y' },
+        { label: 'Nombre ventes', data: nb, borderColor: '#ca8a04', borderDash: [5,5], yAxisID: 'y1' },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, position: 'left' }, y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } } } }
+});
+</script>
+<%- include('../partials/footer') %>

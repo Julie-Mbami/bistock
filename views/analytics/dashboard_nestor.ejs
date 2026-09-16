@@ -1,0 +1,168 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Logistique — Distribution</h1>
+        <p class="page-subtitle">Vue Nestor — flux achats et distribution vers les activités</p>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= nb_achats_saisis > 0 ? 'primary' : '' %>">
+            <div class="kpi-icon"><i class="bi bi-cart-check"></i></div>
+            <div class="kpi-label">Achats à réceptionner</div>
+            <div class="kpi-value"><%= nb_achats_saisis %></div>
+            <div class="kpi-meta">Statut « Saisi »</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= achats_a_distribuer > 0 ? 'primary' : '' %>">
+            <div class="kpi-icon"><i class="bi bi-truck"></i></div>
+            <div class="kpi-label">Achats à distribuer</div>
+            <div class="kpi-value"><%= achats_a_distribuer %></div>
+            <div class="kpi-meta">Réceptionnés, en attente de ventilation</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="kpi-label">Distributions préparées</div>
+            <div class="kpi-value"><%= nb_distributions_preparees %></div>
+            <div class="kpi-meta">À remettre physiquement</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card info">
+            <div class="kpi-icon"><i class="bi bi-box-arrow-down"></i></div>
+            <div class="kpi-label">En attente de réception</div>
+            <div class="kpi-value"><%= nb_distributions_remises %></div>
+            <div class="kpi-meta">Gestionnaires doivent confirmer</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Achats à traiter -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; color: var(--navy);"><i class="bi bi-cart-check" style="color: var(--gold);"></i> Achats à réceptionner</h5>
+                    <% if (nb_achats_saisis > 0) { %><a href="/achats/?statut=SAISI" class="btn btn-sm btn-outline-primary">Tout voir</a><% } %>
+                </div>
+                <% if (!achats_saisis.length) { %>
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="bi bi-check-circle" style="font-size: 2rem; color: var(--success);"></i>
+                        <div style="margin-top: 8px;">Aucun achat à réceptionner</div>
+                    </div>
+                <% } else { %>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead><tr><th>N°</th><th>Fournisseur</th><th>Date</th><th></th></tr></thead>
+                        <tbody>
+                        <% achats_saisis.forEach(function(a) { %>
+                            <tr>
+                                <td><code><%= a.numero %></code></td>
+                                <td><%= a.fournisseur %></td>
+                                <td class="text-muted small"><%= h.formatDate(a.date_achat) %></td>
+                                <td><a href="/achats/<%= a.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-right"></i></a></td>
+                            </tr>
+                        <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distributions à confirmer -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h5 style="margin: 0; color: var(--navy);"><i class="bi bi-hourglass-split" style="color: var(--gold);"></i> Remises non confirmées</h5>
+                    <% if (nb_distributions_remises > 0) { %><a href="/distributions/?statut=REMISE" class="btn btn-sm btn-outline-primary">Tout voir</a><% } %>
+                </div>
+                <% if (!distributions_remises.length) { %>
+                    <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                        <i class="bi bi-check-circle" style="font-size: 2rem; color: var(--success);"></i>
+                        <div style="margin-top: 8px;">Toutes vos distributions sont confirmées</div>
+                    </div>
+                <% } else { %>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead><tr><th>N°</th><th>Activité</th><th>Remise le</th><th></th></tr></thead>
+                        <tbody>
+                        <% distributions_remises.forEach(function(d) { %>
+                            <tr>
+                                <td><code><%= d.numero %></code></td>
+                                <td><span style="padding: 2px 8px; background: <%= d.activite_couleur %>15; color: <%= d.activite_couleur %>; border-radius: 9999px; font-size: 0.72rem; font-weight: 600;"><%= d.activite_code %></span></td>
+                                <td class="text-muted small"><%= h.formatDate(d.date_remise) %></td>
+                                <td><a href="/distributions/<%= d.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-right"></i></a></td>
+                            </tr>
+                        <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stocks + alertes par activité -->
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 style="color: var(--navy);"><i class="bi bi-archive" style="color: var(--gold);"></i> Stocks des 4 activités (consultation)</h5>
+        <div class="row mt-3">
+        <% alertes_par_activite.forEach(function(a) { %>
+            <div class="col-md-6 col-lg-3 mb-3">
+                <div style="background: <%= a.couleur %>10; border-left: 4px solid <%= a.couleur %>; padding: 14px 16px; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <i class="bi <%= a.icone %>" style="color: <%= a.couleur %>;"></i>
+                        <strong style="color: <%= a.couleur %>;"><%= a.nom %></strong>
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Valeur stock</div>
+                    <div style="font-size: 1.15rem; font-weight: 700;"><%= h.formatNombre(a.valeur_stock) %> <small class="text-muted"><%= devise %></small></div>
+                    <div style="font-size: 0.8rem; margin-top: 8px;">
+                        <% if (a.critiques) { %><span class="badge badge-rupture"><%= a.critiques %> critique<%= h.pluralize(a.critiques) %></span> <% } %>
+                        <% if (a.alertes) { %><span class="badge badge-alerte"><%= a.alertes %> alerte<%= h.pluralize(a.alertes) %></span><% } %>
+                        <% if (!a.critiques && !a.alertes) { %><span style="color: var(--success);">✓ Aucune alerte</span><% } %>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+        </div>
+    </div>
+</div>
+
+<!-- Écarts audit -->
+<% if (ecarts.length) { %>
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 style="color: var(--navy);"><i class="bi bi-exclamation-diamond" style="color: var(--gold);"></i> Écarts distribution → réception (audit)</h5>
+        <p class="text-muted small">Différences entre ce que Nestor a annoncé et ce que les gestionnaires ont confirmé.</p>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Distribution</th><th>Activité</th><th>Produit</th><th style="text-align: right;">Annoncé</th><th style="text-align: right;">Reçu</th><th style="text-align: right;">Écart</th><th>Confirmé par</th></tr></thead>
+                <tbody>
+                <% ecarts.forEach(function(e) { %>
+                    <% var diff = e.quantite_recue - e.quantite_annoncee; %>
+                    <tr>
+                        <td><code><%= e.dist_numero %></code></td>
+                        <td><%= e.activite_nom %></td>
+                        <td><%= e.designation %></td>
+                        <td style="text-align: right;"><%= e.quantite_annoncee %></td>
+                        <td style="text-align: right; font-weight: 700;"><%= e.quantite_recue %></td>
+                        <td style="text-align: right; font-weight: 700; color: <%= diff < 0 ? 'var(--danger)' : 'var(--gold-dark)' %>;"><%= diff > 0 ? '+' + diff : diff %></td>
+                        <td class="text-muted small"><%= e.receptionne_par_nom %></td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<% } %>
+<%- include('../partials/footer') %>

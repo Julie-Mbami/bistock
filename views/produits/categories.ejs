@@ -1,0 +1,193 @@
+<%- include('../partials/header') %>
+<style>
+.categorie-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-sm);
+    overflow: hidden;
+    transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.categorie-card:hover {
+    box-shadow: var(--sh-md);
+    transform: translateY(-2px);
+    border-color: var(--gold);
+}
+
+.cat-header {
+    padding: 22px 20px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+.cat-icon {
+    width: 58px; height: 58px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255, 255, 255, 0.96);
+    font-size: 1.85rem;
+    flex-shrink: 0;
+}
+.cat-alerte {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--danger-50);
+    color: var(--danger);
+    padding: 3px 9px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.cat-body {
+    padding: 14px 20px 16px;
+    flex: 1;
+}
+.cat-nom {
+    margin: 0 0 4px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: -0.01em;
+}
+.cat-desc {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin: 0 0 14px;
+    line-height: 1.45;
+}
+
+.cat-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+}
+.cat-stat.full { grid-column: 1 / -1; }
+.cat-stat .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.cat-stat .stat-val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+}
+.cat-stat .stat-val.money { font-size: 0.95rem; color: var(--navy); }
+.cat-stat .stat-val small { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); }
+
+.cat-footer {
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.cat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 12px;
+    border-radius: var(--r-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.cat-btn:hover {
+    background: var(--surface-muted);
+    color: var(--navy);
+    border-color: var(--border-strong);
+    text-decoration: none;
+}
+.cat-btn-primary {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+    flex: 1;
+    justify-content: center;
+}
+.cat-btn-primary:hover {
+    background: var(--navy-dark);
+    color: #fff;
+    border-color: var(--navy-dark);
+}
+.cat-btn-danger:hover {
+    background: var(--danger);
+    color: #fff;
+    border-color: var(--danger);
+}
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Catégories</h1>
+        <p class="page-subtitle"><%= total_categories %> catégorie<%= h.pluralize(total_categories) %> · <%= total_produits %> produits · valeur stock <%= h.formatNombre(total_valeur) %> <%= devise %></p>
+    </div>
+    <% if (user.est_gestionnaire) { %>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="/produits/categories/import" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Import Excel</a>
+        <a href="/produits/categories/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvelle catégorie</a>
+    </div>
+    <% } %>
+</div>
+
+<div class="row">
+    <% stats.forEach(function(s) { %>
+    <div class="col-md-4 col-sm-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-body">
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+                    <div style="width: 52px; height: 52px; border-radius: 12px; background: <%= s.categorie.couleur_hex %>; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+                        <i class="bi <%= s.categorie.icone %>"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h5 style="margin: 0;"><%= s.categorie.nom %></h5>
+                        <small class="text-muted"><%= s.nb_produits %> produit<%= h.pluralize(s.nb_produits) %></small>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                    <span class="text-muted">Stock total</span><strong><%= s.stock_total %></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                    <span class="text-muted">Valeur stock</span><strong><%= h.formatNombre(s.valeur_stock) %> <%= devise %></strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                    <span class="text-muted">CA du mois</span><strong style="color: var(--success);"><%= h.formatNombre(s.ca_mois) %> <%= devise %></strong>
+                </div>
+                <% if (s.nb_alertes) { %>
+                    <div class="alert alert-warning" style="margin: 10px 0 0; padding: 6px 10px; font-size: 0.8rem;"><i class="bi bi-exclamation-triangle"></i> <%= s.nb_alertes %> alerte<%= h.pluralize(s.nb_alertes) %></div>
+                <% } %>
+                <div style="margin-top: 12px; display: flex; gap: 6px;">
+                    <a href="/produits/?categorie=<%= s.categorie.id %>" class="btn btn-sm btn-outline-primary" style="flex: 1;"><i class="bi bi-eye"></i> Voir</a>
+                    <% if (user.est_gestionnaire) { %>
+                    <a href="/produits/categories/<%= s.categorie.id %>/modifier" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                    <form action="/produits/categories/<%= s.categorie.id %>/supprimer" method="post" style="display: inline;"
+                          data-confirm="Voulez-vous vraiment supprimer la catégorie <strong><%= s.categorie.nom %></strong> ? Les produits liés ne seront pas supprimés mais perdront leur catégorie."
+                          data-confirm-title="Supprimer la catégorie" data-confirm-danger="true" data-confirm-ok="Supprimer">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                    </form>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+    <% }); %>
+    <% if (!stats.length) { %>
+        <div class="col-12"><div class="alert alert-info">Aucune catégorie créée.</div></div>
+    <% } %>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,51 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div><h1 class="page-title">Clients</h1><p class="page-subtitle"><%= clients.length %> client<%= h.pluralize(clients.length) %></p></div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="/ventes/clients/import" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Import Excel</a>
+        <a href="/ventes/clients/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouveau client</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row">
+            <div class="col-md-8 mb-2"><input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Rechercher..."></div>
+            <div class="col-md-4 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;">Filtrer</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>Type</th><th>Nom</th><th>Téléphone</th><th>Email</th><th></th></tr></thead>
+            <tbody>
+            <% clients.forEach(function(c) { %>
+                <tr>
+                    <td>
+                        <% if (c.est_entreprise) { %>
+                            <span class="badge" style="background: #eff6ff; color: #1e3a8a;"><i class="bi bi-building"></i> Entreprise</span>
+                        <% } else { %>
+                            <span class="badge" style="background: #ecfdf5; color: #047857;"><i class="bi bi-person"></i> Particulier</span>
+                        <% } %>
+                    </td>
+                    <td><strong><%= c.nom %></strong></td>
+                    <td><%= c.telephone || '—' %></td>
+                    <td class="text-muted"><%= c.email || '—' %></td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="/ventes/clients/<%= c.id %>/modifier" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+                        <form method="post" action="/ventes/clients/<%= c.id %>/supprimer" style="display: inline;"
+                              data-confirm="Supprimer le client <strong><%= c.nom %></strong> ? Cette action est irréversible."
+                              data-confirm-title="Supprimer ce client ?"
+                              data-confirm-ok="Supprimer"
+                              data-confirm-danger="true">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!clients.length) { %><tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucun client.</td></tr><% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

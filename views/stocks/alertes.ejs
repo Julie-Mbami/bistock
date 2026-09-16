@@ -1,0 +1,195 @@
+<%- include('../partials/header') %>
+<style>
+.alerte-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.alerte-tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 20px; display: flex; align-items: center; gap: 14px; box-shadow: var(--sh-sm); transition: all 0.2s; position: relative; overflow: hidden; }
+.alerte-tile::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
+.alerte-tile.critique::before { background: var(--danger); }
+.alerte-tile.alerte::before   { background: var(--gold); }
+.alerte-tile.info::before     { background: var(--info); }
+.alerte-tile.traitees::before { background: var(--success); }
+.alerte-tile-icon { width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; }
+.alerte-tile.critique .alerte-tile-icon { background: var(--danger-50); color: var(--danger); }
+.alerte-tile.alerte   .alerte-tile-icon { background: var(--gold-50); color: var(--gold-dark); }
+.alerte-tile.info     .alerte-tile-icon { background: var(--info-50); color: var(--info); }
+.alerte-tile.traitees .alerte-tile-icon { background: var(--success-50); color: var(--success); }
+.alerte-tile-label { font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.alerte-tile-val { font-size: 1.85rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; margin: 3px 0; }
+.alerte-tile-sub { font-size: 0.74rem; color: var(--text-muted); }
+@keyframes pulse-critique { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); } 50% { box-shadow: 0 0 0 14px rgba(220,38,38,0); } }
+@keyframes pulse-soft { 0%,100% { box-shadow: 0 0 0 0 rgba(202,138,4,0.3); } 50% { box-shadow: 0 0 0 10px rgba(202,138,4,0); } }
+.alerte-tile.pulse { border-color: var(--danger); animation: pulse-critique 2.4s infinite; }
+.alerte-tile.pulse-soft { border-color: var(--gold); animation: pulse-soft 2.8s infinite; }
+.alerte-tile.pulse .alerte-tile-val { color: var(--danger); }
+.alerte-tile.pulse-soft .alerte-tile-val { color: var(--gold-dark); }
+
+.alerte-tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 18px; }
+.alerte-tab { padding: 10px 18px; font-size: 0.88rem; font-weight: 600; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s, border-color 0.15s; }
+.alerte-tab:hover { color: var(--navy); text-decoration: none; }
+.alerte-tab.active { color: var(--navy); border-bottom-color: var(--gold); }
+.tab-count { background: var(--danger); color: #fff; border-radius: 9999px; padding: 1px 8px; font-size: 0.68rem; font-weight: 700; margin-left: 4px; }
+
+.alertes-liste { display: flex; flex-direction: column; gap: 12px; }
+.alerte-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-sm); display: grid; grid-template-columns: 6px 80px 1fr auto; align-items: stretch; overflow: hidden; transition: box-shadow 0.18s, transform 0.18s; }
+.alerte-card:hover { box-shadow: var(--sh-md); transform: translateY(-1px); }
+.alerte-card.vue { opacity: 0.65; }
+.alerte-marker { background: var(--text-faint); }
+.alerte-card.critique .alerte-marker { background: var(--danger); }
+.alerte-card.alerte   .alerte-marker { background: var(--gold); }
+.alerte-card.info     .alerte-marker { background: var(--info); }
+.alerte-card.critique:not(.vue) { animation: card-pulse 3s infinite; }
+@keyframes card-pulse { 0%,100% { border-color: var(--border); } 50% { border-color: var(--danger); } }
+.alerte-thumb { display: flex; align-items: center; justify-content: center; background: var(--surface-muted); overflow: hidden; color: var(--text-faint); font-size: 1.8rem; }
+.alerte-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.alerte-content { padding: 14px 18px; min-width: 0; }
+.alerte-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px; }
+.lvl-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.lvl-critique { background: var(--danger-50); color: var(--danger); }
+.lvl-alerte   { background: var(--gold-50); color: var(--gold-dark); }
+.lvl-info     { background: var(--info-50); color: var(--info); }
+.alerte-time { font-size: 0.74rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
+.alerte-produit-nom { font-size: 1.02rem; font-weight: 700; color: var(--navy); text-decoration: none; display: block; line-height: 1.25; margin-bottom: 3px; }
+.alerte-produit-nom:hover { text-decoration: underline; }
+.alerte-message { font-size: 0.86rem; color: var(--text-muted); margin-bottom: 10px; }
+.cat-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--surface-muted); color: var(--text-muted); padding: 2px 9px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+.alerte-headline { background: var(--surface-muted); border-left: 3px solid var(--gold); padding: 9px 14px; border-radius: 6px; margin-bottom: 10px; font-size: 0.92rem; line-height: 1.4; display: flex; align-items: flex-start; gap: 8px; }
+.alerte-headline i { margin-top: 1px; font-size: 1.05rem; flex-shrink: 0; }
+.alerte-card.critique .alerte-headline { border-left-color: var(--danger); background: var(--danger-50); color: #7f1d1d; }
+.alerte-card.alerte   .alerte-headline { border-left-color: var(--gold); background: var(--gold-50); color: var(--gold-dark); }
+.alerte-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 16px; margin-bottom: 10px; padding: 10px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.metric { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
+.metric > i { color: var(--gold); font-size: 1rem; margin-top: 2px; flex-shrink: 0; }
+.metric-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; margin-bottom: 1px; }
+.metric-val { font-size: 0.84rem; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.alerte-diagnostic { display: flex; align-items: flex-start; gap: 8px; padding: 9px 13px; border-radius: 8px; font-size: 0.82rem; line-height: 1.4; margin-bottom: 10px; }
+.alerte-diagnostic.critique { background: var(--danger-50); border-left: 3px solid var(--danger); color: #7f1d1d; }
+.alerte-diagnostic.moyenne  { background: var(--gold-50); border-left: 3px solid var(--gold); color: var(--gold-dark); }
+.alerte-diagnostic i { font-size: 1rem; margin-top: 1px; flex-shrink: 0; }
+.stock-bar-wrap { margin-top: 6px; }
+.stock-bar-legend { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; }
+.reco-block { background: var(--surface); border: 2px solid var(--gold); border-radius: 12px; padding: 10px 14px; text-align: center; margin-bottom: 4px; }
+.reco-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.reco-val { font-size: 1.8rem; font-weight: 800; color: var(--gold-dark); line-height: 1; margin: 2px 0; }
+.reco-sub { font-size: 0.7rem; color: var(--text-muted); }
+.alerte-btn-flex { flex: 1; }
+.alerte-btn-wa { background: #25D366; color: #fff; border-color: #25D366; }
+.alerte-btn-wa:hover { background: #1da851; color: #fff; border-color: #1da851; }
+.stock-bar { position: relative; height: 6px; background: var(--surface-muted); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.stock-bar-fill { height: 100%; transition: width 0.3s; }
+.stock-bar-seuil { position: absolute; top: -2px; width: 2px; height: 10px; background: var(--text); z-index: 2; }
+.alerte-actions { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-left: 1px solid var(--border); background: var(--surface-2); align-items: stretch; justify-content: center; min-width: 200px; }
+.alerte-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-muted); font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: all 0.15s; white-space: nowrap; }
+.alerte-btn:hover { background: var(--surface-muted); color: var(--navy); border-color: var(--border-strong); text-decoration: none; }
+.alerte-btn-primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+.alerte-btn-primary:hover { background: var(--gold); color: #fff; border-color: var(--gold); }
+.alerte-btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+.alerte-btn-success:hover { background: #047857; color: #fff; }
+.alerte-btn-disabled { background: var(--success-50); color: var(--success); border-color: var(--success-100); cursor: default; }
+.alerte-vide { text-align: center; padding: 60px 20px; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: var(--r-lg); color: var(--text-muted); }
+.alerte-vide i { font-size: 3rem; color: var(--success); display: block; margin-bottom: 10px; }
+.alerte-vide h5 { color: var(--navy); margin-bottom: 6px; }
+@media (max-width: 768px) {
+    .alerte-card { grid-template-columns: 6px 1fr; }
+    .alerte-thumb { display: none; }
+    .alerte-actions { grid-column: 1 / -1; flex-direction: row; border-left: none; border-top: 1px solid var(--border); }
+}
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Alertes de stock</h1>
+        <p class="page-subtitle"><%= nb_non_vues %> non lue<%= h.pluralize(nb_non_vues) %> · <%= nb_critiques %> critique<%= h.pluralize(nb_critiques) %> · <%= nb_alertes %> alerte<%= h.pluralize(nb_alertes) %></p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <ul class="nav nav-tabs" style="border-bottom: 0;">
+                <li class="nav-item"><a class="nav-link <%= etat === 'non_vues' ? 'active' : '' %>" href="?etat=non_vues&tri=<%= locals.tri || 'recent' %>">À traiter (<%= nb_non_vues %>)</a></li>
+                <li class="nav-item"><a class="nav-link <%= etat === 'vues' ? 'active' : '' %>" href="?etat=vues&tri=<%= locals.tri || 'recent' %>">Traitées (<%= nb_vues_total %>)</a></li>
+                <li class="nav-item"><a class="nav-link <%= etat === 'toutes' ? 'active' : '' %>" href="?etat=toutes&tri=<%= locals.tri || 'recent' %>">Toutes (<%= nb_total %>)</a></li>
+            </ul>
+            <form method="get" style="display: flex; gap: 8px; align-items: center; padding: 8px 4px;">
+                <input type="hidden" name="etat" value="<%= etat %>">
+                <label class="small text-muted" style="margin: 0; font-weight: 600;">Trier :</label>
+                <select name="tri" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 190px;">
+                    <option value="recent"   <%= (locals.tri || 'recent') === 'recent' ? 'selected' : '' %>>Date — plus récentes</option>
+                    <option value="ancien"   <%= locals.tri === 'ancien' ? 'selected' : '' %>>Date — plus anciennes</option>
+                    <option value="priorite" <%= locals.tri === 'priorite' ? 'selected' : '' %>>Priorité (critique d'abord)</option>
+                    <option value="activite" <%= locals.tri === 'activite' ? 'selected' : '' %>>Activité (A→Z)</option>
+                </select>
+            </form>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Produit</th><th>Alerte</th>
+                    <th style="text-align: center;">Stock</th>
+                    <th style="text-align: center;">Consommation/j</th>
+                    <th style="text-align: center;">Jours restants</th>
+                    <th style="text-align: center;">Urgence</th>
+                    <th style="text-align: right;">Qté recommandée</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% alertes_enrichies.forEach(function(ae) { %>
+                <tr>
+                    <td>
+                        <strong><%= ae.produit.designation %></strong><br>
+                        <small class="text-muted"><code><%= ae.produit.reference %></code> · <%= ae.produit.categorie_nom || '' %></small>
+                    </td>
+                    <td>
+                        <% var niv = ae.alerte.niveau; var src = ae.alerte.source || 'STOCK'; %>
+                        <% if (src === 'CUISINE') { %>
+                            <span class="badge" style="background: #FEF3C7; color: #92400E; font-weight: 700;"><i class="bi bi-fire"></i> DEMANDE CUISINE</span>
+                        <% } else if (niv === 'CRITIQUE') { %>
+                            <span class="badge badge-rupture">CRITIQUE</span>
+                        <% } else if (niv === 'ALERTE') { %>
+                            <span class="badge badge-alerte">ALERTE</span>
+                        <% } else { %>
+                            <span class="badge bg-secondary">INFO</span>
+                        <% } %>
+                        <br><small class="text-muted"><%= ae.alerte.message %></small>
+                        <% if (src === 'CUISINE' && ae.contexte && ae.contexte.produit_fini_nom) { %>
+                            <br><small style="color: var(--gold-dark); font-weight: 600;">
+                                <i class="bi bi-arrow-return-right"></i> Production : <%= ae.contexte.quantite_voulue %> × <%= ae.contexte.produit_fini_nom %>
+                                <% if (ae.contexte.demandeur) { %> · Demandé par <%= ae.contexte.demandeur.nom %><% } %>
+                            </small>
+                        <% } %>
+                    </td>
+                    <td style="text-align: center;"><strong><%= ae.produit.stock_actuel %></strong> / min <%= ae.produit.stock_minimum %></td>
+                    <td style="text-align: center;"><%= ae.conso_jour %></td>
+                    <td style="text-align: center;">
+                        <% if (ae.jours_avant_rupture !== null && ae.jours_avant_rupture !== undefined) { %>
+                            <%= ae.jours_avant_rupture %> j
+                            <br><small class="text-muted">délai fourn. <%= ae.delai_fournisseur %> j</small>
+                        <% } else { %>—<% } %>
+                    </td>
+                    <td style="text-align: center;">
+                        <% if (ae.urgence === 'critique') { %><span class="badge badge-rupture">Critique</span>
+                        <% } else if (ae.urgence === 'haute') { %><span class="badge badge-alerte">Haute</span>
+                        <% } else { %><span class="badge bg-secondary">Moyenne</span><% } %>
+                    </td>
+                    <td style="text-align: right; font-weight: 600;"><%= ae.qte_recommandee %></td>
+                    <td style="white-space: nowrap;">
+                        <a href="/stocks/alertes/<%= ae.alerte.id %>" class="btn btn-sm btn-outline-secondary" title="Voir le détail"><i class="bi bi-eye"></i></a>
+                        <% if (!ae.alerte.vue) { %>
+                            <a href="/stocks/alertes/<%= ae.alerte.id %>/vue" class="btn btn-sm btn-outline-primary" title="Marquer comme vue"><i class="bi bi-check"></i></a>
+                        <% } else { %>
+                            <span class="text-muted small"><i class="bi bi-check-lg"></i></span>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!alertes_enrichies.length) { %>
+                <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="bi bi-check-circle" style="font-size: 2rem; color: var(--success);"></i><br>Aucune alerte active. Tout est en ordre.</td></tr>
+            <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,147 @@
+<%- include('../partials/header') %>
+<style>
+.periode-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+.periode-tab { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: var(--text-muted); font-size: 0.85rem; background: var(--surface); }
+.periode-tab:hover { border-color: var(--gold); color: var(--text); }
+.periode-tab.active { background: var(--gold); color: #fff; border-color: var(--gold); font-weight: 600; }
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Direction Générale</h1>
+        <p class="page-subtitle">Vue consolidée — Période du <strong><%= h.formatDate(periode.debut) %></strong> au <strong><%= h.formatDate(periode.fin) %></strong></p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/tableau-de-bord/export/ventes.csv" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export ventes</a>
+        <a href="/tableau-de-bord/export/stocks.csv" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export stocks</a>
+    </div>
+</div>
+
+<!-- Sélecteur de période -->
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-body" style="padding: 14px 16px;">
+        <div class="periode-tabs">
+            <a href="?preset=aujourdhui" class="periode-tab <%= periode.preset === 'aujourdhui' ? 'active' : '' %>">Aujourd'hui</a>
+            <a href="?preset=7j" class="periode-tab <%= periode.preset === '7j' ? 'active' : '' %>">7 derniers jours</a>
+            <a href="?preset=30j" class="periode-tab <%= periode.preset === '30j' ? 'active' : '' %>">30 derniers jours</a>
+            <a href="?preset=mois" class="periode-tab <%= periode.preset === 'mois' ? 'active' : '' %>">Ce mois</a>
+            <a href="?preset=mois_precedent" class="periode-tab <%= periode.preset === 'mois_precedent' ? 'active' : '' %>">Mois précédent</a>
+            <a href="?preset=annee" class="periode-tab <%= periode.preset === 'annee' ? 'active' : '' %>">Année en cours</a>
+        </div>
+        <form method="get" style="display: flex; gap: 8px; align-items: end; flex-wrap: wrap;">
+            <div style="flex: 0 0 auto;">
+                <label class="form-label small" style="margin-bottom: 2px;">Ou plage personnalisée — du</label>
+                <input type="date" name="debut" value="<%= periode.debut %>" class="form-control form-control-sm" style="width: 160px;">
+            </div>
+            <div style="flex: 0 0 auto;">
+                <label class="form-label small" style="margin-bottom: 2px;">au</label>
+                <input type="date" name="fin" value="<%= periode.fin %>" class="form-control form-control-sm" style="width: 160px;">
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-arrow-right"></i> Appliquer</button>
+        </form>
+    </div>
+</div>
+
+<!-- KPI globaux -->
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card success">
+            <div class="kpi-icon"><i class="bi bi-cash-coin"></i></div>
+            <div class="kpi-label">CA aujourd'hui (total)</div>
+            <div class="kpi-value"><%= h.formatNombre(ca_total_jour) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta">Tous canaux confondus</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card primary">
+            <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+            <div class="kpi-label">CA total — période</div>
+            <div class="kpi-value"><%= h.formatNombre(ca_total_mois) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta"><%= h.formatDate(periode.debut) %> → <%= h.formatDate(periode.fin) %></div>
+            <% if (Number(ca_total_livraison) > 0) { %>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.08); font-size: 0.78rem;">
+                    <div style="color: var(--text-muted);">
+                        <i class="bi bi-box-seam"></i> Produits :
+                        <strong style="color: var(--success);"><%= h.formatNombre(ca_total_produits_mois) %></strong>
+                    </div>
+                    <div style="color: var(--text-muted);">
+                        <i class="bi bi-scooter"></i> Livraisons :
+                        <strong style="color: var(--gold-dark);"><%= h.formatNombre(ca_total_livraison) %></strong>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card info">
+            <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="kpi-label">Valeur des stocks</div>
+            <div class="kpi-value"><%= h.formatNombre(valeur_stock_totale) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta">Immobilisation totale</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= nb_alertes_totales > 0 ? 'danger' : 'success' %>">
+            <div class="kpi-icon"><i class="bi bi-bell"></i></div>
+            <div class="kpi-label">Alertes totales</div>
+            <div class="kpi-value"><%= nb_alertes_totales %></div>
+            <div class="kpi-meta">
+                <% if (nb_achats_saisis + nb_achats_receptionnes) { %><%= nb_achats_saisis + nb_achats_receptionnes %> achats en cours<% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Détail par activité -->
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 style="color: var(--navy);"><i class="bi bi-grid" style="color: var(--gold);"></i> Performance par activité</h5>
+        <div class="row mt-3">
+        <% stats_activites.forEach(function(a) { %>
+            <div class="col-md-6 col-lg-3 mb-3">
+                <div style="background: <%= a.couleur %>10; border-left: 4px solid <%= a.couleur %>; padding: 14px 16px; border-radius: 8px; height: 100%;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: <%= a.couleur %>; color: #fff; display: flex; align-items: center; justify-content: center;"><i class="bi <%= a.icone %>"></i></div>
+                        <strong style="color: <%= a.couleur %>;"><%= a.nom %></strong>
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">CA du jour</div>
+                    <div style="font-size: 1.2rem; font-weight: 700; color: <%= a.couleur %>;"><%= h.formatNombre(a.ca_jour) %> <small style="font-weight: 500; font-size: 0.72rem;"><%= devise %></small></div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px;">
+                        <div>CA mois : <strong><%= h.formatNombre(a.ca_mois) %></strong></div>
+                        <% if (Number(a.ca_livraison) > 0) { %>
+                            <div style="font-size: 0.72rem;">
+                                <i class="bi bi-box-seam"></i> Produits : <strong style="color: var(--success);"><%= h.formatNombre(a.ca_produits) %></strong>
+                            </div>
+                            <div style="font-size: 0.72rem;">
+                                <i class="bi bi-scooter"></i> Livraison : <strong style="color: var(--gold-dark);"><%= h.formatNombre(a.ca_livraison) %></strong>
+                            </div>
+                        <% } %>
+                        <div>Stock : <strong><%= h.formatNombre(a.valeur_stock) %></strong></div>
+                        <% if (a.nb_alertes) { %><div style="color: var(--danger);">⚠ <%= a.nb_alertes %> alerte<%= h.pluralize(a.nb_alertes) %></div><% } %>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique évolution multi-activités -->
+<div class="card">
+    <div class="card-body">
+        <h5 style="color: var(--navy);"><i class="bi bi-graph-up" style="color: var(--gold);"></i> Évolution du CA par activité — <%= h.formatDate(periode.debut) %> → <%= h.formatDate(periode.fin) %></h5>
+        <div style="position: relative; height: 380px;"><canvas id="chartConsolide"></canvas></div>
+    </div>
+</div>
+
+<script>
+const jours = <%- jours_labels %>;
+const datasets = <%- ca_datasets %>;
+new Chart(document.getElementById('chartConsolide'), {
+    type: 'line',
+    data: { labels: jours, datasets: datasets.map(d => ({ ...d, fill: false, tension: 0.3, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5 })) },
+    options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true } } }
+});
+</script>
+<%- include('../partials/footer') %>

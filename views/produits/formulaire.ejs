@@ -1,0 +1,150 @@
+<%- include('../partials/header') %>
+<style>
+.autocomplete-box { position: relative; }
+.autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; z-index: 100; background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; max-height: 280px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.08); }
+.autocomplete-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.autocomplete-item:hover { background: rgba(202, 138, 4, 0.08); }
+.autocomplete-item .titre { font-weight: 600; color: var(--text); }
+.autocomplete-item .sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+</style>
+
+<div class="page-header">
+    <div><h1 class="page-title"><%= page_title %></h1></div>
+    <a href="<%= kind === 'categorie' ? '/produits/categories/' : '/produits/fournisseurs/' %>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <% if (erreurs && erreurs.length) { %>
+            <div class="alert alert-danger">
+                <ul style="margin: 0;"><% erreurs.forEach(function(e) { %><li><%= e %></li><% }); %></ul>
+            </div>
+        <% } %>
+        <form method="post" id="form-entite">
+            <% if (kind === 'categorie') { %>
+                <div class="mb-3">
+                    <label class="form-label">Nom *</label>
+                    <% if (mode === 'creer') { %>
+                    <div class="autocomplete-box">
+                        <input type="text" class="form-control" name="nom" id="input-nom" value="<%= entite.nom || '' %>" required autocomplete="off" oninput="rechercherEntite()">
+                        <div class="autocomplete-list" id="ac-list" style="display: none;"></div>
+                    </div>
+                    <div id="warning-doublon" style="display: none; margin-top: 6px; padding: 8px 12px; background: rgba(220, 38, 38, 0.08); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 0.85rem; color: var(--danger);">
+                        <i class="bi bi-exclamation-triangle"></i> Une catégorie portant ce nom existe déjà. Utilisez plutôt la catégorie existante.
+                    </div>
+                    <% } else { %>
+                    <input type="text" class="form-control" name="nom" value="<%= entite.nom || '' %>" required>
+                    <% } %>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" name="description" rows="3"><%= entite.description || '' %></textarea>
+                </div>
+            <% } else { %>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Raison sociale *</label>
+                        <% if (mode === 'creer') { %>
+                        <div class="autocomplete-box">
+                            <input type="text" class="form-control" name="raison_sociale" id="input-nom" value="<%= entite.raison_sociale || '' %>" required autocomplete="off" oninput="rechercherEntite()">
+                            <div class="autocomplete-list" id="ac-list" style="display: none;"></div>
+                        </div>
+                        <div id="warning-doublon" style="display: none; margin-top: 6px; padding: 8px 12px; background: rgba(220, 38, 38, 0.08); border-left: 3px solid var(--danger); border-radius: 4px; font-size: 0.85rem; color: var(--danger);">
+                            <i class="bi bi-exclamation-triangle"></i> Un fournisseur portant cette raison sociale existe déjà.
+                        </div>
+                        <% } else { %>
+                        <input type="text" class="form-control" name="raison_sociale" value="<%= entite.raison_sociale || '' %>" required>
+                        <% } %>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Contact</label>
+                        <input type="text" class="form-control" name="contact" value="<%= entite.contact || '' %>">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Téléphone</label>
+                        <input type="text" class="form-control" name="telephone" value="<%= entite.telephone || '' %>">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" value="<%= entite.email || '' %>">
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Adresse</label>
+                        <textarea class="form-control" name="adresse" rows="2"><%= entite.adresse || '' %></textarea>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Délai de livraison (jours)</label>
+                        <input type="number" min="1" class="form-control" name="delai_livraison_jours" value="<%= entite.delai_livraison_jours || 7 %>">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="actif" id="actif" <%= entite.actif ? 'checked' : '' %>>
+                            <label class="form-check-label" for="actif">Fournisseur actif</label>
+                        </div>
+                    </div>
+                </div>
+            <% } %>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary" id="btn-submit"><i class="bi bi-check-lg"></i> Enregistrer</button>
+                <a href="<%= kind === 'categorie' ? '/produits/categories/' : '/produits/fournisseurs/' %>" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<% if (mode === 'creer') { %>
+<script>
+const KIND = '<%= kind %>';
+const URL_RECHERCHE = KIND === 'categorie' ? '/produits/api/rechercher-categorie' : '/produits/api/rechercher-fournisseur';
+const CHAMP_NOM = KIND === 'categorie' ? 'nom' : 'raison_sociale';
+const URL_DETAIL = KIND === 'categorie' ? '/produits/categories/' : '/produits/fournisseurs/';
+
+let existeDeja = false;
+let acTimer = null;
+
+function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function rechercherEntite() {
+    const q = document.querySelector('#input-nom').value.trim();
+    const list = document.querySelector('#ac-list');
+    const warn = document.querySelector('#warning-doublon');
+    if (q.length < 2) { list.style.display = 'none'; warn.style.display = 'none'; existeDeja = false; return; }
+    clearTimeout(acTimer);
+    acTimer = setTimeout(async () => {
+        const res = await fetch(URL_RECHERCHE + '?q=' + encodeURIComponent(q));
+        const items = await res.json();
+        if (!items.length) { list.style.display = 'none'; warn.style.display = 'none'; existeDeja = false; return; }
+        const exact = items.find(x => (x[CHAMP_NOM] || '').toLowerCase() === q.toLowerCase());
+        existeDeja = !!exact;
+        warn.style.display = exact ? 'block' : 'none';
+        list.innerHTML = items.map(x => {
+            const nom = x[CHAMP_NOM];
+            const isExact = nom.toLowerCase() === q.toLowerCase();
+            const sub = KIND === 'categorie'
+                ? `${x.nb_produits} produit(s)${x.description ? ' · ' + escapeHtml(x.description) : ''}`
+                : `${x.nb_produits} produit(s)${x.contact ? ' · ' + escapeHtml(x.contact) : ''}${x.telephone ? ' · ' + escapeHtml(x.telephone) : ''}`;
+            return `<div class="autocomplete-item" onclick="location.href='${URL_DETAIL}${x.id}/modifier'">
+                <div class="titre">${escapeHtml(nom)} ${isExact ? '<span style="color:var(--danger); font-size:0.75rem;">⚠ EXISTE DÉJÀ</span>' : ''}</div>
+                <div class="sub">${sub}</div>
+            </div>`;
+        }).join('');
+        list.style.display = 'block';
+    }, 200);
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-box')) {
+        const l = document.querySelector('#ac-list');
+        if (l) l.style.display = 'none';
+    }
+});
+
+document.querySelector('#form-entite').addEventListener('submit', (e) => {
+    if (existeDeja) {
+        e.preventDefault();
+        alert('Cet élément existe déjà. Cliquez sur la suggestion pour l\'ouvrir plutôt que créer un doublon.');
+    }
+});
+</script>
+<% } %>
+<%- include('../partials/footer') %>

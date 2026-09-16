@@ -1,0 +1,71 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">État du stock</h1>
+        <p class="page-subtitle">Valeur totale : <strong><%= h.formatNombre(total_valeur) %> <%= devise %></strong> · <%= nb_rupture %> en rupture · <%= nb_alerte %> en alerte</p>
+    </div>
+</div>
+
+<!-- Onglets par type -->
+<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+    <a href="/stocks/etat/" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= !type_filtre ? 'var(--gold)' : 'var(--surface)' %>; color: <%= !type_filtre ? '#fff' : 'var(--text)' %>; border: 1px solid <%= !type_filtre ? 'var(--gold)' : 'var(--border)' %>; font-weight: 600; font-size: 0.9rem;">
+        Tous les produits
+    </a>
+    <% ['PRODUIT_FINI', 'INGREDIENT', 'REVENTE', 'CONSOMMABLE'].forEach(function(t) {
+        const info = types_produit[t];
+        const n = compteurs_types[t] || 0;
+        const actif = type_filtre === t;
+        if (n === 0 && !actif) return;
+    %>
+        <a href="?type=<%= t %>" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; background: <%= actif ? info.couleur : info.bg %>; color: <%= actif ? '#fff' : info.couleur %>; border: 1px solid <%= actif ? info.couleur : info.bg %>; font-weight: 600; font-size: 0.9rem;">
+            <i class="bi <%= info.icone %>"></i> <%= info.libelle %> <span style="opacity: 0.8;">(<%= n %>)</span>
+        </a>
+    <% }); %>
+</div>
+
+<% if (type_filtre && types_produit[type_filtre]) { const t = types_produit[type_filtre]; %>
+    <div class="alert" style="background: <%= t.bg %>; color: <%= t.couleur %>; border-left: 4px solid <%= t.couleur %>; margin-bottom: 16px;">
+        <strong><i class="bi <%= t.icone %>"></i> <%= t.libelle %></strong> — <%= t.desc %>
+    </div>
+<% } %>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Réf.</th><th>Désignation</th><th>Catégorie</th>
+                    <th style="text-align: right;">Prix achat</th>
+                    <th style="text-align: center;">Stock</th>
+                    <th style="text-align: right;">Valeur</th>
+                    <th style="text-align: center;">État</th>
+                </tr>
+            </thead>
+            <tbody>
+            <% produits.forEach(function(p) { %>
+                <tr>
+                    <td><code><%= p.reference %></code></td>
+                    <td>
+                        <a href="/produits/<%= p.id %>"><%= p.designation %></a>
+                        <% if (p.type_produit && types_produit[p.type_produit]) { const t = types_produit[p.type_produit]; %>
+                            <br><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; background: <%= t.bg %>; color: <%= t.couleur %>; margin-top: 2px;">
+                                <i class="bi <%= t.icone %>"></i> <%= t.libelle %>
+                            </span>
+                        <% } %>
+                    </td>
+                    <td class="text-muted"><%= p.categorie_nom || '—' %></td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums;"><%= h.formatNombre(p.prix_achat) %></td>
+                    <td style="text-align: center; font-weight: 600;"><%= p.stock_actuel %></td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums;"><%= h.formatNombre(p.valeur_stock) %></td>
+                    <td style="text-align: center;">
+                        <% if (p.niveau_stock === 'RUPTURE') { %><span class="badge badge-rupture">Rupture</span>
+                        <% } else if (p.niveau_stock === 'ALERTE') { %><span class="badge badge-alerte">Alerte</span>
+                        <% } else { %><span class="badge badge-ok">OK</span><% } %>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+<%- include('../partials/footer') %>

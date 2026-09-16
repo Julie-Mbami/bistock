@@ -1,0 +1,224 @@
+<%- include('layout_header') %>
+
+<style>
+.confirm-hero {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #fff; padding: 60px 20px 40px; text-align: center;
+    position: relative; overflow: hidden;
+}
+.confirm-hero .check-circle {
+    width: 90px; height: 90px; border-radius: 50%;
+    background: #fff; color: #059669;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.5rem; margin: 0 auto 20px;
+    box-shadow: 0 8px 30px rgba(255,255,255,0.3);
+    animation: bounceIn 0.5s ease-out;
+}
+@keyframes bounceIn { 0% { transform: scale(0); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.confirm-hero h1 { font-size: 2rem; color: #fff; margin-bottom: 8px; }
+.confirm-hero p { opacity: 0.9; font-size: 1rem; max-width: 500px; margin: 0 auto 24px; }
+
+/* CTA principal dans le hero — grand, remarquable */
+.cta-suivi {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; color: #059669;
+    padding: 16px 32px; border-radius: 999px;
+    font-weight: 800; font-size: 1.05rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    transition: all 0.2s;
+    text-decoration: none;
+}
+.cta-suivi:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 32px rgba(0,0,0,0.28); }
+.cta-suivi i { font-size: 1.2rem; }
+
+/* Barre sticky en haut visible en scrollant */
+.sticky-bar {
+    position: sticky; top: 71px; z-index: 90;
+    background: #fff; border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    padding: 12px 20px;
+    transition: all 0.3s;
+}
+.sticky-inner {
+    max-width: 900px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap;
+}
+.sticky-code { font-family: 'Playfair Display', serif; color: var(--marron); font-size: 1rem; }
+.sticky-code strong { font-size: 1.15rem; letter-spacing: 0.04em; }
+.sticky-status { font-size: 0.8rem; color: var(--success); font-weight: 600; }
+.sticky-btn {
+    background: var(--marron); color: var(--or-clair);
+    padding: 10px 20px; border-radius: 999px;
+    font-weight: 700; font-size: 0.9rem;
+    transition: all 0.2s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.sticky-btn:hover { background: var(--or); color: var(--marron); }
+
+.confirm-container { max-width: 700px; margin: -40px auto 60px; padding: 0 20px; position: relative; z-index: 1; }
+
+.code-card {
+    background: var(--surface); border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    padding: 32px; text-align: center; margin-bottom: 24px;
+    border: 3px solid var(--or);
+}
+.code-card .label { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+.code-card .code {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem; font-weight: 900;
+    color: var(--marron); letter-spacing: 0.05em;
+    margin-bottom: 14px;
+    user-select: all; cursor: pointer;
+}
+.code-card .hint { font-size: 0.85rem; color: var(--text-muted); }
+
+.info-card {
+    background: var(--surface); border-radius: 18px;
+    padding: 24px; margin-bottom: 18px;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+}
+.info-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem; color: var(--marron); margin-bottom: 14px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+}
+.info-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.92rem; border-bottom: 1px dashed var(--border); }
+.info-row:last-child { border-bottom: none; }
+.info-row .label { color: var(--text-muted); }
+.info-row .val { font-weight: 600; color: var(--marron); text-align: right; }
+
+.article-line { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; }
+.article-line:last-child { border-bottom: none; }
+.article-line .qty { color: var(--text-muted); font-weight: 600; margin-right: 8px; }
+
+.total-final { display: flex; justify-content: space-between; padding: 14px 0 0; margin-top: 8px; border-top: 2px solid var(--marron); align-items: baseline; }
+.total-final .label { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron); font-size: 1.05rem; }
+.total-final .amount { font-family: 'Playfair Display', serif; font-weight: 900; color: var(--marron); font-size: 1.6rem; }
+
+.next-steps { background: var(--or-pale); border-radius: 18px; padding: 24px; margin-bottom: 18px; border: 1px solid var(--or-clair); }
+.next-steps h4 { color: var(--marron); font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 12px; }
+.next-steps ol { margin-left: 20px; color: var(--text); font-size: 0.92rem; line-height: 1.7; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.actions .btn { flex: 1; min-width: 140px; }
+</style>
+
+<section class="confirm-hero">
+    <div class="check-circle"><i class="bi bi-check-lg"></i></div>
+    <h1>Commande enregistrée !</h1>
+    <p>Merci <strong><%= commande.client_nom %></strong>, votre commande a bien été transmise. Nous préparons vos plats.</p>
+    <!-- Bouton principal remarquable dans le hero -->
+    <a href="/commander/suivi/<%= commande.code_suivi %>" class="cta-suivi">
+        <i class="bi bi-geo-alt-fill"></i> Suivre ma commande en direct
+        <i class="bi bi-arrow-right" style="margin-left: 6px;"></i>
+    </a>
+</section>
+
+<!-- Barre sticky visible même en scrollant -->
+<div class="sticky-bar" id="sticky-bar">
+    <div class="sticky-inner">
+        <div>
+            <div class="sticky-code">Commande <strong><%= commande.code_suivi %></strong></div>
+            <div class="sticky-status">✓ Enregistrée · en attente de confirmation</div>
+        </div>
+        <a href="/commander/suivi/<%= commande.code_suivi %>" class="sticky-btn">
+            <i class="bi bi-geo-alt-fill"></i> Suivre
+        </a>
+    </div>
+</div>
+
+<div class="confirm-container">
+    <!-- Code de suivi -->
+    <div class="code-card">
+        <div class="label">Votre code de suivi</div>
+        <div class="code" id="code-suivi"><%= commande.code_suivi %></div>
+        <div class="hint">💡 Ce code est déjà mémorisé sur cet appareil. Vous pouvez aussi le copier pour l'envoyer à un proche.</div>
+        <button onclick="copierCode()" class="btn btn-outline" style="margin-top: 14px; padding: 8px 16px; font-size: 0.85rem;">
+            <i class="bi bi-clipboard"></i> Copier le code
+        </button>
+    </div>
+
+    <!-- Récap commande -->
+    <div class="info-card">
+        <h3><i class="bi bi-receipt"></i> Récapitulatif</h3>
+        <% commande.lignes.forEach(function(l) { %>
+            <div class="article-line">
+                <div><span class="qty"><%= l.quantite %>×</span> <%= l.designation %></div>
+                <div style="font-weight: 700;"><%= Math.round(l.prix_unitaire * l.quantite).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</div>
+            </div>
+        <% }); %>
+        <div class="info-row" style="margin-top: 8px;"><span class="label">Sous-total</span><span class="val"><%= commande.sous_total.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></div>
+        <% if (commande.frais_livraison > 0) { %>
+            <div class="info-row"><span class="label">Frais de livraison</span><span class="val"><%= commande.frais_livraison.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></div>
+        <% } %>
+        <div class="total-final">
+            <span class="label">Total à payer à la récupération</span>
+            <span class="amount"><%= commande.total.toLocaleString('fr-FR').replace(/,/g, ' ') %> <small style="font-size: 0.7rem; font-family: Inter; font-weight: 500; color: var(--text-muted);">F</small></span>
+        </div>
+    </div>
+
+    <!-- Coordonnées + livraison -->
+    <div class="info-card">
+        <h3><i class="bi bi-<%= commande.mode_recuperation === 'LIVRAISON' ? 'scooter' : 'shop' %>"></i> <%= commande.mode_recuperation === 'LIVRAISON' ? 'Livraison à domicile' : 'Retrait sur place' %></h3>
+        <div class="info-row"><span class="label">Nom</span><span class="val"><%= commande.client_nom %></span></div>
+        <div class="info-row"><span class="label">Téléphone</span><span class="val"><%= commande.client_tel %></span></div>
+        <% if (commande.mode_recuperation === 'LIVRAISON') { %>
+            <div class="info-row"><span class="label">Quartier</span><span class="val"><%= commande.quartier %></span></div>
+            <div class="info-row"><span class="label">Adresse</span><span class="val" style="max-width: 60%; text-align: right; word-wrap: break-word;"><%= commande.adresse %></span></div>
+        <% } %>
+        <% if (commande.notes_client) { %>
+            <div class="info-row"><span class="label">Note</span><span class="val" style="max-width: 60%; text-align: right; word-wrap: break-word;"><%= commande.notes_client %></span></div>
+        <% } %>
+    </div>
+
+    <!-- Prochaines étapes -->
+    <div class="next-steps">
+        <h4>Et maintenant ?</h4>
+        <ol>
+            <li>Notre équipe reçoit votre commande <strong>immédiatement</strong> en caisse.</li>
+            <li>Nous préparons vos plats <strong>(environ 20 minutes)</strong>.</li>
+            <li>Nous vous appelons quand <%= commande.mode_recuperation === 'LIVRAISON' ? 'le livreur est en route' : 'votre commande est prête à emporter' %>.</li>
+            <li>Vous payez à la récupération (<strong>espèces</strong>, <strong>Orange Money</strong> ou <strong>MTN</strong>).</li>
+        </ol>
+    </div>
+
+    <div class="actions">
+        <a href="/commander/suivi/<%= commande.code_suivi %>" class="btn btn-primary">
+            <i class="bi bi-eye"></i> Suivre ma commande
+        </a>
+        <a href="https://wa.me/237690000000?text=Bonjour%2C%20j%27ai%20une%20question%20sur%20ma%20commande%20<%= commande.code_suivi %>" target="_blank" class="btn btn-outline">
+            <i class="bi bi-whatsapp"></i> Nous contacter
+        </a>
+        <a href="/commander/" class="btn btn-outline">
+            <i class="bi bi-arrow-repeat"></i> Nouvelle commande
+        </a>
+    </div>
+</div>
+
+<script>
+// Mémoriser cette commande dans localStorage du navigateur
+// → le client la retrouvera même s'il ferme le site et y revient plus tard
+if (typeof window.memoriserCommande === 'function') {
+    window.memoriserCommande(
+        '<%= commande.code_suivi %>',
+        <%= commande.total %>,
+        <%= commande.lignes.reduce((s, l) => s + l.quantite, 0) %>
+    );
+}
+
+function copierCode() {
+    const code = document.getElementById('code-suivi').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = event.target.closest('button');
+        const old = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Copié !';
+        btn.style.background = 'var(--success)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--success)';
+        setTimeout(() => { btn.innerHTML = old; btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+    });
+}
+</script>
+
+<%- include('layout_footer') %>

@@ -1,0 +1,597 @@
+<%- include('layout_header') %>
+
+<style>
+.checkout-hero {
+    background: linear-gradient(135deg, var(--marron) 0%, #4A2F1E 100%);
+    color: #fff;
+    padding: 24px 20px 18px;
+    text-align: center;
+}
+.checkout-hero .eyebrow { color: var(--or); font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; font-size: 0.72rem; display: block; margin-bottom: 6px; }
+.checkout-hero h1 { font-size: 1.55rem; color: #fff; }
+
+.checkout-container {
+    max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px;
+    display: grid; grid-template-columns: 1fr 320px; gap: 22px;
+}
+@media (max-width: 900px) { .checkout-container { grid-template-columns: 1fr; padding-top: 18px; } }
+
+
+.form-card {
+    background: var(--surface); border-radius: 16px;
+    padding: 18px 20px; margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+.form-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem; color: var(--marron); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.form-card h3 .step {
+    background: var(--or); color: var(--marron);
+    width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Inter'; font-weight: 800; font-size: 0.78rem;
+    flex-shrink: 0;
+}
+.form-group { margin-bottom: 12px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-group label { display: block; font-weight: 600; color: var(--marron); margin-bottom: 6px; font-size: 0.82rem; }
+.form-group label .required { color: var(--danger); }
+.form-group input, .form-group textarea, .form-group select {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 0.92rem; background: var(--surface);
+    transition: all 0.15s; font-family: inherit;
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    outline: none; border-color: var(--or); box-shadow: 0 0 0 4px rgba(184,134,11,0.1);
+}
+.form-group small { display: block; margin-top: 4px; color: var(--text-muted); font-size: 0.74rem; }
+
+/* Grille 2 colonnes pour champs courts (nom + tel côte à côte sur desktop) */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.mode-choix { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mode-btn {
+    padding: 14px 12px; border-radius: 12px;
+    border: 2px solid var(--border); background: var(--surface);
+    text-align: center; font-weight: 700; font-size: 0.9rem;
+    color: var(--text); transition: all 0.15s;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    cursor: pointer;
+}
+.mode-btn i { font-size: 1.5rem; color: var(--text-muted); }
+.mode-btn small { font-weight: 400; font-size: 0.72rem; color: var(--text-muted); }
+.mode-btn.active { border-color: var(--or); background: var(--or-pale); color: var(--marron); box-shadow: 0 4px 12px rgba(184,134,11,0.15); }
+.mode-btn.active i, .mode-btn.active small { color: var(--marron); }
+
+.livraison-fields { display: none; margin-top: 12px; padding: 14px; background: var(--creme-fonce); border-radius: 12px; }
+.livraison-fields.visible { display: block; }
+
+/* Bloc code marchand Mobile Money — apparaît dynamiquement selon le mode choisi */
+.merchant-code {
+    display: none;
+    margin-top: 12px; padding: 14px 16px;
+    border-radius: 12px; border: 1.5px dashed;
+    align-items: center; gap: 14px;
+    animation: slideDown 0.25s ease;
+}
+.merchant-code.visible { display: flex; }
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.merchant-code.orange { background: #FFF7ED; border-color: #EA580C; color: #7C2D12; }
+.merchant-code.mtn    { background: #FEFCE8; border-color: #CA8A04; color: #713F12; }
+.merchant-code .mc-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+}
+.merchant-code.orange .mc-icon { background: #EA580C; color: #fff; }
+.merchant-code.mtn    .mc-icon { background: #CA8A04; color: #fff; }
+.merchant-code .mc-text { flex: 1; }
+.merchant-code .mc-text .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+.merchant-code .mc-text .code {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900; font-size: 1.5rem;
+    letter-spacing: 0.02em; margin-top: 2px;
+    user-select: all;
+}
+.merchant-code .mc-copy {
+    background: rgba(255,255,255,0.7); border: 1px solid currentColor;
+    color: inherit; padding: 8px 12px; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    flex-shrink: 0; transition: all 0.15s;
+}
+.merchant-code .mc-copy:hover { background: #fff; transform: translateY(-1px); }
+.merchant-code .mc-copy.copie { background: var(--success); color: #fff; border-color: var(--success); }
+.merchant-code .mc-warning {
+    grid-column: 1 / -1; margin-top: 8px;
+    font-size: 0.78rem; opacity: 0.8;
+    display: flex; align-items: center; gap: 6px;
+}
+
+.paiement-info {
+    text-align: center; padding: 16px;
+    background: var(--or-pale); border-radius: 12px;
+    color: var(--marron);
+}
+.paiement-info .icon { font-size: 2.2rem; color: var(--or); margin-bottom: 6px; }
+.paiement-info strong { display: block; font-size: 1rem; margin-bottom: 4px; }
+.paiement-info small { font-size: 0.8rem; opacity: 0.85; }
+
+.recap-sticky { position: sticky; top: 100px; }
+.recap-mini {
+    background: var(--surface); border-radius: 16px;
+    padding: 18px 20px; box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+.recap-mini .title { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--marron); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.recap-articles { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; max-height: 200px; overflow-y: auto; }
+.recap-article { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+.recap-article .mini-photo { width: 42px; height: 42px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: linear-gradient(135deg, var(--or-clair), var(--or-pale)); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+.recap-article .mini-photo img { width: 100%; height: 100%; object-fit: cover; }
+.recap-article .name { flex: 1; font-weight: 600; color: var(--text); }
+.recap-article .name small { display: block; color: var(--text-muted); font-weight: 400; font-size: 0.75rem; }
+.recap-article .prix { font-weight: 700; color: var(--marron); font-size: 0.9rem; }
+
+.recap-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.88rem; }
+.recap-line .label { color: var(--text-muted); }
+.recap-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-top: 12px; margin-top: 8px;
+    border-top: 2px dashed var(--border);
+}
+.recap-total .label { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron); font-size: 1rem; }
+.recap-total .amount { font-family: 'Playfair Display', serif; font-weight: 900; color: var(--marron); font-size: 1.7rem; }
+
+.confirm-btn {
+    background: var(--success); color: #fff;
+    padding: 15px 20px; border-radius: 12px;
+    font-weight: 800; font-size: 1rem;
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 6px 20px rgba(5,150,105,0.3);
+    transition: all 0.2s;
+    margin-top: 14px; border: none; cursor: pointer;
+}
+.confirm-btn:hover { background: #047857; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(5,150,105,0.4); }
+.confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+</style>
+
+<section class="checkout-hero">
+    <% if (locals.modification) { %>
+        <span class="eyebrow" style="color: var(--or-clair);">Modification en cours</span>
+        <h1>Modifier votre commande</h1>
+        <p style="opacity: 0.85; font-size: 0.9rem; margin-top: 8px;">Commande <strong><%= modification.code_suivi %></strong> · Validez pour appliquer les changements</p>
+    <% } else { %>
+        <span class="eyebrow">Dernière étape</span>
+        <h1>Finaliser votre commande</h1>
+    <% } %>
+</section>
+
+<div class="checkout-container">
+    <form action="/commander/checkout" method="post" id="checkout-form">
+        <!-- Étape 1 : Paiement — placé en haut pour être visible dès l'ouverture -->
+        <div class="form-card">
+            <h3><span class="step">1</span> Comment paierez-vous ?
+                <span style="margin-left: auto; font-family: 'Inter'; font-weight: 400; font-size: 0.72rem; color: var(--text-muted);" title="Vous paierez à la réception. Ce choix nous aide à préparer votre encaissement.">
+                    <i class="bi bi-info-circle"></i> À la réception
+                </span>
+            </h3>
+            <% var payInit = locals.modification && modification.mode_paiement_prevu ? modification.mode_paiement_prevu : 'ESPECES'; %>
+            <div class="mode-choix" style="grid-template-columns: repeat(3, 1fr);">
+                <label style="cursor: pointer; margin: 0;">
+                    <input type="radio" name="mode_paiement_prevu" value="ESPECES" required style="display: none;" class="pay-radio" <%= payInit === 'ESPECES' ? 'checked' : '' %>>
+                    <div class="mode-btn <%= payInit === 'ESPECES' ? 'active' : '' %>" data-mode="ESPECES">
+                        <i class="bi bi-cash-stack" style="color: #059669;"></i>
+                        Espèces
+                    </div>
+                </label>
+                <label style="cursor: pointer; margin: 0;">
+                    <input type="radio" name="mode_paiement_prevu" value="ORANGE" required style="display: none;" class="pay-radio" <%= payInit === 'ORANGE' ? 'checked' : '' %>>
+                    <div class="mode-btn <%= payInit === 'ORANGE' ? 'active' : '' %>" data-mode="ORANGE">
+                        <i class="bi bi-phone-vibrate" style="color: #EA580C;"></i>
+                        Orange Money
+                    </div>
+                </label>
+                <label style="cursor: pointer; margin: 0;">
+                    <input type="radio" name="mode_paiement_prevu" value="MTN" required style="display: none;" class="pay-radio" <%= payInit === 'MTN' ? 'checked' : '' %>>
+                    <div class="mode-btn <%= payInit === 'MTN' ? 'active' : '' %>" data-mode="MTN">
+                        <i class="bi bi-phone-vibrate" style="color: #CA8A04;"></i>
+                        MTN Money
+                    </div>
+                </label>
+            </div>
+
+            <!-- Code marchand Orange Money -->
+            <% if (locals.orange_code) { %>
+            <div class="merchant-code orange <%= payInit === 'ORANGE' ? 'visible' : '' %>" id="code-orange">
+                <div class="mc-icon"><i class="bi bi-phone-vibrate"></i></div>
+                <div class="mc-text">
+                    <div class="label">Code marchand Orange Money</div>
+                    <div class="code" id="code-orange-val"><%= locals.orange_code %></div>
+                </div>
+                <button type="button" class="mc-copy" onclick="copierCode('<%= locals.orange_code %>', this)">
+                    <i class="bi bi-clipboard"></i> Copier
+                </button>
+            </div>
+            <% } %>
+
+            <!-- Code marchand MTN Money -->
+            <% if (locals.mtn_code) { %>
+            <div class="merchant-code mtn <%= payInit === 'MTN' ? 'visible' : '' %>" id="code-mtn">
+                <div class="mc-icon"><i class="bi bi-phone-vibrate"></i></div>
+                <div class="mc-text">
+                    <div class="label">Code marchand MTN Mobile Money</div>
+                    <div class="code" id="code-mtn-val"><%= locals.mtn_code %></div>
+                </div>
+                <button type="button" class="mc-copy" onclick="copierCode('<%= locals.mtn_code %>', this)">
+                    <i class="bi bi-clipboard"></i> Copier
+                </button>
+            </div>
+            <% } %>
+
+            <% if (!locals.orange_code && !locals.mtn_code) { %>
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin-top: 10px; font-style: italic;">
+                <i class="bi bi-info-circle"></i> Codes marchand Mobile Money non configurés. Contactez-nous pour les instructions de paiement.
+            </p>
+            <% } %>
+        </div>
+
+        <!-- Étape 2 : Coordonnées (nom + tel sur la même ligne) -->
+        <div class="form-card">
+            <h3><span class="step">2</span> Vos coordonnées</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Nom complet <span class="required">*</span></label>
+                    <input type="text" name="nom" required placeholder="Ex : Jean-Paul Kamga" maxlength="120" value="<%= locals.modification && modification.client_nom || '' %>">
+                </div>
+                <div class="form-group">
+                    <label>Téléphone (WhatsApp) <span class="required">*</span></label>
+                    <input type="tel" name="tel" id="input-tel" required placeholder="+237 6XX XX XX XX" maxlength="30"
+                           value="<%= locals.modification && modification.client_tel || '' %>"
+                           pattern="^\s*(\+?237)?\s*[62]\d{2}\s*\d{2}\s*\d{2}\s*\d{2}\s*$"
+                           title="Format Cameroun : +237 6XX XX XX XX ou 6XX XX XX XX">
+                    <small id="tel-hint" style="display: none;"></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Étape 3 : Mode de réception + Notes (fusionnés) -->
+        <div class="form-card">
+            <h3><span class="step">3</span> Comment souhaitez-vous la recevoir ?</h3>
+            <% var modeInit = locals.modification && modification.mode_recuperation ? modification.mode_recuperation : 'RETRAIT'; %>
+            <input type="hidden" name="mode_recuperation" id="input-mode" value="<%= modeInit %>">
+            <div class="mode-choix">
+                <div class="mode-btn <%= modeInit === 'RETRAIT' ? 'active' : '' %>" id="btn-retrait" data-mode="RETRAIT">
+                    <i class="bi bi-bag-check"></i>
+                    À emporter
+                    <small>Prête chez nous</small>
+                </div>
+                <div class="mode-btn <%= modeInit === 'LIVRAISON' ? 'active' : '' %>" id="btn-livraison" data-mode="LIVRAISON">
+                    <i class="bi bi-scooter"></i>
+                    Livraison
+                    <small><%= frais_livraison.toLocaleString('fr-FR').replace(/,/g, ' ') %> FCFA · Douala</small>
+                </div>
+            </div>
+
+            <div class="livraison-fields <%= modeInit === 'LIVRAISON' ? 'visible' : '' %>" id="livraison-fields">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Quartier <span class="required">*</span></label>
+                        <% var quartierInit = locals.modification && modification.quartier || ''; %>
+                        <input type="text" list="liste-quartiers" name="quartier" id="input-quartier"
+                               value="<%= quartierInit %>" maxlength="60"
+                               placeholder="Ex : Bonanjo, Akwa..."
+                               autocomplete="off">
+                        <datalist id="liste-quartiers">
+                            <% ['Akwa','Bonanjo','Bonapriso','Bali','Deido','New Bell','Bepanda','Makepe','Logbaba','Village','PK 8','PK 12','PK 14','PK 16','Ndogbong','Bonaberi','Bonamoussadi','Kotto','Nyalla','Bassa','Ndokotti','Rond-point Deido','Yassa'].forEach(function(q) { %>
+                                <option value="<%= q %>"></option>
+                            <% }); %>
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Adresse détaillée <span class="required">*</span></label>
+                        <input type="text" name="adresse" id="input-adresse" placeholder="Rue, repères visuels..." value="<%= locals.modification && modification.adresse || '' %>">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes optionnelles inline -->
+            <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                <label style="font-weight: 500; color: var(--text-muted); font-size: 0.8rem;">Une précision ? <em style="font-style: normal; opacity: 0.7;">(optionnel)</em></label>
+                <textarea name="notes" rows="2" maxlength="300" placeholder="Ex : sans oignons, bien cuit, urgent pour 13h..."><%= locals.modification && modification.notes_client || '' %></textarea>
+            </div>
+        </div>
+
+    </form>
+
+    <!-- Sidebar récap -->
+    <div class="recap-sticky">
+        <div class="recap-mini">
+            <div class="title">Récapitulatif</div>
+            <div class="recap-articles">
+                <% panier.items.forEach(function(it) { %>
+                    <div class="recap-article">
+                        <div class="mini-photo">
+                            <% if (it.image) { %>
+                                <img src="/media/<%= it.image %>" alt="">
+                            <% } else { %>
+                                <%= it.emoji %>
+                            <% } %>
+                        </div>
+                        <div class="name"><%= it.designation %> <small>× <%= it.quantite %></small></div>
+                        <div class="prix"><%= it.total.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</div>
+                    </div>
+                <% }); %>
+            </div>
+
+            <div class="recap-line"><span class="label">Sous-total</span><span id="ligne-sous-total"><%= panier.sous_total.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></div>
+
+            <!-- Code promo -->
+            <div class="code-promo-bloc" style="margin: 12px 0; padding: 10px; background: rgba(202,138,4,0.06); border-radius: 10px; border: 1px dashed rgba(202,138,4,0.3);">
+                <label style="display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; margin-bottom: 6px;">
+                    <i class="bi bi-ticket-perforated"></i> Code promo (facultatif)
+                </label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="input-promo" name="code_promo" maxlength="20"
+                           placeholder="Ex : BIENVENUE20"
+                           form="checkout-form"
+                           style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+                                  text-transform: uppercase; font-family: monospace; font-weight: 700; letter-spacing: 0.05em;
+                                  background: #fff; color: #0F172A;">
+                    <button type="button" id="btn-appliquer-promo"
+                            style="padding: 8px 14px; border-radius: 8px; border: none;
+                                   background: var(--marron); color: var(--or-clair); font-weight: 700; cursor: pointer; font-size: 0.82rem;">
+                        Appliquer
+                    </button>
+                </div>
+                <div id="promo-feedback" style="margin-top: 8px; font-size: 0.82rem; display: none;"></div>
+            </div>
+
+            <div class="recap-line" id="ligne-remise-row" style="display: none; color: #DC2626;">
+                <span class="label">Remise <span id="ligne-remise-code" style="font-weight: 700; font-size: 0.85rem;"></span></span>
+                <span>−<span id="ligne-remise">0</span> F</span>
+            </div>
+            <div class="recap-line" id="ligne-frais-row" style="display: none;"><span class="label">Livraison</span><span id="ligne-frais"><%= frais_livraison.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span></div>
+
+            <div class="recap-total">
+                <span class="label">À payer</span>
+                <span class="amount"><span id="ligne-total"><%= panier.sous_total.toLocaleString('fr-FR').replace(/,/g, ' ') %></span> <small style="font-size: 0.75rem; font-family: Inter; font-weight: 500; color: var(--text-muted);">F</small></span>
+            </div>
+
+            <button type="submit" form="checkout-form" class="confirm-btn">
+                <i class="bi bi-check-circle-fill"></i> <%= locals.modification ? 'Enregistrer les modifications' : 'Valider ma commande' %>
+            </button>
+
+            <p style="text-align: center; font-size: 0.72rem; color: var(--text-muted); margin-top: 12px; line-height: 1.5;">
+                <i class="bi bi-shield-check"></i> Vos informations sont confidentielles.<br>
+                Aucun compte à créer.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+const SOUS_TOTAL = <%= panier.sous_total %>;
+const FRAIS = <%= frais_livraison %>;
+const SEUIL_LIVRAISON_GRATUITE = <%= locals.web_livraison_gratuite_seuil || 0 %>;
+// Frais offerts si seuil atteint (par le seuil, indépendamment de la promo)
+const FRAIS_APPLIQUE_BASE = (SEUIL_LIVRAISON_GRATUITE > 0 && SOUS_TOTAL >= SEUIL_LIVRAISON_GRATUITE) ? 0 : FRAIS;
+// État promo courant
+let promoActive = null; // { remise: 0, livraison_offerte: false, code }
+let FRAIS_APPLIQUE = FRAIS_APPLIQUE_BASE;
+const btnRetrait = document.getElementById('btn-retrait');
+const btnLivraison = document.getElementById('btn-livraison');
+const inputMode = document.getElementById('input-mode');
+const livraisonFields = document.getElementById('livraison-fields');
+const inputQuartier = document.getElementById('input-quartier');
+const inputAdresse = document.getElementById('input-adresse');
+const ligneFrais = document.getElementById('ligne-frais');
+const ligneTotal = document.getElementById('ligne-total');
+
+function fmt(n) { return Math.round(n).toLocaleString('fr-FR').replace(/,/g, ' '); }
+
+const ligneFraisRow = document.getElementById('ligne-frais-row');
+
+function setMode(mode) {
+    inputMode.value = mode;
+    if (mode === 'RETRAIT') {
+        btnRetrait.classList.add('active'); btnLivraison.classList.remove('active');
+        livraisonFields.classList.remove('visible');
+        inputQuartier.required = false; inputAdresse.required = false;
+        if (ligneFraisRow) ligneFraisRow.style.display = 'none';
+        ligneTotal.textContent = fmt(SOUS_TOTAL);
+    } else {
+        btnLivraison.classList.add('active'); btnRetrait.classList.remove('active');
+        livraisonFields.classList.add('visible');
+        inputQuartier.required = true; inputAdresse.required = true;
+        if (ligneFraisRow) ligneFraisRow.style.display = '';
+        recalculerTotal();
+    }
+}
+
+function recalculerTotal() {
+    // Livraison offerte si : seuil atteint OU promo type LIVRAISON_OFFERTE
+    const promoLivraison = promoActive && promoActive.livraison_offerte;
+    const fraisFinal = (inputMode.value === 'LIVRAISON')
+        ? (promoLivraison ? 0 : FRAIS_APPLIQUE_BASE)
+        : 0;
+    const remise = promoActive ? promoActive.remise : 0;
+    // Ligne frais
+    if (inputMode.value === 'LIVRAISON') {
+        if (fraisFinal === 0 && FRAIS > 0) {
+            const raison = promoLivraison ? 'Offerte (promo) 🎉' : 'Offerte 🎉';
+            ligneFrais.innerHTML = '<span style="color: #10B981; font-weight: 700;">' + raison + '</span>';
+        } else {
+            ligneFrais.textContent = fmt(FRAIS) + ' F';
+        }
+    }
+    // Ligne remise
+    const remiseRow = document.getElementById('ligne-remise-row');
+    if (remise > 0) {
+        remiseRow.style.display = '';
+        document.getElementById('ligne-remise').textContent = fmt(remise);
+        document.getElementById('ligne-remise-code').textContent = '(' + (promoActive.code || '') + ')';
+    } else {
+        remiseRow.style.display = 'none';
+    }
+    // Total
+    ligneTotal.textContent = fmt(Math.max(0, SOUS_TOTAL - remise + fraisFinal));
+}
+btnRetrait.addEventListener('click', () => setMode('RETRAIT'));
+btnLivraison.addEventListener('click', () => setMode('LIVRAISON'));
+
+// ==== Code promo ====
+const btnPromo = document.getElementById('btn-appliquer-promo');
+const inputPromo = document.getElementById('input-promo');
+const promoFeedback = document.getElementById('promo-feedback');
+const inputTelPromo = document.getElementById('input-tel');
+
+function afficherFeedbackPromo(ok, message) {
+    promoFeedback.style.display = '';
+    promoFeedback.style.padding = '8px 10px';
+    promoFeedback.style.borderRadius = '6px';
+    promoFeedback.style.fontWeight = '600';
+    if (ok) {
+        promoFeedback.style.background = 'rgba(16,185,129,0.1)';
+        promoFeedback.style.color = '#065F46';
+        promoFeedback.innerHTML = '<i class="bi bi-check-circle-fill"></i> ' + message;
+    } else {
+        promoFeedback.style.background = 'rgba(220,38,38,0.08)';
+        promoFeedback.style.color = '#991B1B';
+        promoFeedback.innerHTML = '<i class="bi bi-x-circle-fill"></i> ' + message;
+    }
+}
+
+btnPromo.addEventListener('click', function() {
+    const code = (inputPromo.value || '').trim().toUpperCase();
+    inputPromo.value = code;
+    if (!code) { afficherFeedbackPromo(false, 'Veuillez saisir un code'); return; }
+    btnPromo.disabled = true;
+    btnPromo.textContent = '…';
+    fetch('/commander/api/promo/verifier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, tel: (inputTelPromo && inputTelPromo.value) || '' }),
+    })
+        .then(r => r.json())
+        .then(data => {
+            btnPromo.disabled = false;
+            btnPromo.textContent = 'Appliquer';
+            if (data.ok) {
+                promoActive = { remise: data.remise, livraison_offerte: data.livraison_offerte, code };
+                inputPromo.readOnly = true;
+                inputPromo.style.background = 'rgba(16,185,129,0.05)';
+                btnPromo.textContent = 'Retirer';
+                btnPromo.style.background = '#DC2626';
+                afficherFeedbackPromo(true, data.message);
+                recalculerTotal();
+            } else {
+                promoActive = null;
+                afficherFeedbackPromo(false, data.message || 'Code invalide');
+                recalculerTotal();
+            }
+        })
+        .catch(() => {
+            btnPromo.disabled = false;
+            btnPromo.textContent = 'Appliquer';
+            afficherFeedbackPromo(false, 'Erreur de connexion, réessayez');
+        });
+});
+
+// Cliquer sur "Retirer" quand la promo est appliquée
+btnPromo.addEventListener('click', function(e) {
+    if (btnPromo.textContent === 'Retirer') {
+        promoActive = null;
+        inputPromo.value = '';
+        inputPromo.readOnly = false;
+        inputPromo.style.background = '';
+        btnPromo.textContent = 'Appliquer';
+        btnPromo.style.background = 'var(--marron)';
+        promoFeedback.style.display = 'none';
+        recalculerTotal();
+        e.stopImmediatePropagation();
+    }
+}, true);
+
+// Restaurer le mode choisi depuis le cookie du panier
+const cookieMode = document.cookie.split('; ').find(c => c.startsWith('mode_recup='));
+if (cookieMode && cookieMode.split('=')[1] === 'LIVRAISON') setMode('LIVRAISON');
+
+// Validation téléphone Cameroun en direct
+const inputTel = document.getElementById('input-tel');
+const telHint = document.getElementById('tel-hint');
+const regexTel = /^\s*(\+?237)?\s*[62]\d{2}\s*\d{2}\s*\d{2}\s*\d{2}\s*$/;
+inputTel.addEventListener('input', function() {
+    if (!this.value.trim()) {
+        this.style.borderColor = '';
+        telHint.style.display = 'none';
+        return;
+    }
+    telHint.style.display = 'block';
+    if (regexTel.test(this.value)) {
+        this.style.borderColor = 'var(--success)';
+        this.setCustomValidity('');
+        telHint.innerHTML = '<i class="bi bi-check-circle-fill" style="color: var(--success);"></i> Numéro valide';
+        telHint.style.color = 'var(--success)';
+    } else {
+        this.style.borderColor = 'var(--danger)';
+        this.setCustomValidity('Numéro invalide. Format attendu : +237 6XX XX XX XX');
+        telHint.innerHTML = '<i class="bi bi-exclamation-circle-fill" style="color: var(--danger);"></i> Format : +237 6XX XX XX XX';
+        telHint.style.color = 'var(--danger)';
+    }
+});
+
+// Choix du mode de paiement (radio cards)
+const blocOrange = document.getElementById('code-orange');
+const blocMtn = document.getElementById('code-mtn');
+
+function majBlocsPaiement(valeur) {
+    if (blocOrange) blocOrange.classList.toggle('visible', valeur === 'ORANGE');
+    if (blocMtn) blocMtn.classList.toggle('visible', valeur === 'MTN');
+}
+
+document.querySelectorAll('.pay-radio').forEach(radio => {
+    radio.addEventListener('change', function() {
+        document.querySelectorAll('.pay-radio').forEach(r => {
+            r.nextElementSibling.classList.remove('active');
+        });
+        this.nextElementSibling.classList.add('active');
+        majBlocsPaiement(this.value);
+    });
+});
+
+// Init : afficher le bloc du mode sélectionné par défaut
+majBlocsPaiement(document.querySelector('.pay-radio:checked')?.value);
+
+// Copie du code marchand dans le presse-papier
+window.copierCode = async function(code, btn) {
+    try {
+        await navigator.clipboard.writeText(code);
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Copié !';
+        btn.classList.add('copie');
+        setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copie'); }, 1800);
+    } catch(e) {
+        // Fallback pour navigateurs anciens
+        const ta = document.createElement('textarea');
+        ta.value = code; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch(err) {}
+        document.body.removeChild(ta);
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Copié !';
+        btn.classList.add('copie');
+        setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copie'); }, 1800);
+    }
+};
+</script>
+
+<%- include('layout_footer') %>

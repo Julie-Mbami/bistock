@@ -1,0 +1,47 @@
+<%
+// Partial de filtre par période (dates) — inclusible dans n'importe quelle liste.
+// Variables attendues : periode = { debut, fin, preset, label } (issu de h.resoudrePeriode)
+// Options : locals.autresFiltres = objet des autres query params à préserver
+const _p = locals.periode || { debut: null, fin: null, preset: 'tous', label: 'Toutes les dates' };
+const _autres = locals.autresFiltres || {};
+%>
+<style>
+.filtre-periode { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+.filtre-periode .preset-btn {
+    padding: 4px 10px; font-size: 0.78rem; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    text-decoration: none; font-weight: 500; transition: all 0.15s;
+}
+.filtre-periode .preset-btn:hover { background: var(--bg-soft); border-color: #94a3b8; }
+.filtre-periode .preset-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); }
+.filtre-periode .date-range { display: flex; align-items: center; gap: 4px; margin-left: 6px; padding-left: 10px; border-left: 1px solid var(--border); }
+.filtre-periode .date-range input[type="date"] { padding: 3px 6px; font-size: 0.78rem; border-radius: 5px; border: 1px solid var(--border); }
+.filtre-periode .date-range button { padding: 3px 10px; font-size: 0.78rem; }
+.filtre-periode-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #FEF3C7; color: #92400E; border-radius: 12px; font-size: 0.72rem; font-weight: 600; margin-left: 8px; }
+</style>
+
+<form method="get" class="filtre-periode">
+    <% Object.entries(_autres).forEach(function(entry) { if (entry[1] !== undefined && entry[1] !== null && entry[1] !== '') { %>
+        <input type="hidden" name="<%= entry[0] %>" value="<%= entry[1] %>">
+    <% } }); %>
+
+    <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin-right: 4px;"><i class="bi bi-calendar-range"></i> Période :</span>
+    <a href="?<%= new URLSearchParams(Object.assign({}, _autres, { preset: 'tous' })).toString() %>" class="preset-btn <%= _p.preset === 'tous' ? 'active' : '' %>">Toutes</a>
+    <a href="?<%= new URLSearchParams(Object.assign({}, _autres, { preset: 'aujourdhui' })).toString() %>" class="preset-btn <%= _p.preset === 'aujourdhui' ? 'active' : '' %>">Aujourd'hui</a>
+    <a href="?<%= new URLSearchParams(Object.assign({}, _autres, { preset: '7j' })).toString() %>" class="preset-btn <%= _p.preset === '7j' ? 'active' : '' %>">7 j</a>
+    <a href="?<%= new URLSearchParams(Object.assign({}, _autres, { preset: '30j' })).toString() %>" class="preset-btn <%= _p.preset === '30j' ? 'active' : '' %>">30 j</a>
+    <a href="?<%= new URLSearchParams(Object.assign({}, _autres, { preset: 'mois' })).toString() %>" class="preset-btn <%= _p.preset === 'mois' ? 'active' : '' %>">Ce mois</a>
+    <a href="?<%= new URLSearchParams(Object.assign({}, _autres, { preset: 'mois_precedent' })).toString() %>" class="preset-btn <%= _p.preset === 'mois_precedent' ? 'active' : '' %>">Mois -1</a>
+    <a href="?<%= new URLSearchParams(Object.assign({}, _autres, { preset: 'annee' })).toString() %>" class="preset-btn <%= _p.preset === 'annee' ? 'active' : '' %>">Année</a>
+
+    <div class="date-range">
+        <input type="date" name="debut" value="<%= _p.debut || '' %>" title="Date de début">
+        <span style="color: var(--text-muted);">→</span>
+        <input type="date" name="fin" value="<%= _p.fin || '' %>" title="Date de fin">
+        <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-funnel"></i></button>
+    </div>
+
+    <% if (_p.preset !== 'tous') { %>
+        <span class="filtre-periode-badge"><i class="bi bi-check-circle-fill"></i> <%= _p.label %></span>
+    <% } %>
+</form>

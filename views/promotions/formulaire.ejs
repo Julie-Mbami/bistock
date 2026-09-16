@@ -1,0 +1,242 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-megaphone-fill" style="color: var(--or);"></i> <%= mode === 'creer' ? 'Nouvelle promotion' : 'Modifier ' + promo.nom %></h1>
+        <p class="page-subtitle">Codes promo, réductions temporaires, offres ciblées</p>
+    </div>
+    <div>
+        <a href="/admin/promotions/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    </div>
+</div>
+
+<% if (erreurs && erreurs.length) { %>
+<div class="alert alert-danger">
+    <strong>Erreurs :</strong>
+    <ul style="margin: 4px 0 0; padding-left: 20px;">
+        <% erreurs.forEach(function(e) { %><li><%= e %></li><% }); %>
+    </ul>
+</div>
+<% } %>
+
+<form method="post">
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Informations générales</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Nom interne *</label>
+                        <input type="text" name="nom" class="form-control" required maxlength="80"
+                               value="<%= promo.nom || '' %>" placeholder="Ex : Ramadan 2026, Bienvenue nouveau client">
+                        <small class="text-muted">Visible uniquement en interne. Le client ne verra pas ce nom.</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Code promo</label>
+                        <input type="text" name="code" class="form-control" maxlength="20" style="text-transform: uppercase;"
+                               value="<%= promo.code || '' %>" placeholder="Ex : BIENVENUE20">
+                        <small class="text-muted">Laisser vide = promo automatique</small>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description (visible au client si code valide)</label>
+                    <textarea name="description" class="form-control" rows="2" maxlength="200"
+                              placeholder="Ex : -20% pour votre première commande"><%= promo.description || '' %></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-percent"></i> Type et valeur de la réduction</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Type de remise *</label>
+                        <select name="type" id="type-select" class="form-select" required>
+                            <option value="POURCENTAGE" <%= promo.type === 'POURCENTAGE' ? 'selected' : '' %>>Pourcentage (%)</option>
+                            <option value="MONTANT_FIXE" <%= promo.type === 'MONTANT_FIXE' ? 'selected' : '' %>>Montant fixe (FCFA)</option>
+                            <option value="LIVRAISON_OFFERTE" <%= promo.type === 'LIVRAISON_OFFERTE' ? 'selected' : '' %>>Livraison offerte</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3" id="valeur-bloc">
+                        <label class="form-label" id="valeur-label">Valeur *</label>
+                        <div class="input-group">
+                            <input type="number" name="valeur" class="form-control" min="0" step="1" required
+                                   value="<%= promo.valeur || 0 %>">
+                            <span class="input-group-text" id="valeur-suffix"><%= promo.type === 'MONTANT_FIXE' ? 'FCFA' : '%' %></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Panier minimum (FCFA)</label>
+                        <div class="input-group">
+                            <input type="number" name="panier_min" class="form-control" min="0" step="500"
+                                   value="<%= promo.panier_min || 0 %>">
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                        <small class="text-muted">0 = pas de minimum</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-crosshair"></i> Cible de la promotion</div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">La remise s'applique sur les produits qui correspondent aux critères ci-dessous. Laisser tout vide = s'applique à tout le catalogue web.</p>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Activité</label>
+                        <select name="activite_id" class="form-select">
+                            <option value="">Toutes activités web</option>
+                            <% activites.forEach(function(a) { %>
+                                <option value="<%= a.id %>" <%= promo.activite_id == a.id ? 'selected' : '' %>><%= a.code %> · <%= a.nom %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Catégorie</label>
+                        <select name="categorie_id" class="form-select">
+                            <option value="">Toutes catégories</option>
+                            <% categories.forEach(function(c) { %>
+                                <option value="<%= c.id %>" <%= promo.categorie_id == c.id ? 'selected' : '' %>><%= c.nom %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Produit précis</label>
+                        <select name="produit_id" class="form-select">
+                            <option value="">Aucun (ne cible pas un produit unique)</option>
+                            <% produits.forEach(function(pr) { %>
+                                <option value="<%= pr.id %>" <%= promo.produit_id == pr.id ? 'selected' : '' %>><%= pr.designation %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-calendar-range"></i> Période & limites</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Date de début</label>
+                    <input type="date" name="date_debut" class="form-control" value="<%= promo.date_debut || '' %>">
+                    <small class="text-muted">Vide = actif immédiatement</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Date de fin</label>
+                    <input type="date" name="date_fin" class="form-control" value="<%= promo.date_fin || '' %>">
+                    <small class="text-muted">Vide = pas de fin</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nombre total d'utilisations max</label>
+                    <input type="number" name="usage_max" class="form-control" min="1" value="<%= promo.usage_max || '' %>">
+                    <small class="text-muted">Vide = illimité</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Max par client (téléphone)</label>
+                    <input type="number" name="usage_par_client" class="form-control" min="1" value="<%= promo.usage_par_client || '' %>">
+                    <small class="text-muted">Vide = illimité — utile pour les codes "1ère commande"</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-clock-history"></i> Créneau horaire (Happy Hour)</div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Laisser tout vide = actif toute la journée, tous les jours.</p>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label small">Heure début</label>
+                        <input type="time" name="heure_debut" class="form-control form-control-sm" value="<%= promo.heure_debut || '' %>">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label small">Heure fin</label>
+                        <input type="time" name="heure_fin" class="form-control form-control-sm" value="<%= promo.heure_fin || '' %>">
+                    </div>
+                </div>
+                <label class="form-label small">Jours actifs (vide = tous)</label>
+                <% const joursActuels = (promo.jours_semaine || '').split(',').map(function(j){ return j.trim().toUpperCase(); }); %>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px;">
+                    <% const jours = [['MON','Lun'],['TUE','Mar'],['WED','Mer'],['THU','Jeu'],['FRI','Ven'],['SAT','Sam'],['SUN','Dim']]; %>
+                    <% jours.forEach(function(j) { %>
+                    <label style="display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+                                  padding: 6px 4px; border-radius: 6px;
+                                  background: <%= joursActuels.includes(j[0]) ? 'rgba(202,138,4,0.15)' : '#F8FAFC' %>;
+                                  border: 1px solid <%= joursActuels.includes(j[0]) ? 'var(--or)' : 'var(--border)' %>;">
+                        <input type="checkbox" name="jours_semaine" value="<%= j[0] %>"
+                               <%= joursActuels.includes(j[0]) ? 'checked' : '' %>
+                               style="width: 14px; height: 14px; accent-color: var(--or);">
+                        <span style="font-size: 0.72rem; font-weight: 600; color: <%= joursActuels.includes(j[0]) ? 'var(--marron)' : 'var(--text-muted)' %>;"><%= j[1] %></span>
+                    </label>
+                    <% }); %>
+                </div>
+                <small class="text-muted">Ex : Happy Hour samedi/dimanche 14h-18h</small>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-flag"></i> Affichage sur le site</div>
+            <div class="card-body">
+                <div class="form-check form-switch" style="padding-left: 3rem;">
+                    <input class="form-check-input" type="checkbox" name="afficher_banniere" id="banniere" value="1"
+                           <%= promo.afficher_banniere !== 0 ? 'checked' : '' %> style="width: 3rem; height: 1.5rem;">
+                    <label class="form-check-label" for="banniere" style="margin-left: 8px;">Bannière visible sur le site</label>
+                </div>
+                <small class="text-muted d-block mt-2">Uniquement pour les promos automatiques (sans code). Ne fonctionne pas si la promo a un code.</small>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-toggle-on"></i> Statut</div>
+            <div class="card-body">
+                <div class="form-check form-switch" style="padding-left: 3rem;">
+                    <input class="form-check-input" type="checkbox" name="actif" id="actif" value="1"
+                           <%= promo.actif ? 'checked' : '' %> style="width: 3rem; height: 1.5rem;">
+                    <label class="form-check-label" for="actif" style="margin-left: 8px; font-weight: 600;">
+                        <span id="actif-label"><%= promo.actif ? '● Active' : '⏸ Suspendue' %></span>
+                    </label>
+                </div>
+                <small class="text-muted d-block mt-2">Une promotion suspendue n'est jamais appliquée, même avec le bon code.</small>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg"></i> <%= mode === 'creer' ? 'Créer' : 'Enregistrer' %></button>
+            <a href="/admin/promotions/" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </div>
+</div>
+</form>
+
+<script>
+    // Adapte le suffixe / label selon le type sélectionné
+    const typeSel = document.getElementById('type-select');
+    const valeurBloc = document.getElementById('valeur-bloc');
+    const suffix = document.getElementById('valeur-suffix');
+    const label = document.getElementById('valeur-label');
+    function majType() {
+        const t = typeSel.value;
+        if (t === 'LIVRAISON_OFFERTE') {
+            valeurBloc.style.display = 'none';
+        } else {
+            valeurBloc.style.display = '';
+            suffix.textContent = t === 'MONTANT_FIXE' ? 'FCFA' : '%';
+            label.textContent = t === 'MONTANT_FIXE' ? 'Montant (FCFA) *' : 'Pourcentage *';
+        }
+    }
+    typeSel.addEventListener('change', majType);
+    majType();
+
+    // Toggle label statut
+    const chkActif = document.getElementById('actif');
+    const lblActif = document.getElementById('actif-label');
+    chkActif.addEventListener('change', () => {
+        lblActif.textContent = chkActif.checked ? '● Active' : '⏸ Suspendue';
+    });
+</script>
+
+<%- include('../partials/footer') %>

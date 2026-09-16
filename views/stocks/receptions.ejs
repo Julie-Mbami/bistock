@@ -1,0 +1,101 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Réceptions de distribution</h1>
+        <p class="page-subtitle">
+            Activité <strong><%= activite.nom %></strong> ·
+            <% if (nb_a_traiter > 0) { %>
+                <span style="color: var(--gold-dark); font-weight: 700;"><%= nb_a_traiter %> à traiter maintenant</span>
+            <% } else { %>
+                <span class="text-muted">Aucune réception à traiter dans l'immédiat</span>
+            <% } %>
+        </p>
+    </div>
+</div>
+
+<% if (nb_preparees > 0 && statut !== 'PREPAREE') { %>
+<div class="alert alert-info" style="margin-bottom: 16px;">
+    <i class="bi bi-hourglass-split"></i>
+    <strong><%= nb_preparees %></strong> distribution<%= nb_preparees > 1 ? 's' : '' %> en cours de préparation par Nestor.
+    <a href="?statut=PREPAREE" style="font-weight: 600;">Voir les préparations →</a>
+</div>
+<% } %>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <ul class="nav nav-tabs" style="border-bottom: 0;">
+            <li class="nav-item">
+                <a class="nav-link <%= statut === 'REMISE' ? 'active' : '' %>" href="?statut=REMISE">
+                    <i class="bi bi-inbox"></i> À traiter
+                    <% if (nb_a_traiter > 0) { %><span class="badge" style="background: var(--gold); color: #fff; margin-left: 4px;"><%= nb_a_traiter %></span><% } %>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <%= statut === 'PREPAREE' ? 'active' : '' %>" href="?statut=PREPAREE">
+                    <i class="bi bi-hourglass-split"></i> En préparation
+                    <% if (nb_preparees > 0) { %><span class="badge bg-secondary" style="margin-left: 4px;"><%= nb_preparees %></span><% } %>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <%= statut === 'RECEPTIONNEE' ? 'active' : '' %>" href="?statut=RECEPTIONNEE">
+                    <i class="bi bi-check-circle"></i> Déjà traitées (<%= nb_traitees %>)
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Créée le</th>
+                    <% if (statut === 'REMISE' || statut === 'RECEPTIONNEE') { %>
+                        <th>Remise le</th>
+                    <% } %>
+                    <th style="text-align: center;">Lignes</th>
+                    <th>Créée par</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% distributions.forEach(function(d) { %>
+                <tr style="cursor: pointer;" onclick="if(!event.target.closest('a')) location='/stocks/receptions/<%= d.id %>'">
+                    <td><a href="/stocks/receptions/<%= d.id %>"><code><%= d.numero %></code></a></td>
+                    <td class="text-muted small"><%= h.formatDate(d.date_creation, true) %></td>
+                    <% if (statut === 'REMISE' || statut === 'RECEPTIONNEE') { %>
+                        <td class="text-muted small"><%= d.date_remise ? h.formatDate(d.date_remise, true) : '—' %></td>
+                    <% } %>
+                    <td style="text-align: center; font-weight: 700;"><%= d.nb_lignes %></td>
+                    <td class="text-muted small"><%= d.cree_par_nom %></td>
+                    <td>
+                        <% if (d.statut === 'REMISE') { %>
+                            <a href="/stocks/receptions/<%= d.id %>" class="btn btn-sm btn-primary"><i class="bi bi-check-lg"></i> Traiter et entrer en stock</a>
+                        <% } else if (d.statut === 'PREPAREE') { %>
+                            <span class="badge badge-alerte"><i class="bi bi-hourglass-split"></i> Attente de remise</span>
+                        <% } else { %>
+                            <a href="/stocks/receptions/<%= d.id %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i> Voir</a>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+            <% if (!distributions.length) { %>
+                <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <% if (statut === 'REMISE') { %>
+                        <i class="bi bi-check-circle" style="font-size: 2rem; color: var(--success); display: block; margin-bottom: 8px;"></i>
+                        Aucune réception à traiter dans l'immédiat.
+                        <br><small>Nestor vous préviendra en marquant ses distributions comme "Remises".</small>
+                    <% } else if (statut === 'PREPAREE') { %>
+                        <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                        Aucune distribution en préparation.
+                    <% } else { %>
+                        <i class="bi bi-archive" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                        Aucune réception passée.
+                    <% } %>
+                </td></tr>
+            <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

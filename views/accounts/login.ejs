@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion · Bistock</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --navy: #1e3a8a;
+            --navy-dark: #1e293b;
+            --navy-darker: #0f172a;
+            --gold: #ca8a04;
+            --gold-dark: #a16207;
+            --gold-light: #eab308;
+            --gold-100: #fef9c3;
+            --gold-200: #fef08a;
+        }
+        html, body { height: 100%; font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; }
+        body { position: relative; background: var(--navy-darker); color: #fff; -webkit-font-smoothing: antialiased; }
+
+        /* === Carrousel de photos (nourriture / ingrédients / plats — aucune personne) === */
+        /* Fondu croisé fluide entre les 4 images, chaque cycle = 32s */
+        .bg-slides { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+        .bg-slide {
+            position: absolute; inset: 0;
+            background-size: cover; background-position: center;
+            opacity: 0;
+            animation: slideShow 32s infinite ease-in-out, kenBurns 32s infinite linear;
+            filter: brightness(0.55) saturate(1.15);
+            will-change: opacity, transform;
+        }
+        /* Chaque slide est visible pendant ~8s avec fondu croisé de ~2s */
+        .bg-slide:nth-child(1) { background-image: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=2000&q=85&auto=format&fit=crop'); animation-delay: 0s; }
+        .bg-slide:nth-child(2) { background-image: url('https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=2000&q=85&auto=format&fit=crop'); animation-delay: -24s; }
+        .bg-slide:nth-child(3) { background-image: url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=2000&q=85&auto=format&fit=crop'); animation-delay: -16s; }
+        .bg-slide:nth-child(4) { background-image: url('https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=2000&q=85&auto=format&fit=crop'); animation-delay: -8s; }
+        /* Timing : 0-6% fade-in / 6-25% pleine / 25-31% fade-out / 31-100% invisible
+           → chevauche avec la slide suivante qui démarre son fade-in = fondu croisé fluide */
+        @keyframes slideShow {
+            0%      { opacity: 0; }
+            6%, 25% { opacity: 1; }
+            31%     { opacity: 0; }
+            100%    { opacity: 0; }
+        }
+        /* Zoom continu (Ken Burns) — un cycle complet par slide */
+        @keyframes kenBurns {
+            0%   { transform: scale(1);    }
+            100% { transform: scale(1.12); }
+        }
+
+        /* === Overlay coloré aux tons navy + or === */
+        .bg-overlay {
+            position: fixed; inset: 0; z-index: 1;
+            background:
+                radial-gradient(circle at 25% 25%, rgba(202,138,4,0.35) 0%, transparent 45%),
+                radial-gradient(circle at 75% 75%, rgba(30,58,138,0.45) 0%, transparent 50%),
+                linear-gradient(135deg, rgba(15,23,42,0.75), rgba(30,58,138,0.55));
+        }
+
+        /* === Particules dorées === */
+        .particles { position: fixed; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
+        .particle {
+            position: absolute; border-radius: 50%;
+            background: radial-gradient(circle, rgba(234,179,8,0.9), rgba(234,179,8,0));
+            animation: float linear infinite;
+            opacity: 0;
+        }
+        @keyframes float {
+            0%   { transform: translateY(100vh) scale(0.4); opacity: 0; }
+            10%  { opacity: 0.9; }
+            90%  { opacity: 0.5; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        /* === Container login === */
+        .login-wrapper {
+            position: relative; z-index: 10;
+            min-height: 100vh; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        /* === Card login — verre dépoli, ombre profonde, lignes fines === */
+        .login-card {
+            width: 100%; max-width: 400px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.6);
+            border-radius: 18px;
+            padding: 48px 44px 36px;
+            box-shadow:
+                0 32px 100px -24px rgba(0,0,0,0.5),
+                0 1px 0 rgba(255,255,255,0.5) inset,
+                0 0 0 1px rgba(202,138,4,0.08);
+            animation: cardIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            color: var(--navy-darker);
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* === Logo — plus raffiné, avec double bordure or === */
+        .logo-wrap { text-align: center; margin-bottom: 28px; }
+        .logo-outer {
+            display: inline-block;
+            padding: 5px; border-radius: 22px;
+            background: linear-gradient(135deg, rgba(202,138,4,0.4), rgba(202,138,4,0.05));
+        }
+        .logo {
+            width: 72px; height: 72px; border-radius: 17px;
+            background: linear-gradient(135deg, var(--navy), var(--navy-darker));
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 2.4rem; font-weight: 900; color: var(--gold-200);
+            letter-spacing: -0.02em;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+            animation: logoBreath 4s ease-in-out infinite;
+        }
+        @keyframes logoBreath {
+            0%,100% { transform: scale(1); }
+            50%     { transform: scale(1.03); }
+        }
+        .brand-name {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.6rem; color: var(--navy-darker);
+            margin-top: 20px; font-weight: 800;
+            letter-spacing: -0.015em; line-height: 1.15;
+        }
+        /* Séparateur doré fin sous le nom */
+        .brand-divider {
+            width: 40px; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            margin: 12px auto 8px;
+        }
+        .brand-sub {
+            font-size: 0.72rem; color: #64748b;
+            font-weight: 600; letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        /* === Formulaire — inputs raffinés === */
+        .form-field { margin-bottom: 18px; position: relative; }
+        .form-field label {
+            display: block; font-size: 0.7rem; font-weight: 700;
+            color: #475569; margin-bottom: 7px;
+            letter-spacing: 0.1em; text-transform: uppercase;
+        }
+        .input-wrap { position: relative; }
+        .input-wrap > i {
+            position: absolute; left: 16px; top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8; font-size: 1rem;
+            transition: color 0.2s; pointer-events: none;
+        }
+        .form-field input {
+            width: 100%; padding: 14px 16px 14px 46px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            color: var(--navy-darker); font-size: 0.94rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .form-field input::placeholder { color: #94a3b8; }
+        .form-field input:hover { border-color: #cbd5e1; background: #fff; }
+        .form-field input:focus {
+            outline: none;
+            border-color: var(--navy);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(30,58,138,0.1);
+        }
+        .input-wrap:focus-within > i { color: var(--navy); }
+
+        .toggle-pwd {
+            position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none; color: #94a3b8;
+            cursor: pointer; padding: 4px 8px; font-size: 1rem;
+            transition: color 0.15s;
+        }
+        .toggle-pwd:hover { color: var(--navy); }
+
+        /* === Bouton — sobre, hover simple avec assombrissement navy === */
+        .btn-login {
+            width: 100%; padding: 15px;
+            background: var(--navy);
+            border: none; border-radius: 10px;
+            color: #fff; font-size: 0.92rem; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 20px -6px rgba(30,58,138,0.5);
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            margin-top: 12px; font-family: inherit;
+        }
+        .btn-login:hover {
+            background: var(--navy-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px -6px rgba(30,58,138,0.6);
+        }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login .arrow { transition: transform 0.25s; font-size: 1.1rem; }
+        .btn-login:hover .arrow { transform: translateX(4px); }
+
+        /* === Erreur === */
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #7f1d1d;
+            padding: 11px 14px; border-radius: 10px;
+            font-size: 0.86rem; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 10px;
+            animation: shake 0.4s;
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            25%     { transform: translateX(-5px); }
+            75%     { transform: translateX(5px); }
+        }
+        .alert-error i { font-size: 1.15rem; color: #dc2626; }
+
+        /* === Footer === */
+        .login-footer {
+            margin-top: 22px; padding-top: 18px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 0.75rem; color: #64748b;
+        }
+
+        @media (max-width: 540px) {
+            .login-card { padding: 32px 24px 26px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Carrousel de photos culinaires (aucune personne) -->
+    <div class="bg-slides">
+        <div class="bg-slide"></div>
+        <div class="bg-slide"></div>
+        <div class="bg-slide"></div>
+        <div class="bg-slide"></div>
+    </div>
+    <div class="bg-overlay"></div>
+    <div class="particles" id="particles"></div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="logo-wrap">
+                <img src="/static/logos/bstock-icon.svg" alt="Bistock" style="width: 92px; height: 92px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;">
+                <div class="brand-name">Bistock</div>
+                <div class="brand-divider"></div>
+                <div class="brand-sub">Billing &amp; Stock · Facturation et Stock</div>
+            </div>
+
+            <% if (erreur) { %>
+                <div class="alert-error">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span><%= erreur %></span>
+                </div>
+            <% } %>
+
+            <form method="post" autocomplete="off">
+                <div class="form-field">
+                    <label>Nom d'utilisateur</label>
+                    <div class="input-wrap">
+                        <input type="text" name="username" placeholder="Votre identifiant" autofocus required>
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label>Mot de passe</label>
+                    <div class="input-wrap">
+                        <input type="password" name="password" id="input-pwd" placeholder="••••••••" required>
+                        <i class="bi bi-lock-fill"></i>
+                        <button type="button" class="toggle-pwd" onclick="togglePwd()" title="Afficher/masquer">
+                            <i class="bi bi-eye-fill" id="eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-login">
+                    <span>Se connecter</span>
+                    <i class="bi bi-arrow-right arrow"></i>
+                </button>
+            </form>
+
+            <div class="login-footer">
+                © 2026 · Tous droits réservés
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Particules dorées flottantes
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 22; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = 3 + Math.random() * 5;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDuration = (10 + Math.random() * 10) + 's';
+            p.style.animationDelay = (Math.random() * -20) + 's';
+            container.appendChild(p);
+        }
+        // Toggle password
+        function togglePwd() {
+            const inp = document.getElementById('input-pwd');
+            const eye = document.getElementById('eye-icon');
+            if (inp.type === 'password') { inp.type = 'text'; eye.className = 'bi bi-eye-slash-fill'; }
+            else { inp.type = 'password'; eye.className = 'bi bi-eye-fill'; }
+        }
+    </script>
+</body>
+</html>

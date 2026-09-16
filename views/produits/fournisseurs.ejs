@@ -1,0 +1,246 @@
+<%- include('../partials/header') %>
+<style>
+.fournisseurs-liste {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-sm);
+    overflow: hidden;
+}
+
+.fournisseur-row {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr auto;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+}
+.fournisseur-row:last-child { border-bottom: none; }
+.fournisseur-row:hover { background: var(--surface-2); }
+.fournisseur-row.inactif { opacity: 0.6; background: var(--surface-2); }
+
+/* Section gauche - identité */
+.row-identite {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+.fourn-avatar {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--navy-50);
+    color: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    border: 1px solid var(--navy-100);
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.fourn-avatar:hover {
+    background: var(--navy);
+    color: #fff;
+    text-decoration: none;
+    transform: scale(1.05);
+}
+.fourn-titre a:hover { text-decoration: underline !important; }
+.row-action.highlight {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+}
+.row-action.highlight:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.fourn-info { min-width: 0; flex: 1; }
+.fourn-titre {
+    margin: 0 0 4px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+.dot-actif {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 3px var(--success-50);
+    display: inline-block;
+}
+.dot-inactif {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    display: inline-block;
+}
+.fourn-coords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.fourn-coords span { display: inline-flex; align-items: center; gap: 4px; }
+.fourn-coords i { color: var(--text-faint); }
+
+/* Section centrale - stats */
+.row-stats {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    justify-content: center;
+}
+.row-stat { text-align: center; min-width: 70px; }
+.row-stat-money { min-width: 130px; }
+.row-stat-val {
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    font-size: 1rem;
+    line-height: 1.15;
+}
+.row-stat-money .row-stat-val { font-size: 0.92rem; color: var(--navy); }
+.row-stat-val small { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); }
+.row-stat-lab {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-top: 2px;
+}
+.row-sep {
+    width: 1px;
+    background: var(--border);
+    align-self: stretch;
+}
+
+/* Section droite - actions */
+.row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.row-action {
+    width: 34px; height: 34px;
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: all 0.15s;
+    font-size: 0.95rem;
+}
+.row-action:hover {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+.row-action.wa:hover {
+    background: #047857;
+    border-color: #047857;
+    color: #fff;
+}
+.row-action.danger:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
+@media (max-width: 992px) {
+    .fournisseur-row {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .row-stats { justify-content: flex-start; }
+    .row-actions { justify-content: flex-start; }
+}
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Fournisseurs</h1>
+        <p class="page-subtitle"><%= total_fournisseurs %> fournisseur<%= h.pluralize(total_fournisseurs) %> (<%= total_actifs %> actifs) · valeur stock associée <%= h.formatNombre(total_valeur) %> <%= devise %></p>
+    </div>
+    <% if (user.est_gestionnaire) { %>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="/produits/fournisseurs/import" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Import Excel</a>
+        <a href="/produits/fournisseurs/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouveau fournisseur</a>
+    </div>
+    <% } %>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row mb-3">
+            <div class="col-md-6 mb-2">
+                <input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Rechercher...">
+            </div>
+            <div class="col-md-3 mb-2">
+                <select name="statut" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="actif" <%= statut_filtre === 'actif' ? 'selected' : '' %>>Actifs</option>
+                    <option value="inactif" <%= statut_filtre === 'inactif' ? 'selected' : '' %>>Inactifs</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;"><i class="bi bi-funnel"></i> Filtrer</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Raison sociale</th><th>Contact</th><th>Téléphone</th>
+                    <th style="text-align: center;">Délai</th>
+                    <th style="text-align: center;">Produits</th>
+                    <th style="text-align: right;">Valeur stock</th>
+                    <th style="text-align: center;">Alertes</th>
+                    <th style="text-align: center;">Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% stats.forEach(function(s) { %>
+                <tr>
+                    <td><a href="/produits/fournisseurs/<%= s.fournisseur.id %>" style="font-weight: 500;"><%= s.fournisseur.raison_sociale %></a></td>
+                    <td><%= s.fournisseur.contact || '—' %></td>
+                    <td><%= s.fournisseur.telephone || '—' %></td>
+                    <td style="text-align: center;"><%= s.fournisseur.delai_livraison_jours %> j</td>
+                    <td style="text-align: center;"><%= s.nb_produits %></td>
+                    <td style="text-align: right; font-variant-numeric: tabular-nums;"><%= h.formatNombre(s.valeur_stock) %> <%= devise %></td>
+                    <td style="text-align: center;">
+                        <% if (s.nb_alertes) { %><span class="badge badge-alerte"><%= s.nb_alertes %></span><% } else { %>—<% } %>
+                    </td>
+                    <td style="text-align: center;">
+                        <% if (s.fournisseur.actif) { %><span class="badge badge-ok">Actif</span><% } else { %><span class="badge badge-rupture">Inactif</span><% } %>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="/produits/fournisseurs/<%= s.fournisseur.id %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                        <% if (user.est_gestionnaire) { %>
+                        <a href="/produits/fournisseurs/<%= s.fournisseur.id %>/modifier" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                        <form action="/produits/fournisseurs/<%= s.fournisseur.id %>/supprimer" method="post" style="display: inline;"
+                              data-confirm="Voulez-vous vraiment supprimer le fournisseur <strong><%= s.fournisseur.nom %></strong> ?"
+                              data-confirm-title="Supprimer le fournisseur" data-confirm-danger="true" data-confirm-ok="Supprimer">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                        </form>
+                        <% } %>
+                    </td>
+                </tr>
+                <% }); %>
+                <% if (!stats.length) { %><tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">Aucun fournisseur.</td></tr><% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+<%- include('../partials/footer') %>

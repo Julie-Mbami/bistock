@@ -1,0 +1,274 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Confirmer la réception</h1>
+        <p class="page-subtitle">Distribution <code><%= distribution.numero %></code> · remise par <%= distribution.remise_par_nom || distribution.cree_par_nom %></p>
+    </div>
+    <a href="/stocks/receptions/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<% if (distribution.statut === 'REMISE') { %>
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>Marche à suivre :</strong> vérifiez physiquement chaque produit reçu. Si la quantité correspond à celle annoncée, laissez telle quelle. Si vous avez reçu moins (casse, manquant), ajustez la quantité et saisissez un motif obligatoire. Puis validez pour créer les entrées en stock.
+</div>
+
+<form method="post" action="/stocks/receptions/<%= distribution.id %>/confirmer" id="form-confirmer-reception">
+    <div class="card">
+        <div class="card-body">
+            <h5>Vérification et saisie des quantités reçues</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;">#</th>
+                            <th>Produit (origine achat)</th>
+                            <th style="text-align: right;">Annoncé</th>
+                            <th style="text-align: right; width: 120px;">Reçu réellement</th>
+                            <th>Motif (si écart)</th>
+                            <th style="text-align: right;">Stock actuel</th>
+                            <th style="text-align: right;">Stock après</th>
+                            <th style="text-align: center; width: 90px;">Vérifié ?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <% lignes.forEach(function(l, idx) { %>
+                        <tr data-ligne="<%= l.id %>" class="ligne-row">
+                            <td style="text-align: center; font-weight: 700; color: var(--text-muted); font-size: 1.05rem;"><%= idx + 1 %></td>
+                            <td>
+                                <strong><%= l.designation %></strong><br>
+                                <small class="text-muted">
+                                    <code><%= l.reference %></code> · <%= l.unite %>
+                                    <% if (l.achat_numero) { %>
+                                        <br><i class="bi bi-arrow-return-right" style="color: var(--gold);"></i>
+                                        depuis <code style="font-size: 0.7rem;"><%= l.achat_numero %></code>
+                                        · <%= l.fournisseur_nom || 'fournisseur inconnu' %>
+                                        <% if (l.achat_designation && l.achat_designation !== l.designation) { %>
+                                            · <span style="color: var(--gold-dark);">« <%= l.achat_designation %> »</span>
+                                        <% } %>
+                                    <% } %>
+                                </small>
+                            </td>
+                            <td style="text-align: right; font-weight: 700; font-size: 1.05rem; color: var(--navy);"><%= l.quantite_annoncee %></td>
+                            <td>
+                                <input type="hidden" name="ligne_id[]" value="<%= l.id %>">
+                                <input type="number" step="0.01" min="0" name="quantite[]"
+                                       value="<%= l.quantite_annoncee %>"
+                                       class="form-control form-control-sm qte-input"
+                                       data-annonce="<%= l.quantite_annoncee %>"
+                                       data-stock-actuel="<%= l.stock_actuel %>"
+                                       data-ligne-id="<%= l.id %>"
+                                       style="text-align: right; font-weight: 600;">
+                            </td>
+                            <td>
+                                <input type="text" name="motif[]" class="form-control form-control-sm motif-input"
+                                       data-ligne-id="<%= l.id %>"
+                                       placeholder="Optionnel — obligatoire si écart">
+                                <small class="motif-warning" style="display: none; color: var(--danger); font-weight: 600; font-size: 0.72rem; margin-top: 3px;">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> Motif obligatoire (écart détecté)
+                                </small>
+                            </td>
+                            <td style="text-align: right; color: var(--text-muted);"><%= l.stock_actuel %></td>
+                            <td style="text-align: right; font-weight: 700; color: var(--success);" class="stock-apres"><%= l.stock_actuel + l.quantite_annoncee %></td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" class="verifie-check" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--success);">
+                            </td>
+                        </tr>
+                    <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin: 20px 0; align-items: center;">
+        <button type="submit" class="btn btn-success btn-lg" id="btn-confirmer" disabled>
+            <i class="bi bi-check-lg"></i> Confirmer la réception
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-lg" onclick="refuserReception()"><i class="bi bi-x-lg"></i> Refuser</button>
+        <a href="/stocks/receptions/" class="btn btn-outline-secondary btn-lg">Plus tard</a>
+        <span id="verif-status" style="margin-left: 12px; font-size: 0.9rem; color: var(--text-muted);">
+            <i class="bi bi-info-circle"></i> Cochez « Vérifié » sur chaque ligne pour activer le bouton
+        </span>
+    </div>
+</form>
+
+<form id="form-refuser" method="post" action="/stocks/receptions/<%= distribution.id %>/refuser" style="display: none;">
+    <input type="hidden" name="motif" id="motif-refus">
+</form>
+
+<script>
+function checkLigne(input) {
+    const annonce = parseFloat(input.dataset.annonce);
+    const recu = parseFloat(input.value) || 0;
+    const tr = input.closest('tr');
+    const motif = tr.querySelector('.motif-input');
+    const warning = tr.querySelector('.motif-warning');
+    const stockAct = parseFloat(input.dataset.stockActuel);
+    const ecart = Math.abs(recu - annonce) > 0.01;
+    // Le champ motif reste toujours actif — on ne joue que sur l'apparence
+    if (!ecart) {
+        warning.style.display = 'none';
+        motif.style.borderColor = '';
+        tr.style.background = '';
+        motif.placeholder = 'Optionnel';
+    } else {
+        warning.style.display = motif.value.trim() ? 'none' : 'block';
+        motif.style.borderColor = motif.value.trim() ? 'var(--success)' : 'var(--danger)';
+        tr.style.background = 'var(--gold-50)';
+        motif.placeholder = recu < annonce ? 'Ex : casse en route, manquant...' : 'Ex : reçu en trop, erreur emballage...';
+    }
+    tr.querySelector('.stock-apres').textContent = stockAct + recu;
+}
+
+document.querySelectorAll('.qte-input').forEach(input => {
+    input.addEventListener('input', function() { checkLigne(this); majButtonEtat(); });
+    input.addEventListener('change', function() { checkLigne(this); majButtonEtat(); });
+});
+
+// Cases à cocher "Vérifié" — le bouton reste désactivé tant que toutes les lignes ne sont pas cochées
+function majButtonEtat() {
+    const totalLignes = document.querySelectorAll('.verifie-check').length;
+    const verifiees = document.querySelectorAll('.verifie-check:checked').length;
+    const btn = document.getElementById('btn-confirmer');
+    const status = document.getElementById('verif-status');
+    if (verifiees === totalLignes) {
+        btn.disabled = false;
+        status.innerHTML = '<i class="bi bi-check-circle-fill" style="color: var(--success);"></i> <span style="color: var(--success); font-weight: 600;">Toutes les lignes sont vérifiées</span>';
+    } else {
+        btn.disabled = true;
+        status.innerHTML = `<i class="bi bi-info-circle"></i> <strong>${verifiees}/${totalLignes}</strong> ligne(s) vérifiée(s) · cochez « Vérifié » sur chaque ligne`;
+    }
+}
+document.querySelectorAll('.verifie-check').forEach(cb => {
+    cb.addEventListener('change', function() {
+        const tr = this.closest('tr');
+        if (this.checked) {
+            tr.style.borderLeft = '4px solid var(--success)';
+        } else {
+            tr.style.borderLeft = '';
+        }
+        majButtonEtat();
+    });
+});
+majButtonEtat();
+
+// Quand le motif est rempli/vidé, ajuster le liseré UNIQUEMENT si écart réel
+document.querySelectorAll('.motif-input').forEach(motif => {
+    motif.addEventListener('input', function() {
+        const tr = this.closest('tr');
+        const qteInput = tr.querySelector('.qte-input');
+        const annonce = parseFloat(qteInput.dataset.annonce);
+        const recu = parseFloat(qteInput.value) || 0;
+        const ecart = Math.abs(recu - annonce) > 0.01;
+        const warning = tr.querySelector('.motif-warning');
+        if (!ecart) {
+            // Pas d'écart : rien de spécial à faire (le motif est optionnel)
+            this.style.borderColor = '';
+            if (warning) warning.style.display = 'none';
+            return;
+        }
+        // Écart : indiquer si le motif est rempli (vert) ou non (rouge)
+        if (this.value.trim()) {
+            this.style.borderColor = 'var(--success)';
+            if (warning) warning.style.display = 'none';
+        } else {
+            this.style.borderColor = 'var(--danger)';
+            if (warning) warning.style.display = 'block';
+        }
+    });
+});
+
+// Validation + confirmation en un seul flux (déclenché par le bouton "Confirmer la réception")
+document.querySelector('#form-confirmer-reception').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // 1. Validation des écarts sans motif
+    const ecartsSansMotif = [];
+    const ecartsAvecMotif = [];
+    document.querySelectorAll('.qte-input').forEach((input, idx) => {
+        const annonce = parseFloat(input.dataset.annonce);
+        const recu = parseFloat(input.value) || 0;
+        const tr = input.closest('tr');
+        const motif = tr.querySelector('.motif-input');
+        const designation = tr.querySelector('strong').textContent;
+        const numLigne = idx + 1;
+        const ecart = Math.abs(recu - annonce) > 0.01;
+        if (ecart && !motif.value.trim()) {
+            ecartsSansMotif.push(`Ligne ${numLigne} — « ${designation} » : ${annonce} annoncé → ${recu} reçu`);
+            tr.style.background = 'var(--danger-50)';
+            motif.style.borderColor = 'var(--danger)';
+            tr.querySelector('.motif-warning').style.display = 'block';
+        } else if (ecart) {
+            ecartsAvecMotif.push(`Ligne ${numLigne} — ${designation} (${recu} au lieu de ${annonce} — <em>${motif.value.trim()}</em>)`);
+        }
+    });
+
+    if (ecartsSansMotif.length) {
+        toastError('Motif obligatoire pour :\n• ' + ecartsSansMotif.join('\n• '), 'Écarts non justifiés');
+        const premierVide = Array.from(document.querySelectorAll('.motif-input')).find(m => {
+            const tr = m.closest('tr');
+            const input = tr.querySelector('.qte-input');
+            const ecart = Math.abs((parseFloat(input.value) || 0) - parseFloat(input.dataset.annonce)) > 0.01;
+            return ecart && !m.value.trim();
+        });
+        if (premierVide) { premierVide.focus(); premierVide.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        return;
+    }
+
+    // 2. Confirmation utilisateur
+    let msg = 'Les entrées en stock vont être créées automatiquement pour chaque ligne.';
+    if (ecartsAvecMotif.length) {
+        msg += '<br><br><strong>Écarts justifiés :</strong><br>• ' + ecartsAvecMotif.join('<br>• ');
+    }
+    const ok = await showConfirm({
+        type: 'warning',
+        title: 'Confirmer la réception ?',
+        message: msg,
+        okText: 'Oui, confirmer',
+    });
+    if (!ok) return;
+
+    // 3. Envoi effectif
+    this.submit();
+});
+
+async function refuserReception() {
+    const ok = await showConfirm({
+        type: 'danger',
+        title: 'Refuser la réception ?',
+        message: 'La distribution sera marquée comme refusée. Nestor et la Direction en seront informés. Aucune entrée de stock ne sera créée.',
+        okText: 'Refuser',
+        danger: true,
+    });
+    if (!ok) return;
+    // Demander le motif
+    const motif = prompt('Motif du refus (obligatoire) :');
+    if (!motif || !motif.trim()) return;
+    document.getElementById('motif-refus').value = motif;
+    document.getElementById('form-refuser').submit();
+}
+</script>
+<% } else { %>
+
+<div class="card">
+    <div class="card-body">
+        <h5>Cette distribution est <strong><%= distribution.statut %></strong></h5>
+        <p class="text-muted">Vous pouvez consulter les détails ci-dessous.</p>
+        <table class="table table-sm">
+            <thead><tr><th>Produit</th><th style="text-align: right;">Annoncé</th><th style="text-align: right;">Reçu</th><th>Motif écart</th></tr></thead>
+            <tbody>
+            <% lignes.forEach(function(l) { %>
+                <tr>
+                    <td><strong><%= l.designation %></strong> <small class="text-muted"><%= l.reference %></small></td>
+                    <td style="text-align: right;"><%= l.quantite_annoncee %></td>
+                    <td style="text-align: right;"><%= l.quantite_recue !== null && l.quantite_recue !== undefined ? l.quantite_recue : '—' %></td>
+                    <td class="text-muted small"><%= l.motif_ecart || '—' %></td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+<% } %>
+<%- include('../partials/footer') %>

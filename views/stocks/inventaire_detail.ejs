@@ -1,0 +1,160 @@
+<%- include('../partials/header') %>
+<style>
+.stats-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 18px; margin-bottom: 18px; box-shadow: var(--sh-sm); }
+.mini-stat { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mini-stat-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.mini-stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 1px; }
+.mini-stat-val { font-size: 1.05rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.mini-stat-val small { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); }
+.cell-input-physique:focus, .cell-input-motif:focus, .inv-input:focus, .inv-motif:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.15); }
+tr.saving { background: var(--gold-50) !important; }
+tr.saved { background: var(--success-50) !important; transition: background 1.2s; }
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Inventaire <%= inventaire.reference %></h1>
+        <p class="page-subtitle"><%= inventaire.libelle %> · <%= inventaire.statut_label %></p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/stocks/inventaires/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+        <% if (inventaire.statut === 'EN_COURS') { %>
+            <form method="post" action="/stocks/inventaires/<%= inventaire.id %>/valider" style="display: inline;"
+                  data-confirm="Valider l'inventaire <strong><%= inventaire.reference %></strong> ? Les écarts constatés créeront automatiquement des ajustements de stock (mouvements +/−)."
+                  data-confirm-title="Valider l'inventaire ?"
+                  data-confirm-type="warning"
+                  data-confirm-ok="Valider">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Valider</button>
+            </form>
+            <a href="/stocks/inventaires/<%= inventaire.id %>/annuler" class="btn btn-outline-danger"
+               data-confirm="Annuler cet inventaire ? Il sera marqué comme <strong>annulé</strong> mais restera visible dans l'historique."
+               data-confirm-title="Annuler l'inventaire ?"
+               data-confirm-ok="Annuler l'inventaire"
+               data-confirm-cancel="Retour"
+               data-confirm-danger="true"><i class="bi bi-x"></i> Annuler</a>
+        <% } %>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card primary"><div class="kpi-label">Progression</div><div class="kpi-value"><%= inventaire.progression_pct %>%</div><div class="kpi-meta"><%= inventaire.nb_comptees %> / <%= inventaire.nb_lignes %> lignes</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card info"><div class="kpi-label">Lignes total</div><div class="kpi-value"><%= inventaire.nb_lignes %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card success"><div class="kpi-label">Sans écart</div><div class="kpi-value"><%= inventaire.nb_comptees - inventaire.nb_ecarts %></div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card danger"><div class="kpi-label">Écarts détectés</div><div class="kpi-value"><%= inventaire.nb_ecarts %></div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <form method="get" class="row mb-2">
+            <div class="col-md-6 mb-2"><input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Rechercher un produit..."></div>
+            <div class="col-md-3 mb-2">
+                <select name="etat" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="non_compte" <%= etat_filtre === 'non_compte' ? 'selected' : '' %>>Non comptés</option>
+                    <option value="ok" <%= etat_filtre === 'ok' ? 'selected' : '' %>>OK</option>
+                    <option value="ecart" <%= etat_filtre === 'ecart' ? 'selected' : '' %>>Avec écart</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-2"><button type="submit" class="btn btn-secondary" style="width: 100%;">Filtrer</button></div>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Réf.</th><th>Désignation</th>
+                    <th style="text-align: center;">Stock théorique</th>
+                    <th style="text-align: center;">Stock compté</th>
+                    <th style="text-align: center;">Écart</th>
+                    <th>Motif</th>
+                    <th style="text-align: center;">État</th>
+                </tr>
+            </thead>
+            <tbody>
+            <% lignes.forEach(function(l) { %>
+                <tr>
+                    <td><code><%= l.reference %></code></td>
+                    <td><%= l.designation %></td>
+                    <td style="text-align: center;"><%= l.stock_theorique %></td>
+                    <td style="text-align: center; width: 100px;">
+                        <% if (inventaire.statut === 'EN_COURS') { %>
+                            <input type="number" class="form-control form-control-sm inv-input" style="width: 80px; margin: 0 auto; text-align: center;" min="0"
+                                   value="<%= l.stock_physique !== null && l.stock_physique !== undefined ? l.stock_physique : '' %>"
+                                   data-ligne="<%= l.id %>">
+                        <% } else { %>
+                            <%= l.stock_physique !== null && l.stock_physique !== undefined ? l.stock_physique : '—' %>
+                        <% } %>
+                    </td>
+                    <td style="text-align: center; font-weight: 600;">
+                        <% if (l.etat !== 'NON_COMPTE') { %>
+                            <span style="color: <%= l.ecart > 0 ? 'var(--success)' : (l.ecart < 0 ? 'var(--danger)' : 'inherit') %>">
+                                <%= l.ecart > 0 ? '+' + l.ecart : l.ecart %>
+                            </span>
+                        <% } else { %>—<% } %>
+                    </td>
+                    <td>
+                        <% if (inventaire.statut === 'EN_COURS') { %>
+                            <input type="text" class="form-control form-control-sm inv-motif" placeholder="Motif écart..." value="<%= l.motif_ecart || '' %>" data-ligne="<%= l.id %>">
+                        <% } else { %>
+                            <%= l.motif_ecart || '—' %>
+                        <% } %>
+                    </td>
+                    <td style="text-align: center;">
+                        <% if (l.etat === 'NON_COMPTE') { %><span class="badge bg-secondary">Non compté</span>
+                        <% } else if (l.etat === 'OK') { %><span class="badge badge-ok">OK</span>
+                        <% } else { %><span class="badge badge-alerte">Écart</span><% } %>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<% if (inventaire.statut === 'EN_COURS') { %>
+<script>
+// Fonction commune : envoie la ligne (quantité + motif) au serveur
+function envoyerLigne(ligneId) {
+    const inputQte = document.querySelector('.inv-input[data-ligne="' + ligneId + '"]');
+    const inputMotif = document.querySelector('.inv-motif[data-ligne="' + ligneId + '"]');
+    return fetch('/stocks/inventaires/<%= inventaire.id %>/saisir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            ligne_id: ligneId,
+            stock_physique: inputQte && inputQte.value !== '' ? inputQte.value : null,
+            motif: inputMotif ? inputMotif.value : '',
+        }),
+    }).then(r => r.json());
+}
+
+// Sauvegarde quand la QUANTITÉ change → recharge la page pour mettre à jour écart/état/badge
+document.querySelectorAll('.inv-input').forEach(function(input) {
+    input.addEventListener('change', function() {
+        envoyerLigne(input.dataset.ligne).then(function(res) {
+            if (res && res.erreur) { toastError(res.erreur); return; }
+            location.reload();
+        });
+    });
+});
+
+// Sauvegarde quand le MOTIF change (au blur) — silencieuse, sans reload pour ne pas perdre le focus utilisateur
+document.querySelectorAll('.inv-motif').forEach(function(input) {
+    let derniereValeur = input.value;
+    input.addEventListener('blur', function() {
+        if (input.value === derniereValeur) return;
+        derniereValeur = input.value;
+        envoyerLigne(input.dataset.ligne).then(function(res) {
+            if (res && res.erreur) { toastError(res.erreur); return; }
+            // Petit feedback visuel : bordure verte 1 seconde
+            input.style.borderColor = '#059669';
+            setTimeout(() => { input.style.borderColor = ''; }, 1200);
+        });
+    });
+    // Sauvegarde aussi à Entrée
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    });
+});
+</script>
+<% } %>
+<%- include('../partials/footer') %>

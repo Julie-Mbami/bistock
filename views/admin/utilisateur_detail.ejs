@@ -1,0 +1,493 @@
+<%- include('../partials/header') %>
+<style>
+.tabs-nav { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+.tab-link {
+    padding: 10px 18px; font-size: 0.88rem; font-weight: 600; color: var(--text-muted);
+    text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -2px;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+}
+.tab-link:hover { color: var(--navy); text-decoration: none; }
+.tab-link.active { color: var(--navy); border-bottom-color: var(--gold); }
+
+.user-hero {
+    display: flex; align-items: center; gap: 18px;
+    padding: 20px 24px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    margin-bottom: 20px; box-shadow: var(--sh-sm);
+}
+.user-hero .avatar-big { width: 68px; height: 68px; border-radius: 14px; background: var(--navy); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 700; }
+.user-hero h2 { margin: 0; }
+.user-hero .role-badge {
+    display: inline-block; padding: 3px 12px; border-radius: 9999px;
+    font-size: 0.78rem; font-weight: 700; margin-top: 4px;
+}
+.user-hero .role-DG            { background: var(--danger-50); color: var(--danger); }
+.user-hero .role-SECRETARIAT   { background: var(--gold-50); color: var(--gold-dark); }
+.user-hero .role-DISTRIBUTION  { background: var(--info-50); color: var(--info); }
+.user-hero .role-GESTIONNAIRE  { background: var(--navy-50); color: var(--navy); }
+.user-hero .role-CAISSIER      { background: var(--success-50); color: var(--success); }
+.user-hero .role-CUISINIER     { background: #FEF3C7; color: #92400E; }
+
+/* Switch toggle */
+.switch {
+    position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--border-strong); border-radius: 12px; transition: 0.2s;
+}
+.switch-slider::before {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px; border-radius: 50%; background: #fff;
+    transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.switch input:checked + .switch-slider { background: var(--success); }
+.switch input:checked + .switch-slider::before { transform: translateX(20px); }
+.switch input:disabled + .switch-slider { opacity: 0.5; cursor: not-allowed; }
+
+.perm-module {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-lg); margin-bottom: 14px; overflow: hidden;
+}
+.perm-module-head {
+    padding: 12px 18px; background: var(--surface-2); border-bottom: 1px solid var(--border);
+    font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px;
+}
+.perm-row {
+    display: grid; grid-template-columns: 1fr auto;
+    padding: 10px 18px; gap: 12px; align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+.perm-row:last-child { border-bottom: none; }
+.perm-row .perm-label { font-size: 0.88rem; }
+.perm-row .perm-key { font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); }
+.perm-row .badge-surcharge { background: var(--gold); color: #fff; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; margin-left: 6px; }
+
+.activite-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; margin-bottom: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+    transition: box-shadow 0.15s;
+}
+.activite-card.principale { border-color: var(--navy); background: var(--navy-50); }
+.activite-card-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; color: #fff;
+}
+</style>
+
+<div class="page-header">
+    <div>
+        <a href="/comptes/utilisateurs" style="color: var(--text-muted); text-decoration: none; font-size: 0.85rem;"><i class="bi bi-arrow-left"></i> Retour à la liste</a>
+        <h1 class="page-title"><%= utilisateur.first_name || utilisateur.username %></h1>
+    </div>
+</div>
+
+<!-- Hero -->
+<div class="user-hero">
+    <div class="avatar-big"><%= (utilisateur.first_name || utilisateur.username || '?')[0].toUpperCase() %></div>
+    <div style="flex: 1;">
+        <h2><%= (utilisateur.titre ? utilisateur.titre + ' ' : '') + (utilisateur.first_name || '') %> <%= utilisateur.last_name || '' %></h2>
+        <div>
+            <code style="background: var(--surface-muted); padding: 2px 8px; border-radius: 4px;"><%= utilisateur.username %></code>
+            <span class="role-badge role-<%= utilisateur.role %>"><%= roles[utilisateur.role] %></span>
+            <% if (utilisateur.activite_nom) { %>
+                <span style="margin-left: 6px; padding: 3px 10px; background: <%= utilisateur.activite_couleur %>; color: #fff; border-radius: 9999px; font-size: 0.72rem; font-weight: 600;">
+                    <%= utilisateur.activite_nom %>
+                </span>
+            <% } %>
+            <% if (!utilisateur.is_active) { %><span class="badge badge-rupture" style="margin-left: 6px;">Compte désactivé</span><% } %>
+        </div>
+    </div>
+    <div>
+        <a href="/comptes/utilisateurs/<%= utilisateur.id %>/modifier" class="btn btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+    </div>
+</div>
+
+<!-- Onglets -->
+<div class="tabs-nav">
+    <a href="?onglet=identite" class="tab-link <%= onglet === 'identite' ? 'active' : '' %>"><i class="bi bi-person"></i> Identité</a>
+    <a href="?onglet=activites" class="tab-link <%= onglet === 'activites' ? 'active' : '' %>"><i class="bi bi-shop-window"></i> Activités</a>
+    <a href="?onglet=permissions" class="tab-link <%= onglet === 'permissions' ? 'active' : '' %>"><i class="bi bi-shield-check"></i> Permissions</a>
+</div>
+
+<!-- Onglet Identité -->
+<% if (onglet === 'identite') { %>
+<div class="card">
+    <div class="card-body">
+        <h5>Coordonnées</h5>
+        <dl class="row mt-3">
+            <dt class="col-sm-3">Nom complet</dt><dd class="col-sm-9"><%= (utilisateur.titre ? utilisateur.titre + ' ' : '') + (utilisateur.first_name || '') + ' ' + (utilisateur.last_name || '') %></dd>
+            <dt class="col-sm-3">Username</dt><dd class="col-sm-9"><code><%= utilisateur.username %></code></dd>
+            <dt class="col-sm-3">Email</dt><dd class="col-sm-9"><%= utilisateur.email || '—' %></dd>
+            <dt class="col-sm-3">Téléphone</dt><dd class="col-sm-9"><%= utilisateur.telephone || '—' %></dd>
+            <dt class="col-sm-3">Rôle système</dt><dd class="col-sm-9">
+                <select id="role-selector" style="padding: 6px 12px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+                    <% Object.keys(roles).forEach(function(r) { %>
+                        <option value="<%= r %>" <%= utilisateur.role === r ? 'selected' : '' %>><%= roles[r] %></option>
+                    <% }); %>
+                </select>
+                <small class="text-muted" style="display: block; margin-top: 4px;">⚠ Changer le rôle réinitialise les permissions au template correspondant.</small>
+            </dd>
+            <dt class="col-sm-3">Inscrit le</dt><dd class="col-sm-9"><%= h.formatDate(utilisateur.date_joined) %></dd>
+            <dt class="col-sm-3">Statut</dt><dd class="col-sm-9">
+                <% if (utilisateur.is_active) { %><span class="badge badge-ok">Actif</span>
+                <% } else { %><span class="badge badge-rupture">Désactivé</span><% } %>
+            </dd>
+            <dt class="col-sm-3">Mot de passe</dt><dd class="col-sm-9">
+                <button type="button" id="btn-reset-mdp" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-key"></i> Réinitialiser le mot de passe
+                </button>
+                <small class="text-muted" style="display: block; margin-top: 4px;">
+                    Seule la Direction Générale peut réinitialiser un mot de passe. L'action est tracée dans le journal d'audit.
+                </small>
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<!-- Modal de réinitialisation du mot de passe -->
+<div id="modal-reset-mdp" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: var(--surface); border-radius: var(--r-lg); padding: 28px; width: 480px; max-width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <h4 style="color: var(--navy); margin-top: 0;">
+            <i class="bi bi-key" style="color: var(--danger);"></i> Réinitialiser le mot de passe
+        </h4>
+        <p class="text-muted" style="font-size: 0.9rem;">
+            Vous êtes sur le point de définir un nouveau mot de passe pour
+            <strong><%= (utilisateur.titre ? utilisateur.titre + ' ' : '') + (utilisateur.first_name || utilisateur.username) %></strong>
+            (compte <code><%= utilisateur.username %></code>).
+        </p>
+        <p style="font-size: 0.85rem; color: var(--warning-dark, #a16207); background: var(--warning-50, #fefce8); border-left: 3px solid var(--warning, #ca8a04); padding: 10px 12px; border-radius: 4px;">
+            <i class="bi bi-exclamation-triangle"></i>
+            Communiquez le nouveau mot de passe à l'utilisateur en main propre. Il pourra se connecter immédiatement avec.
+        </p>
+        <div class="mb-3">
+            <label class="form-label">Nouveau mot de passe *</label>
+            <input type="text" id="input-nouveau-mdp" class="form-control" minlength="6" autocomplete="off" placeholder="Min. 6 caractères">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Confirmer *</label>
+            <input type="text" id="input-confirm-mdp" class="form-control" minlength="6" autocomplete="off" placeholder="Retaper le nouveau mot de passe">
+        </div>
+        <div id="mdp-erreur" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 10px; display: none;"></div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" id="btn-annuler-mdp" class="btn btn-outline-secondary">Annuler</button>
+            <button type="button" id="btn-valider-mdp" class="btn btn-danger"><i class="bi bi-check-lg"></i> Réinitialiser</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const modal = document.getElementById('modal-reset-mdp');
+    const btnOpen = document.getElementById('btn-reset-mdp');
+    const btnCancel = document.getElementById('btn-annuler-mdp');
+    const btnValider = document.getElementById('btn-valider-mdp');
+    const iNouveau = document.getElementById('input-nouveau-mdp');
+    const iConfirm = document.getElementById('input-confirm-mdp');
+    const erreur = document.getElementById('mdp-erreur');
+
+    function ouvrir() {
+        iNouveau.value = '';
+        iConfirm.value = '';
+        erreur.style.display = 'none';
+        modal.style.display = 'flex';
+        setTimeout(() => iNouveau.focus(), 50);
+    }
+    function fermer() { modal.style.display = 'none'; }
+
+    btnOpen.addEventListener('click', ouvrir);
+    btnCancel.addEventListener('click', fermer);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fermer(); });
+
+    btnValider.addEventListener('click', async function() {
+        const n = iNouveau.value.trim();
+        const c = iConfirm.value.trim();
+        erreur.style.display = 'none';
+        if (n.length < 6) { erreur.textContent = 'Le mot de passe doit contenir au moins 6 caractères.'; erreur.style.display = 'block'; return; }
+        if (n !== c) { erreur.textContent = 'Les deux saisies ne correspondent pas.'; erreur.style.display = 'block'; return; }
+        btnValider.disabled = true;
+        try {
+            const r = await fetch('/admin/utilisateurs/<%= utilisateur.id %>/reinitialiser-mdp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nouveau_mdp: n })
+            });
+            const res = await r.json();
+            if (res.ok) {
+                fermer();
+                if (typeof toastSuccess === 'function') toastSuccess('Mot de passe réinitialisé', 'L\'utilisateur peut se connecter avec le nouveau mot de passe.');
+                else alert('Mot de passe réinitialisé.');
+            } else {
+                erreur.textContent = res.erreur || 'Erreur';
+                erreur.style.display = 'block';
+            }
+        } catch (e) {
+            erreur.textContent = 'Erreur réseau : ' + e.message;
+            erreur.style.display = 'block';
+        }
+        btnValider.disabled = false;
+    });
+})();
+</script>
+<script>
+document.getElementById('role-selector').addEventListener('change', async function() {
+    const role = this.value;
+    const label = this.options[this.selectedIndex].text;
+    const ok = await showConfirm({
+        type: 'warning',
+        title: 'Changer le rôle ?',
+        message: `Le rôle deviendra <strong>${label}</strong>.<br><br>Toutes les surcharges de permissions personnalisées de cet utilisateur seront <strong>réinitialisées</strong> au template du nouveau rôle.`,
+        okText: 'Changer le rôle', danger: true,
+    });
+    if (!ok) { this.value = '<%= utilisateur.role %>'; return; }
+    fetch('/admin/utilisateurs/<%= utilisateur.id %>/role', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ role })
+    }).then(r => r.json()).then(res => {
+        if (res.ok) { toastSuccess('Rôle mis à jour'); setTimeout(() => location.reload(), 500); }
+        else toastError(res.erreur || 'Erreur');
+    });
+});
+</script>
+<% } %>
+
+<!-- Onglet Activités -->
+<% if (onglet === 'activites') { %>
+<div class="card">
+    <div class="card-body">
+        <h5><i class="bi bi-diagram-3" style="color: var(--gold);"></i> Activités accessibles</h5>
+        <p class="text-muted small">
+            Chaque activité peut être <strong>activée / désactivée</strong> avec le switch.
+            Cliquez sur l'étoile <i class="bi bi-star-fill" style="color: var(--gold);"></i> pour définir l'activité comme <strong>principale</strong>
+            (celle affichée par défaut à la connexion).
+            <br>Les rôles DG et Distribution ont automatiquement accès aux 4 activités, l'activation ici est optionnelle.
+        </p>
+        <div style="margin-top: 14px;">
+            <% activites.forEach(function(a) { %>
+                <div class="activite-card <%= utilisateur.activite_id === a.id ? 'principale' : '' %>" data-activite-card="<%= a.id %>">
+                    <div class="activite-card-icon" style="background: <%= a.couleur %>;">
+                        <i class="bi <%= a.icone %>"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700;">
+                            <%= a.nom %>
+                            <small class="text-muted"><%= a.code %></small>
+                            <% if (utilisateur.activite_id === a.id) { %>
+                                <span class="badge" style="background: var(--gold); color: #fff; margin-left: 6px;">
+                                    <i class="bi bi-star-fill"></i> Principale
+                                </span>
+                            <% } %>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);"><%= a.type === 'B2B_COMMANDE' ? 'B2B sur commande' : 'B2C caisse' %></div>
+                    </div>
+                    <button type="button" class="btn-principale" data-activite="<%= a.id %>"
+                            title="<%= utilisateur.activite_id === a.id ? 'Retirer comme activité principale' : 'Définir comme activité principale' %>"
+                            style="background: none; border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; cursor: pointer; color: <%= utilisateur.activite_id === a.id ? 'var(--gold-dark)' : 'var(--text-muted)' %>;">
+                        <i class="bi <%= utilisateur.activite_id === a.id ? 'bi-star-fill' : 'bi-star' %>"></i>
+                    </button>
+                    <label class="switch" title="Activer/désactiver l'accès à cette activité">
+                        <input type="checkbox" class="activite-toggle" data-activite="<%= a.id %>"
+                               <%= (activitesLiees.includes(a.id) || utilisateur.activite_id === a.id) ? 'checked' : '' %>>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+</div>
+
+<script>
+// Toggle d'accès à une activité (via table utilisateur_activite)
+document.querySelectorAll('.activite-toggle').forEach(cb => {
+    cb.addEventListener('change', async function() {
+        const actId = this.dataset.activite;
+        const activee = this.checked;
+        const estPrincipale = <%= utilisateur.activite_id || 'null' %> === Number(actId);
+        // Si on désactive une activité qui est aussi la principale : la retirer comme principale d'abord
+        if (!activee && estPrincipale) {
+            const ok = await showConfirm({
+                type: 'warning',
+                title: 'Activité principale',
+                message: 'Cette activité est actuellement <strong>principale</strong>. La désactiver la retirera aussi comme principale.',
+                okText: 'Désactiver quand même', danger: true,
+            });
+            if (!ok) { this.checked = true; return; }
+            await fetch(`/admin/utilisateurs/<%= utilisateur.id %>/activite-principale/null`, { method: 'POST' });
+        }
+        const res = await fetch(`/admin/utilisateurs/<%= utilisateur.id %>/activite/${actId}/basculer`, { method: 'POST' })
+            .then(r => r.json());
+        toastInfo(res.lie ? 'Activité ajoutée' : 'Activité retirée');
+        setTimeout(() => location.reload(), 400);
+    });
+});
+
+// Bouton étoile "Principale"
+document.querySelectorAll('.btn-principale').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const actId = this.dataset.activite;
+        const estActuellementPrincipale = <%= utilisateur.activite_id || 'null' %> === Number(actId);
+        const nouvelleValeur = estActuellementPrincipale ? 'null' : actId;
+        // S'assurer que l'activité est activée avant de la marquer principale
+        if (!estActuellementPrincipale) {
+            const cb = document.querySelector(`.activite-toggle[data-activite="${actId}"]`);
+            if (cb && !cb.checked) {
+                await fetch(`/admin/utilisateurs/<%= utilisateur.id %>/activite/${actId}/basculer`, { method: 'POST' });
+            }
+        }
+        await fetch(`/admin/utilisateurs/<%= utilisateur.id %>/activite-principale/${nouvelleValeur}`, { method: 'POST' });
+        toastSuccess(estActuellementPrincipale ? 'Activité principale retirée' : 'Activité définie comme principale');
+        setTimeout(() => location.reload(), 400);
+    });
+});
+</script>
+<% } %>
+
+<!-- Onglet Permissions -->
+<% if (onglet === 'permissions') { %>
+<div class="card mb-3">
+    <div class="card-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h5 style="margin: 0;"><i class="bi bi-shield-lock" style="color: var(--gold);"></i> Permissions par activité</h5>
+                <p class="text-muted small" style="margin: 4px 0 0;">Les cases cochées = autorisé, décochées = refusé. Les modifications sont sauvegardées automatiquement.</p>
+            </div>
+            <form method="post" action="/admin/utilisateurs/<%= utilisateur.id %>/permissions/reinitialiser"
+                  data-confirm="Toutes les surcharges de permissions personnalisées de cet utilisateur seront effacées. Il retrouvera les permissions par défaut du rôle <strong><%= roles[utilisateur.role] %></strong>."
+                  data-confirm-title="Réinitialiser les permissions ?"
+                  data-confirm-ok="Réinitialiser"
+                  data-confirm-danger="true">
+                <button class="btn btn-outline-warning btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Réinitialiser au rôle</button>
+            </form>
+        </div>
+
+        <!-- Sélecteur activité (pour features non globales) -->
+        <div style="margin-top: 16px;">
+            <label class="form-label" style="font-size: 0.8rem;">Choisir l'activité à configurer</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <% activites.forEach(function(a, i) { %>
+                    <button class="btn-activite-tab" data-activite="<%= a.id %>"
+                            style="padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 9999px; background: var(--surface); color: var(--text-muted); font-weight: 600; font-size: 0.82rem; cursor: pointer;">
+                        <i class="bi <%= a.icone %>"></i> <%= a.code %>
+                    </button>
+                <% }); %>
+                <button class="btn-activite-tab" data-activite="null" style="padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 9999px; background: var(--surface); color: var(--text-muted); font-weight: 600; font-size: 0.82rem; cursor: pointer;">
+                    <i class="bi bi-globe2"></i> Global (admin)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<% Object.entries(featuresByModule).forEach(function([mod, feats]) { %>
+    <div class="perm-module" data-module="<%= mod %>">
+        <div class="perm-module-head"><i class="bi bi-<%= mod === 'Administration' ? 'gear' : mod === 'Catalogue' ? 'box-seam' : mod === 'Stocks' ? 'archive' : mod === 'Caisse B2C' ? 'cart' : mod === 'Commandes B2B' ? 'journal' : mod === 'Clients' ? 'people' : mod === 'Intelligence' ? 'cpu' : mod === 'Achats' ? 'cart-check' : mod === 'Distribution' ? 'truck' : mod === 'Dashboards' ? 'grid-1x2' : 'grid' %>"></i> <%= mod %></div>
+        <% feats.forEach(function(f) { %>
+            <div class="perm-row" data-feature="<%= f.key %>" data-global="<%= !!f.global %>">
+                <div>
+                    <div class="perm-label"><%= f.libelle %></div>
+                    <div class="perm-key"><%= f.key %></div>
+                </div>
+                <div class="perm-switch-cell">
+                    <label class="switch">
+                        <input type="checkbox" class="perm-toggle" data-feature="<%= f.key %>" data-global="<%= !!f.global %>">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+        <% }); %>
+    </div>
+<% }); %>
+
+<script>
+const PERMS_PAR_ACTIVITE = <%- JSON.stringify(permissionsParActivite) %>;
+const PERMS_GLOBALES = <%- JSON.stringify(permissionsGlobales) %>;
+const SURCHARGES = <%- JSON.stringify(surchargesMap) %>;
+const ACTIVITES = <%- JSON.stringify(activites.map(a => ({ id: a.id, code: a.code, couleur: a.couleur }))) %>;
+let activiteCourante = ACTIVITES[0] ? ACTIVITES[0].id : null;
+let modeGlobal = false;
+
+function refreshUI() {
+    document.querySelectorAll('.btn-activite-tab').forEach(b => {
+        const isNull = b.dataset.activite === 'null';
+        const active = (modeGlobal && isNull) || (!modeGlobal && String(activiteCourante) === b.dataset.activite);
+        if (active) {
+            const act = ACTIVITES.find(a => String(a.id) === b.dataset.activite);
+            b.style.background = act ? act.couleur : '#0f172a';
+            b.style.color = '#fff';
+            b.style.borderColor = 'transparent';
+        } else {
+            b.style.background = 'var(--surface)';
+            b.style.color = 'var(--text-muted)';
+            b.style.borderColor = 'var(--border)';
+        }
+    });
+    document.querySelectorAll('.perm-row').forEach(row => {
+        const feature = row.dataset.feature;
+        const isGlobal = row.dataset.global === 'true';
+        const cb = row.querySelector('.perm-toggle');
+        // Si la feature est globale, on affiche seulement en mode global (et on grise le reste)
+        if (isGlobal && !modeGlobal) { row.style.opacity = '0.35'; cb.disabled = true; return; }
+        if (!isGlobal && modeGlobal) { row.style.opacity = '0.35'; cb.disabled = true; return; }
+        row.style.opacity = '1'; cb.disabled = false;
+        // Récupérer la valeur effective
+        const valeur = modeGlobal ? (PERMS_GLOBALES[feature] || false) : (PERMS_PAR_ACTIVITE[activiteCourante] ? PERMS_PAR_ACTIVITE[activiteCourante][feature] : false);
+        cb.checked = valeur;
+        // Marquer si c'est une surcharge (différent du rôle)
+        const cle = `${modeGlobal ? 'null' : activiteCourante}/${feature}`;
+        const existing = row.querySelector('.badge-surcharge');
+        if (SURCHARGES.hasOwnProperty(cle)) {
+            if (!existing) {
+                const b = document.createElement('span'); b.className = 'badge-surcharge'; b.textContent = 'surcharge';
+                row.querySelector('.perm-label').appendChild(b);
+            }
+        } else if (existing) existing.remove();
+    });
+}
+
+document.querySelectorAll('.btn-activite-tab').forEach(b => {
+    b.addEventListener('click', () => {
+        if (b.dataset.activite === 'null') { modeGlobal = true; }
+        else { modeGlobal = false; activiteCourante = Number(b.dataset.activite); }
+        refreshUI();
+    });
+});
+document.querySelectorAll('.perm-toggle').forEach(cb => {
+    cb.addEventListener('change', () => {
+        const feature = cb.dataset.feature;
+        const activite_id = modeGlobal ? null : activiteCourante;
+        const autorise = cb.checked;
+        // Désactiver le switch le temps de la requête pour éviter double-clic / animation cassée
+        cb.disabled = true;
+        fetch(`/admin/utilisateurs/<%= utilisateur.id %>/permission/basculer`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ feature, activite_id, autorise })
+        }).then(r => r.json()).then(res => {
+            if (res.ok) {
+                // Mettre à jour l'état local des permissions
+                if (modeGlobal) PERMS_GLOBALES[feature] = res.autorise;
+                else PERMS_PAR_ACTIVITE[activiteCourante][feature] = res.autorise;
+                // Mettre à jour la carte des surcharges (ajout / retrait)
+                const cle = `${modeGlobal ? 'null' : activiteCourante}/${feature}`;
+                if (res.surcharge) SURCHARGES[cle] = res.autorise;
+                else delete SURCHARGES[cle];
+                toastInfo(autorise ? 'Autorisé' : 'Refusé', feature);
+                // Rafraîchir juste l'UI (sans reload → conserve l'onglet activité courant)
+                refreshUI();
+            } else {
+                // Revert visuellement si le backend refuse
+                cb.checked = !autorise;
+            }
+        }).catch(() => {
+            cb.checked = !autorise;
+        }).finally(() => {
+            cb.disabled = false;
+        });
+    });
+});
+refreshUI();
+</script>
+<% } %>
+<%- include('../partials/footer') %>

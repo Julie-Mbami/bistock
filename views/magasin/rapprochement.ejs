@@ -1,0 +1,146 @@
+<%- include('../partials/header') %>
+<style>
+.rappr-header { background: var(--surface); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: var(--sh-sm); }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
+.pill-nestor { background: #FEF3C7; color: #92400E; }
+.pill-transit { background: #DBEAFE; color: #1E40AF; }
+.pill-ok { background: #D1FAE5; color: #065F46; }
+.pill-refuse { background: #FEE2E2; color: #991B1B; }
+.pill-ecart { background: #FED7AA; color: #9A3412; }
+.dist-item { padding: 10px 12px; border-radius: 8px; background: var(--bg-soft, #f8fafc); border: 1px solid var(--border); margin-bottom: 6px; }
+.dist-item.refusee { background: #FEF2F2; border-color: #FCA5A5; }
+.dist-item.ecart   { background: #FFF7ED; border-color: #FDBA74; }
+.dist-item.transit { background: #EFF6FF; border-color: #93C5FD; }
+.motif-box { background: rgba(0,0,0,0.03); padding: 6px 10px; margin-top: 6px; border-left: 3px solid var(--danger); font-size: 0.82rem; border-radius: 4px; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-diagram-2"></i> Rapprochement · <code style="color: var(--gold-dark);"><%= achat.numero %></code></h1>
+        <p class="page-subtitle">Où sont partis les produits de cet achat ?</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/magasin-nestor/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour magasin</a>
+        <a href="/achats/<%= achat.id %>" class="btn btn-outline-primary"><i class="bi bi-cart-check"></i> Voir l'achat complet</a>
+    </div>
+</div>
+
+<div class="rappr-header">
+    <div style="display: flex; gap: 30px; flex-wrap: wrap; align-items: center;">
+        <div>
+            <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">Fournisseur</div>
+            <div style="font-size: 1rem; font-weight: 600;"><%= achat.fournisseur_nom %></div>
+        </div>
+        <div>
+            <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">Date achat</div>
+            <div style="font-size: 1rem; font-weight: 600;"><%= h.formatDate(achat.date_achat) %></div>
+        </div>
+        <div>
+            <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">Créé par</div>
+            <div style="font-size: 1rem; font-weight: 600;"><%= achat.cree_par_nom || '—' %></div>
+        </div>
+        <div>
+            <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">Statut</div>
+            <div style="font-size: 1rem; font-weight: 600;"><%= achat.statut %></div>
+        </div>
+    </div>
+</div>
+
+<% lignes.forEach(function(l) {
+    const anom = l.solde.refuse > 0 || l.solde.ecart_manquant > 0;
+%>
+<div class="card mb-3" style="<%= anom ? 'border-left: 4px solid var(--danger);' : '' %>">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <strong><%= l.designation %></strong>
+            <% if (l.activite_pressentie_code) { %>
+                <span style="padding: 1px 8px; background: <%= l.activite_pressentie_couleur %>20; color: <%= l.activite_pressentie_couleur %>; border-radius: 6px; font-size: 0.75rem; margin-left: 8px;">
+                    Pressentie : <%= l.activite_pressentie_code %>
+                </span>
+            <% } %>
+        </div>
+        <div>
+            <strong style="font-size: 1.15rem; color: var(--navy);"><%= h.formatDecimal(l.solde.total, 2) %></strong>
+            <span class="small text-muted">achetés</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Barre de répartition -->
+        <div style="margin-bottom: 14px;">
+            <div style="display: flex; height: 24px; border-radius: 6px; overflow: hidden; background: #f1f5f9;">
+                <% if (l.solde.chez_nestor > 0) { %>
+                    <div style="background: #FEF3C7; width: <%= (l.solde.chez_nestor / l.solde.total * 100) %>%;" title="Chez Nestor : <%= l.solde.chez_nestor %>"></div>
+                <% } %>
+                <% if (l.solde.en_transit > 0) { %>
+                    <div style="background: #DBEAFE; width: <%= (l.solde.en_transit / l.solde.total * 100) %>%;" title="En transit : <%= l.solde.en_transit %>"></div>
+                <% } %>
+                <% if (l.solde.recu_ok > 0) { %>
+                    <div style="background: #D1FAE5; width: <%= (l.solde.recu_ok / l.solde.total * 100) %>%;" title="Reçu OK : <%= l.solde.recu_ok %>"></div>
+                <% } %>
+                <% if (l.solde.refuse > 0) { %>
+                    <div style="background: #FEE2E2; width: <%= (l.solde.refuse / l.solde.total * 100) %>%;" title="Refusé : <%= l.solde.refuse %>"></div>
+                <% } %>
+                <% if (l.solde.ecart_manquant > 0) { %>
+                    <div style="background: #FED7AA; width: <%= (l.solde.ecart_manquant / l.solde.total * 100) %>%;" title="Écart : <%= l.solde.ecart_manquant %>"></div>
+                <% } %>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 0.82rem;">
+                <% if (l.solde.chez_nestor > 0) { %><span><span class="pill pill-nestor">Nestor</span> <%= h.formatDecimal(l.solde.chez_nestor, 2) %></span><% } %>
+                <% if (l.solde.en_transit > 0) { %><span><span class="pill pill-transit">Transit</span> <%= h.formatDecimal(l.solde.en_transit, 2) %></span><% } %>
+                <% if (l.solde.recu_ok > 0) { %><span><span class="pill pill-ok">Reçu OK</span> <%= h.formatDecimal(l.solde.recu_ok, 2) %></span><% } %>
+                <% if (l.solde.refuse > 0) { %><span><span class="pill pill-refuse">Refusé</span> <%= h.formatDecimal(l.solde.refuse, 2) %></span><% } %>
+                <% if (l.solde.ecart_manquant > 0) { %><span><span class="pill pill-ecart">Écart</span> <%= h.formatDecimal(l.solde.ecart_manquant, 2) %></span><% } %>
+            </div>
+        </div>
+
+        <!-- Détail des distributions -->
+        <% if (l.solde.distributions.length > 0) { %>
+            <h6 class="text-muted" style="margin-bottom: 8px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;">Historique des distributions</h6>
+            <% l.solde.distributions.forEach(function(d) {
+                const cls = d.dist_statut === 'REFUSEE' ? 'refusee' : (d.ecart > 0 ? 'ecart' : (d.dist_statut === 'PREPAREE' || d.dist_statut === 'REMISE' ? 'transit' : ''));
+            %>
+                <div class="dist-item <%= cls %>">
+                    <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <span style="padding: 2px 8px; background: <%= d.activite_couleur %>20; color: <%= d.activite_couleur %>; border-radius: 6px; font-weight: 700; font-size: 0.78rem;"><%= d.activite_code %></span>
+                            <strong style="margin-left: 6px;"><%= d.activite_nom %></strong>
+                            <div class="small text-muted" style="margin-top: 3px;">
+                                <a href="/distributions/<%= d.distribution_id %>"><code><%= d.dist_numero %></code></a>
+                                · <%= d.etat %>
+                                <% if (d.date_reception) { %> · reçue le <%= h.formatDate(d.date_reception) %>
+                                <% } else if (d.date_remise) { %> · remise le <%= h.formatDate(d.date_remise) %>
+                                <% } else { %> · créée le <%= h.formatDate(d.date_creation) %><% } %>
+                            </div>
+                        </div>
+                        <div style="text-align: right; white-space: nowrap;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Annoncé</div>
+                            <div style="font-weight: 700;"><%= h.formatDecimal(d.qte_annoncee, 2) %></div>
+                        </div>
+                        <% if (d.dist_statut === 'RECEPTIONNEE') { %>
+                        <div style="text-align: right; white-space: nowrap;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Reçu</div>
+                            <div style="font-weight: 700; color: <%= d.ecart > 0 ? '#EA580C' : 'var(--success)' %>;"><%= h.formatDecimal(d.qte_recue, 2) %></div>
+                        </div>
+                        <% } %>
+                        <% if (d.ecart > 0) { %>
+                        <div style="text-align: right; white-space: nowrap;">
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Écart</div>
+                            <div style="font-weight: 700; color: var(--danger);">−<%= h.formatDecimal(d.ecart, 2) %></div>
+                        </div>
+                        <% } %>
+                    </div>
+                    <% if (d.motif) { %>
+                        <div class="motif-box">
+                            <strong>Motif :</strong> <%= d.motif %>
+                        </div>
+                    <% } %>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <p class="text-muted" style="text-align: center; padding: 12px 0; margin: 0;">Aucune distribution encore effectuée pour cette ligne. <strong><%= h.formatDecimal(l.solde.chez_nestor, 2) %></strong> unités attendent chez Nestor.</p>
+        <% } %>
+    </div>
+</div>
+<% }); %>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,143 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Import Excel — <%= type_import %></h1>
+    <p class="page-subtitle">Gagnez du temps en important en masse depuis un fichier Excel.</p>
+  </div>
+  <div style="display: flex; gap: 8px;">
+    <a href="<%= url_retour %>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+  </div>
+</div>
+
+<% if (!apercu) { %>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card" style="height: 100%;">
+        <div class="card-header"><i class="bi bi-file-earmark-arrow-down"></i> Étape 1 — Télécharger le modèle</div>
+        <div class="card-body">
+          <p>Téléchargez le modèle Excel adapté aux <strong><%= type_import %></strong> et remplissez-le hors ligne.</p>
+          <ul class="small text-muted">
+            <li>Les colonnes marquées d'un astérisque (*) sont obligatoires.</li>
+            <li>Une feuille "Instructions" vous guide dans le fichier.</li>
+            <li>Des listes déroulantes valident certaines colonnes (unité, actif…).</li>
+          </ul>
+          <a href="<%= url_modele %>" class="btn btn-primary"><i class="bi bi-download"></i> Télécharger le modèle Excel</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card" style="height: 100%;">
+        <div class="card-header"><i class="bi bi-file-earmark-arrow-up"></i> Étape 2 — Téléverser le fichier rempli</div>
+        <div class="card-body">
+          <form action="<%= url_upload %>" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="form-label">Fichier Excel (.xlsx)</label>
+              <input type="file" name="fichier" accept=".xlsx" class="form-control" required>
+              <div class="form-text">Taille max : 8 Mo.</div>
+            </div>
+            <button type="submit" class="btn btn-success"><i class="bi bi-cloud-upload"></i> Analyser le fichier</button>
+          </form>
+          <p class="small text-muted mt-3 mb-0">
+            <i class="bi bi-info-circle"></i> Aucun enregistrement ne sera créé avant votre validation à l'étape suivante.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+<% } else { %>
+  <%
+    const nbErreurs = apercu.filter(l => l.__erreurs && l.__erreurs.length).length;
+    const nbDoublons = apercu.filter(l => l.__doublon && !(l.__erreurs && l.__erreurs.length)).length;
+    const nbValides = apercu.length - nbErreurs - nbDoublons;
+  %>
+  <div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <span><i class="bi bi-eye"></i> Aperçu — <%= apercu.length %> ligne(s) détectée(s)</span>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <% if (nbValides > 0) { %><span class="badge bg-success"><i class="bi bi-check-circle"></i> <%= nbValides %> à créer</span><% } %>
+        <% if (nbDoublons > 0) { %><span class="badge" style="background: #FEF3C7; color: #92400E;"><i class="bi bi-exclamation-triangle"></i> <%= nbDoublons %> doublon(s)</span><% } %>
+        <% if (nbErreurs > 0) { %><span class="badge badge-alerte"><i class="bi bi-x-circle"></i> <%= nbErreurs %> erreur(s)</span><% } %>
+      </div>
+    </div>
+    <div class="card-body" style="padding-top: 0;">
+      <% if (nbDoublons > 0) { %>
+        <div class="alert" style="background: #FEF3C7; border-left: 4px solid #F59E0B; color: #78350F; margin-top: 16px;">
+          <i class="bi bi-exclamation-triangle" style="font-size: 1.2rem;"></i>
+          <strong><%= nbDoublons %> doublon<%= nbDoublons > 1 ? 's' : '' %> détecté<%= nbDoublons > 1 ? 's' : '' %></strong><br>
+          <span style="font-size: 0.9rem;">Ces lignes correspondent à des enregistrements déjà présents et seront ignorées lors de l'import. Vérifiez le tableau ci-dessous pour identifier les lignes concernées.</span>
+        </div>
+      <% } %>
+      <% if (erreurs && erreurs.length) { %>
+        <div class="alert alert-warning" style="margin-top: 16px;">
+          <strong>Points d'attention :</strong>
+          <ul class="mb-0 small">
+            <% erreurs.slice(0, 20).forEach(function(e) { %><li><%= e %></li><% }); %>
+            <% if (erreurs.length > 20) { %><li><em>…et <%= erreurs.length - 20 %> autre(s)</em></li><% } %>
+          </ul>
+        </div>
+      <% } %>
+
+      <% if (apercu.length) { %>
+        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+          <table class="table table-sm table-hover">
+            <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 5;">
+              <tr>
+                <th style="width: 60px;">Ligne</th>
+                <% Object.keys(apercu[0]).filter(function(k) { return !k.startsWith('__'); }).forEach(function(k) { %>
+                  <th><%= k %></th>
+                <% }); %>
+                <th>État</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% apercu.forEach(function(l) {
+                const hasErreurs = l.__erreurs && l.__erreurs.length;
+                const hasDoublon = l.__doublon;
+                const bgColor = hasErreurs ? 'rgba(220, 53, 69, 0.05)' : (hasDoublon ? 'rgba(245, 158, 11, 0.08)' : '');
+              %>
+                <tr style="background: <%= bgColor %>;">
+                  <td class="text-muted"><%= l.__ligne_excel %></td>
+                  <% Object.keys(l).filter(function(k) { return !k.startsWith('__'); }).forEach(function(k) { %>
+                    <td><%= l[k] == null ? '' : l[k] %></td>
+                  <% }); %>
+                  <td>
+                    <% if (hasErreurs) { %>
+                      <span class="badge badge-alerte" title="<%= l.__erreurs.join(' ; ') %>"><i class="bi bi-x-circle"></i> Ignoré</span>
+                    <% } else if (hasDoublon) { %>
+                      <% if (l.__doublon.type === 'existant') { %>
+                        <span class="badge" style="background: #FEF3C7; color: #92400E; font-weight: 700;" title="Un enregistrement portant ce nom existe déjà dans la base : « <%= l.__doublon.existant.designation || l.__doublon.existant.nom || l.__doublon.existant.raison_sociale %> »">
+                          <i class="bi bi-exclamation-triangle"></i> Doublon existant
+                        </span>
+                      <% } else { %>
+                        <span class="badge" style="background: #FEF3C7; color: #92400E; font-weight: 700;" title="Ce nom apparaît déjà à la ligne <%= l.__doublon.ligne %> du fichier">
+                          <i class="bi bi-exclamation-triangle"></i> Doublon dans fichier (ligne <%= l.__doublon.ligne %>)
+                        </span>
+                      <% } %>
+                      <span class="badge badge-alerte" style="margin-left: 4px;"><i class="bi bi-x-circle"></i> Sera ignoré</span>
+                    <% } else { %>
+                      <span class="badge bg-success"><i class="bi bi-check-lg"></i> OK</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info" style="margin-top: 16px;">Aucune ligne exploitable dans ce fichier. Vérifiez qu'il correspond au modèle.</div>
+      <% } %>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <a href="<%= url_upload.replace('/apercu', '') %>" class="btn btn-outline-secondary"><i class="bi bi-arrow-repeat"></i> Reprendre avec un autre fichier</a>
+      <% if (apercu.length) { %>
+        <form action="<%= url_confirmer %>" method="post" style="margin: 0;">
+          <button type="submit" class="btn btn-success btn-lg" data-confirm="Confirmer l'import de <%= nbValides %> ligne(s) valides ? Les <%= nbDoublons %> doublon(s) et <%= nbErreurs %> erreur(s) seront ignoré(s).">
+            <i class="bi bi-check-circle"></i> Valider et importer
+          </button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,202 @@
+<%- include('../partials/header') %>
+<style>
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.pill-BROUILLON { background: #FEF3C7; color: #92400E; }
+.pill-EN_COURS  { background: #DBEAFE; color: #1E40AF; }
+.pill-TERMINEE  { background: #D1FAE5; color: #065F46; }
+.pill-ANNULEE   { background: #FEE2E2; color: #991B1B; }
+.pill-PERTE     { background: #FED7AA; color: #9A3412; }
+tr.row-attente { background: #FFFBEB !important; }
+tr.row-attente:hover { background: #FEF3C7 !important; }
+tr.row-perte { background: #FFF7ED !important; }
+tr.row-perte:hover { background: #FFEDD5 !important; }
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Ordres de production</h1>
+        <p class="page-subtitle">Fabrication en cuisine — <%= activite.nom %></p>
+    </div>
+    <% if (user.est_cuisinier || user.est_dg) { %>
+        <a href="/productions/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvelle demande de production</a>
+    <% } %>
+</div>
+
+<% if (locals.notifs_cuisinier && notifs_cuisinier.length) { %>
+    <div class="card mb-3" style="border-left: 4px solid #2563EB; background: linear-gradient(90deg, #EFF6FF 0%, #fff 60%);">
+        <div class="card-body" style="padding: 14px 18px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <i class="bi bi-bell-fill" style="color: #2563EB; font-size: 1.2rem;"></i>
+                <strong style="color: #1E40AF;">
+                    <%= notifs_cuisinier.length %> nouvelle<%= notifs_cuisinier.length > 1 ? 's' : '' %> réponse<%= notifs_cuisinier.length > 1 ? 's' : '' %> du gestionnaire
+                </strong>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <% notifs_cuisinier.forEach(function(n) { %>
+                    <a href="/productions/<%= n.id %>" style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #fff; border-radius: 6px; text-decoration: none; color: inherit; border: 1px solid var(--border);">
+                        <% if (n.statut === 'EN_COURS') { %>
+                            <i class="bi bi-check-circle-fill" style="color: var(--success);"></i>
+                            <div style="flex: 1;">
+                                <strong><%= n.numero %></strong> — Ingrédients sortis pour <strong><%= n.produit_nom %></strong>
+                                <div class="small text-muted">
+                                    Validé par <%= n.valide_par_prenom || n.valide_par_username || 'le gestionnaire' %>
+                                    · Vous pouvez commencer la fabrication
+                                </div>
+                            </div>
+                            <span class="badge bg-primary">À terminer</span>
+                        <% } else { %>
+                            <i class="bi bi-x-circle-fill" style="color: var(--danger);"></i>
+                            <div style="flex: 1;">
+                                <strong><%= n.numero %></strong> — Demande <strong>refusée</strong> pour <%= n.produit_nom %>
+                                <div class="small text-muted">
+                                    <%= (n.motif_annulation || '').replace(/^Refus gestionnaire\s*:\s*/, '') %>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger">Refusée</span>
+                        <% } %>
+                    </a>
+                <% }); %>
+            </div>
+        </div>
+    </div>
+<% } %>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card" style="border-left: 4px solid var(--gold);">
+            <div class="kpi-label">Demandes en attente</div>
+            <div class="kpi-value" style="color: var(--gold-dark);"><%= stats.BROUILLON %></div>
+            <div class="kpi-meta">À valider par le gestionnaire</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card" style="border-left: 4px solid #2563EB;">
+            <div class="kpi-label">En cours de fabrication</div>
+            <div class="kpi-value" style="color: #2563EB;"><%= stats.EN_COURS %></div>
+            <div class="kpi-meta">Ingrédients sortis, cuisson</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card" style="border-left: 4px solid var(--success);">
+            <div class="kpi-label">Productions 30j</div>
+            <div class="kpi-value" style="color: var(--success);"><%= kpi.n %></div>
+            <div class="kpi-meta"><%= h.formatDecimal(kpi.qte, 2) %> unités · <%= h.formatNombre(kpi.cout) %> <%= devise %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card" style="border-left: 4px solid #EA580C;">
+            <div class="kpi-label">Pertes 30 jours</div>
+            <div class="kpi-value" style="color: #C2410C;"><%= pertes_30j.n %></div>
+            <div class="kpi-meta">
+                <% if (pertes_30j.n) { %>
+                    Coût matière perdu : <strong><%= h.formatNombre(pertes_30j.cout) %> <%= devise %></strong>
+                <% } else { %>
+                    Aucune perte récente
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+            <a href="?" class="btn btn-sm <%= !statut_filtre ? 'btn-primary' : 'btn-outline-secondary' %>">Tous</a>
+            <a href="?statut=BROUILLON" class="btn btn-sm <%= statut_filtre === 'BROUILLON' ? 'btn-primary' : 'btn-outline-secondary' %>">En attente (<%= stats.BROUILLON %>)</a>
+            <a href="?statut=EN_COURS" class="btn btn-sm <%= statut_filtre === 'EN_COURS' ? 'btn-primary' : 'btn-outline-secondary' %>">En cours (<%= stats.EN_COURS %>)</a>
+            <a href="?statut=TERMINEE" class="btn btn-sm <%= statut_filtre === 'TERMINEE' ? 'btn-primary' : 'btn-outline-secondary' %>">Terminées (<%= stats.TERMINEE %>)</a>
+            <a href="?statut=ANNULEE" class="btn btn-sm <%= statut_filtre === 'ANNULEE' ? 'btn-primary' : 'btn-outline-secondary' %>">Annulées (<%= stats.ANNULEE %>)</a>
+            <a href="?statut=PERTES" class="btn btn-sm <%= statut_filtre === 'PERTES' ? 'btn-primary' : 'btn-outline-warning' %>" style="<%= statut_filtre === 'PERTES' ? '' : 'border-color: #EA580C; color: #C2410C;' %>">
+                <i class="bi bi-exclamation-triangle-fill"></i> Pertes (<%= stats.PERTES %>)
+            </a>
+        </div>
+        <div style="padding: 8px 0 12px; border-top: 1px dashed var(--border);">
+            <%- include('../partials/filtre_periode', { periode, autresFiltres: { statut: statut_filtre } }) %>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Date</th>
+                    <th>Produit fabriqué</th>
+                    <th style="text-align: right;">Quantité</th>
+                    <th style="text-align: right;">Coût matière</th>
+                    <th>Auteur</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% productions.forEach(function(p) {
+                    const st = p.statut || 'TERMINEE';
+                    const motif = p.motif_annulation || '';
+                    const estPerteCuisson = st === 'TERMINEE' && motif.startsWith('Perte cuisson');
+                    const estPerteTotale = st === 'ANNULEE' && motif.startsWith('Annulation perte totale');
+                    const estPerte = estPerteCuisson || estPerteTotale;
+                    // Extraire la quantité perdue si c'est une perte cuisson
+                    let quantitePerdue = null;
+                    if (estPerteTotale) quantitePerdue = null; // toute la production est perdue, la qté prévue est inconnue ici
+                    const motifCourt = motif.replace(/^(Perte cuisson|Annulation perte totale \(ingrédients non récupérables\)|Annulation avec retour ingrédients|Refus gestionnaire)\s*:\s*/, '').slice(0, 60);
+                %>
+                    <tr class="<%= st === 'BROUILLON' ? 'row-attente' : (estPerte ? 'row-perte' : '') %>" style="cursor: pointer;" onclick="if(!event.target.closest('a')) location='/productions/<%= p.id %>'">
+                        <td><a href="/productions/<%= p.id %>"><code style="font-weight: 700;"><%= p.numero %></code></a></td>
+                        <td class="small text-muted"><%= h.formatDate(p.date_production, true) %></td>
+                        <td>
+                            <strong><%= p.produit_nom %></strong>
+                            <% if (p.web_code) { %>
+                                <span style="display: inline-block; margin-left: 6px; padding: 1px 8px; background: #EDE9FE; color: #5B21B6; border: 1px solid #8B5CF6; border-radius: 10px; font-size: 0.7rem; font-weight: 700;" title="Origine : commande en ligne <%= p.web_code %> · <%= p.web_client %>">
+                                    <i class="bi bi-basket-fill"></i> Web <%= p.web_code %>
+                                </span>
+                            <% } %>
+                            <br><small class="text-muted"><%= p.produit_ref %></small>
+                        </td>
+                        <td style="text-align: right; font-weight: 700;">
+                            <%= h.formatDecimal(p.quantite_produite, 2) %> <span class="small text-muted"><%= p.produit_unite %></span>
+                            <% if (estPerteTotale) { %>
+                                <div class="small" style="color: #C2410C; font-weight: 600;"><i class="bi bi-x-octagon-fill"></i> Perte totale</div>
+                            <% } %>
+                        </td>
+                        <td style="text-align: right;"><%= h.formatNombre(p.cout_matiere) %> <%= devise %></td>
+                        <td class="small"><%= p.auteur_prenom || p.auteur_username || '—' %></td>
+                        <td>
+                            <span class="pill pill-<%= st %>"><%= st %></span>
+                            <% if (estPerte) { %>
+                                <br><span class="pill pill-PERTE" style="margin-top: 4px;" title="<%= motif %>">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> Perte
+                                </span>
+                                <% if (motifCourt) { %>
+                                    <div class="small text-muted" style="margin-top: 3px; font-style: italic;" title="<%= motif %>"><%= motifCourt %><%= motif.length > 62 ? '…' : '' %></div>
+                                <% } %>
+                            <% } %>
+                        </td>
+                        <td>
+                            <a href="/productions/<%= p.id %>/pdf" target="_blank" class="btn btn-sm btn-outline-secondary" title="PDF"><i class="bi bi-file-pdf"></i></a>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (!productions.length) { %>
+                    <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <% if (statut_filtre === 'PERTES') { %>
+                            <i class="bi bi-check-circle-fill" style="font-size: 2rem; color: var(--success); display: block; margin-bottom: 8px;"></i>
+                            <strong style="color: var(--success);">Aucune perte enregistrée</strong>
+                            <br><span class="small">Aucune production n'a fait l'objet d'une perte cuisson ou d'une perte totale.</span>
+                        <% } else { %>
+                            <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                            <% if (statut_filtre) { %>
+                                Aucune production dans ce statut.
+                            <% } else { %>
+                                Aucun ordre de production.
+                            <% } %>
+                        <% } %>
+                        <% if (user.est_cuisinier || user.est_dg) { %>
+                            <br><a href="/productions/nouveau" class="btn btn-primary btn-sm mt-3">Nouvelle demande</a>
+                        <% } %>
+                    </td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+    <%- include('../partials/pagination') %>
+</div>
+<%- include('../partials/footer') %>

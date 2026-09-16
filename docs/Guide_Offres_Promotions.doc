@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Guide Marketing — Offres & Promotions</title>
+<style>
+  body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; color: #1F2937; line-height: 1.55; margin: 24px; }
+  h1 { color: #1E3A8A; border-bottom: 3px solid #CA8A04; padding-bottom: 8pt; font-size: 22pt; margin-top: 24pt; }
+  h2 { color: #1E3A8A; font-size: 15pt; margin-top: 22pt; border-left: 4px solid #CA8A04; padding-left: 10pt; }
+  h3 { color: #92400E; font-size: 12.5pt; margin-top: 16pt; }
+  p { text-align: justify; margin: 6pt 0; }
+  ul, ol { margin: 6pt 0 6pt 20pt; }
+  li { margin: 3pt 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10pt 0; font-size: 10pt; }
+  th { background: #1E3A8A; color: #fff; padding: 8pt; text-align: left; border: 1pt solid #1E3A8A; }
+  td { padding: 6pt 8pt; border: 1pt solid #CBD5E1; vertical-align: top; }
+  tr:nth-child(even) td { background: #F8FAFC; }
+  .callout { background: #FEF3C7; border-left: 4pt solid #F59E0B; padding: 10pt 14pt; margin: 12pt 0; }
+  .callout strong { color: #78350F; }
+  .callout-vert { background: #D1FAE5; border-left: 4pt solid #10B981; padding: 10pt 14pt; margin: 12pt 0; color: #065F46; }
+  .callout-bleu { background: #DBEAFE; border-left: 4pt solid #3B82F6; padding: 10pt 14pt; margin: 12pt 0; color: #1E40AF; }
+  code { background: #F1F5F9; padding: 2px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: 700; color: #DC2626; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 9pt; font-weight: 700; }
+  .badge-jaune { background: #FEF3C7; color: #92400E; }
+  .badge-rouge { background: #FEE2E2; color: #991B1B; }
+  .badge-vert { background: #D1FAE5; color: #065F46; }
+  .badge-bleu { background: #DBEAFE; color: #1E40AF; }
+  .step { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 12pt; margin: 10pt 0; border-radius: 6pt; }
+  .step-num { display: inline-block; background: #1E3A8A; color: #fff; width: 28pt; height: 28pt; border-radius: 50%; text-align: center; line-height: 28pt; font-weight: 700; margin-right: 10pt; }
+  .exemple { background: #F0FDF4; border-left: 3pt solid #10B981; padding: 10pt 14pt; margin: 8pt 0; font-style: italic; }
+  .footer { margin-top: 40pt; padding-top: 12pt; border-top: 1px solid #CBD5E1; font-size: 9pt; color: #64748B; text-align: center; }
+</style>
+</head>
+<body>
+
+<div style="text-align: center; margin-bottom: 30pt;">
+  <div style="font-size: 11pt; color: #CA8A04; letter-spacing: 3pt; text-transform: uppercase;">Bistock · Le Traiteur du Bistrot</div>
+  <h1 style="border: none; margin: 8pt 0;">Guide Marketing</h1>
+  <div style="font-size: 14pt; color: #64748B;">Offres, Promotions & Codes Promo</div>
+  <div style="margin-top: 12pt; color: #94A3B8; font-size: 10pt;">Version 1.0 · Juillet 2026</div>
+</div>
+
+<h1>1. Vue d'ensemble : Offres vs Promotions</h1>
+
+<p>Bistock distingue deux notions complémentaires pour animer votre canal en ligne <code>/commander/</code> :</p>
+
+<table>
+  <tr>
+    <th style="width: 30%;">Concept</th>
+    <th style="width: 30%;">Rôle</th>
+    <th>Exemples</th>
+  </tr>
+  <tr>
+    <td><strong>📦 Offres</strong><br><small>(mise en avant produit)</small></td>
+    <td>Valoriser certains produits sans forcément une réduction</td>
+    <td>Menus/combos, coup de cœur, nouveauté, plat signature</td>
+  </tr>
+  <tr>
+    <td><strong>🎟 Promotions</strong><br><small>(réduction temporaire)</small></td>
+    <td>Inciter à acheter grâce à un avantage tarifaire</td>
+    <td>Code <code>BIENVENUE20</code>, Happy Hour −20% pâtisserie, livraison offerte dès 10 000 FCFA</td>
+  </tr>
+</table>
+
+<div class="callout-bleu">
+  <strong>💡 À retenir :</strong> Les <strong>offres</strong> sont utilisées pour <em>attirer l'œil</em>, les <strong>promotions</strong> pour <em>déclencher l'achat</em>. Les deux peuvent coexister sur un même produit.
+</div>
+
+<h1>2. Livraison offerte à partir d'un montant</h1>
+
+<h2>Objectif</h2>
+<p>Inciter le client à ajouter des articles à son panier pour atteindre le seuil de livraison offerte. C'est le levier le plus simple pour augmenter le panier moyen.</p>
+
+<h2>Configuration (2 minutes)</h2>
+<div class="step">
+  <p><span class="step-num">1</span> <strong>Administration → Paramètres système → Canal client en ligne</strong></p>
+  <p><span class="step-num">2</span> Chercher le paramètre <code>web_livraison_gratuite_seuil</code></p>
+  <p><span class="step-num">3</span> Saisir le montant en FCFA (ex : <code>10000</code> pour offrir la livraison dès 10 000 FCFA de panier).<br>
+     Laisser <code>0</code> pour désactiver cette fonction.</p>
+</div>
+
+<h2>Ce que le client voit</h2>
+<ul>
+  <li><strong>Dans le panier :</strong> une barre de progression dorée <em>« Plus que 2 500 F pour la livraison offerte »</em>, qui se remplit à mesure que le panier grossit.</li>
+  <li><strong>Quand le seuil est atteint :</strong> bandeau vert <em>« Livraison offerte ! 🎉 »</em>.</li>
+  <li><strong>Au checkout :</strong> la ligne « Livraison » affiche <em>« Offerte 🎉 »</em> au lieu du montant, et le total est recalculé automatiquement.</li>
+</ul>
+
+<h1>3. Créer une promotion — le formulaire complet</h1>
+
+<h2>Où trouver le menu</h2>
+<p><strong>Administration → Promotions</strong> (visible pour la DG uniquement). Cliquer sur <strong>« + Nouvelle promotion »</strong> en haut à droite.</p>
+
+<h2>Bloc 1 · Informations générales</h2>
+<table>
+  <tr><th>Champ</th><th>Description</th></tr>
+  <tr><td><strong>Nom interne *</strong></td><td>Nom pour vous-même (jamais montré au client). Ex : <em>« Ramadan 2026 »</em>, <em>« Bienvenue nouveau client »</em>.</td></tr>
+  <tr><td><strong>Code promo</strong></td><td>Le code que le client tape au checkout. Ex : <code>BIENVENUE20</code>.<br>
+    <strong>Laisser vide = promotion automatique</strong> (s'applique toute seule sans que le client tape quoi que ce soit).</td></tr>
+  <tr><td><strong>Description</strong></td><td>Message court montré au client quand le code est validé. Ex : <em>« -20% pour votre première commande »</em>.</td></tr>
+</table>
+
+<h2>Bloc 2 · Type et valeur de la réduction</h2>
+
+<h3>3 types disponibles</h3>
+<ul>
+  <li><span class="badge badge-jaune">POURCENTAGE</span> — Ex : <strong>-20 %</strong> sur le panier ou une catégorie</li>
+  <li><span class="badge badge-rouge">MONTANT FIXE</span> — Ex : <strong>-500 FCFA</strong> forfaitaires sur la commande</li>
+  <li><span class="badge badge-vert">LIVRAISON OFFERTE</span> — Les frais de livraison passent à 0 FCFA</li>
+</ul>
+
+<div class="callout">
+  <strong>Panier minimum :</strong> permet de conditionner la promo à un montant minimum. Utile pour éviter les codes appliqués sur des toutes petites commandes. Ex : <em>-500 FCFA à partir de 3 000 FCFA d'achat.</em>
+</div>
+
+<h2>Bloc 3 · Cible de la promotion</h2>
+<p>La remise s'applique sur les produits qui correspondent aux critères. <strong>Tout laisser vide = tout le catalogue web est concerné.</strong></p>
+<ul>
+  <li><strong>Activité :</strong> limiter à une seule activité (ex : uniquement Pâtisserie)</li>
+  <li><strong>Catégorie :</strong> limiter à une catégorie (ex : uniquement les Boissons chaudes)</li>
+  <li><strong>Produit précis :</strong> limiter à un seul produit (ex : le Cheese Burger)</li>
+</ul>
+
+<h2>Bloc 4 · Créneau horaire (Happy Hour)</h2>
+<p>Restreindre l'activité de la promo à certaines heures ou jours de la semaine.</p>
+<ul>
+  <li><strong>Heure début / fin :</strong> ex : <code>14:00</code> à <code>18:00</code></li>
+  <li><strong>Jours actifs :</strong> cases à cocher Lun/Mar/Mer/Jeu/Ven/Sam/Dim. Vide = tous les jours.</li>
+</ul>
+
+<div class="exemple">
+  <strong>Exemple :</strong> Créer une promo <em>« Happy Hour Café »</em> avec -20% sur la catégorie « Boissons chaudes », créneau horaire <code>14:00</code>–<code>18:00</code>, jours <em>Samedi</em> et <em>Dimanche</em>, code vide (auto). Le samedi à 15h, la bannière apparaît sur le site avec un compte à rebours.
+</div>
+
+<h2>Bloc 5 · Période & limites</h2>
+<table>
+  <tr><th>Champ</th><th>Effet</th></tr>
+  <tr><td><strong>Date de début</strong></td><td>La promo n'est active qu'à partir de cette date. Vide = immédiat.</td></tr>
+  <tr><td><strong>Date de fin</strong></td><td>Après cette date, la promo est refusée. Vide = pas de fin.</td></tr>
+  <tr><td><strong>Nb total d'utilisations max</strong></td><td>Ex : <code>100</code> pour un code limité aux 100 premiers clients. Vide = illimité.</td></tr>
+  <tr><td><strong>Max par client</strong></td><td>Basé sur le numéro de téléphone. Ex : <code>1</code> pour un code « 1ère commande uniquement ». Vide = illimité.</td></tr>
+</table>
+
+<h2>Bloc 6 · Affichage sur le site</h2>
+<p>Coche <strong>« Bannière visible sur le site »</strong> pour que la promo apparaisse en bandeau en haut de <code>/commander/</code>. Ne fonctionne que pour les <strong>promos automatiques</strong> (sans code) — les codes ne sont pas montrés publiquement.</p>
+
+<h1>4. Codes promo vs Promotions automatiques</h1>
+
+<table>
+  <tr>
+    <th>Aspect</th>
+    <th>Code promo</th>
+    <th>Promotion automatique</th>
+  </tr>
+  <tr>
+    <td>Le client doit-il taper quelque chose ?</td>
+    <td>Oui : saisir le code au checkout</td>
+    <td>Non : appliquée automatiquement</td>
+  </tr>
+  <tr>
+    <td>Visibilité sur le site</td>
+    <td>Discret (aucune bannière)</td>
+    <td>Bannière en haut de site + badge <code>-X%</code> sur produits</td>
+  </tr>
+  <tr>
+    <td>Usage typique</td>
+    <td>Campagnes ciblées : SMS, WhatsApp, réseaux sociaux, presse</td>
+    <td>Happy hour, promotion saisonnière visible de tous</td>
+  </tr>
+  <tr>
+    <td>Traçabilité</td>
+    <td>Vous savez qui a utilisé quel code</td>
+    <td>Vous voyez la totale des usages, sans code identifiant</td>
+  </tr>
+</table>
+
+<div class="callout">
+  <strong>Astuce mixte :</strong> vous pouvez créer un même bénéfice sous les 2 formes.<br>
+  Exemple : <em>« -20% sur pâtisserie »</em>
+  <ul>
+    <li>Version <strong>publique automatique</strong> — happy hour weekend, sans code</li>
+    <li>Version <strong>code privé</strong> — envoyé par WhatsApp aux clients fidèles pour un usage illimité</li>
+  </ul>
+</div>
+
+<h1>5. Ce que le client voit sur le site</h1>
+
+<h2>Sur la page d'accueil du catalogue <code>/commander/</code></h2>
+<ul>
+  <li><strong>Bannière en haut</strong> (une par promo auto active) — dégradé coloré, icône, description, compte à rebours si créneau horaire</li>
+  <li><strong>Bouton rouge « Offres »</strong> dans le header avec badge du nombre de promos actives</li>
+  <li><strong>Section « 🔥 Nos Menus & Combos »</strong> — cartes dorées mettant en avant les combos</li>
+  <li><strong>Badges rouges <code>-20%</code></strong> en haut à gauche de chaque produit concerné par une promotion</li>
+</ul>
+
+<h2>Sur la page dédiée <code>/commander/offres</code></h2>
+<p>Accessible via le bouton « Offres » du header. Grille de cartes visuelles avec pour chaque promo :</p>
+<ul>
+  <li>Type (couleur du bord : jaune %, rouge fixe, vert livraison)</li>
+  <li>Nom, description, valeur en gros</li>
+  <li>Détails : cible, panier min, dates, créneau, jours</li>
+  <li>Code promo mis en évidence si applicable, ou badge <em>« Application automatique »</em></li>
+  <li>Bouton d'action <strong>« Commander maintenant »</strong></li>
+</ul>
+
+<h2>Au checkout</h2>
+<div class="step">
+  <p><span class="step-num">1</span> Le client voit un champ <strong>« Code promo (facultatif) »</strong> avec un bouton « Appliquer »</p>
+  <p><span class="step-num">2</span> Il tape son code → clic « Appliquer » → vérification instantanée par le serveur</p>
+  <p><span class="step-num">3</span> Si valide : ligne <em>« Remise (BIENVENUE20) »</em> apparaît en rouge dans le récap, total recalculé</p>
+  <p><span class="step-num">4</span> Si invalide : message rouge <em>« Code inconnu »</em> / <em>« Panier minimum 3 000 F requis »</em> / <em>« Code expiré »</em></p>
+  <p><span class="step-num">5</span> S'il ne saisit rien mais qu'une <strong>promo automatique</strong> est applicable, elle est ajoutée <strong>silencieusement</strong> à la validation de la commande</p>
+</div>
+
+<h2>Après la commande</h2>
+<p>Le message SMS/WhatsApp de confirmation mentionne le code utilisé et l'économie réalisée. Le client peut retrouver sa promo appliquée sur la page de suivi.</p>
+
+<h1>6. Suivre les performances (Dashboard Stats)</h1>
+
+<h2>Accès</h2>
+<p><strong>Administration → Promotions → bouton « Statistiques »</strong> en haut de la liste.</p>
+
+<h2>Sélecteur de période</h2>
+<p>Boutons rapides : 7 jours · 30 jours · 90 jours · 1 an</p>
+
+<h2>4 KPIs globaux</h2>
+<table>
+  <tr>
+    <th>KPI</th>
+    <th>Ce que ça mesure</th>
+  </tr>
+  <tr>
+    <td><strong>💰 Remise totale accordée</strong></td>
+    <td>Somme des remises appliquées sur la période + nombre total d'utilisations</td>
+  </tr>
+  <tr>
+    <td><strong>📈 Taux avec promo</strong></td>
+    <td>Pourcentage de commandes ayant bénéficié d'une promo, sur toutes les commandes</td>
+  </tr>
+  <tr>
+    <td><strong>🛒 Panier moyen avec promo</strong></td>
+    <td>Comparé au panier moyen des commandes sans promo (indicateur clé : est-ce que les promos font commander plus ?)</td>
+  </tr>
+  <tr>
+    <td><strong>💵 CA généré avec promo</strong></td>
+    <td>Chiffre d'affaires des commandes ayant utilisé une promo, sur le CA total</td>
+  </tr>
+</table>
+
+<h2>4 graphiques</h2>
+<ol>
+  <li><strong>Évolution quotidienne</strong> — courbe des utilisations + courbe des remises cumulées jour par jour</li>
+  <li><strong>Meilleurs créneaux horaires</strong> — barres 24h pour identifier vos heures fortes</li>
+  <li><strong>Répartition par type</strong> — donut % / montant fixe / livraison offerte</li>
+  <li><strong>Distribution jour de semaine</strong> — barres 7 jours pour ajuster vos happy hours</li>
+</ol>
+
+<h2>Deux classements</h2>
+<ul>
+  <li><strong>🏆 Top codes promo</strong> — rang 🥇🥈🥉 puis 4→10, avec code, nb usages, remise, CA généré</li>
+  <li><strong>⚡ Top promos automatiques</strong> — même format pour les promos sans code</li>
+</ul>
+
+<h2>Export CSV</h2>
+<p>Bouton <strong>« Export CSV »</strong> qui télécharge toutes les utilisations de la période au format Excel (encodage UTF-8 avec BOM, séparateur point-virgule). Colonnes : date, promotion, code, type, client, remise, commande, statut.</p>
+
+<h1>7. Cas d'usage concrets</h1>
+
+<h2>Cas 1 · Booster le panier moyen</h2>
+<div class="exemple">
+  <strong>Configuration :</strong> Livraison offerte dès 10 000 FCFA (paramètre <code>web_livraison_gratuite_seuil</code> = 10000).<br>
+  <strong>Résultat attendu :</strong> +15 à +25% sur le panier moyen. Client qui a 8 500 F rajoute une boisson pour dépasser le seuil.
+</div>
+
+<h2>Cas 2 · Acquérir de nouveaux clients (1ère commande)</h2>
+<div class="exemple">
+  <strong>Configuration :</strong> Code <code>BIENVENUE20</code>, type Pourcentage, valeur 20%, <em>max par client = 1</em>, panier min = 2 000 F.<br>
+  <strong>Diffusion :</strong> Sur vos réseaux sociaux, flyers, cartes de visite.<br>
+  <strong>Résultat attendu :</strong> Fait essayer le service à des nouveaux clients à moindre coût. Après leur 1ère commande, ils reviennent naturellement.
+</div>
+
+<h2>Cas 3 · Happy Hour pour lisser l'activité</h2>
+<div class="exemple">
+  <strong>Constat :</strong> Salon vide le mardi/mercredi 14h-17h.<br>
+  <strong>Configuration :</strong> Promo automatique -25% sur toute la Pâtisserie, créneau <code>14:00–17:00</code>, jours <em>Mardi/Mercredi</em>, bannière activée.<br>
+  <strong>Résultat attendu :</strong> Fait venir des clients pendant les heures creuses avec un avantage clair et visible.
+</div>
+
+<h2>Cas 4 · Campagne WhatsApp saisonnière</h2>
+<div class="exemple">
+  <strong>Contexte :</strong> Ramadan.<br>
+  <strong>Configuration :</strong> Code <code>RAMADAN20</code>, -20% sur tout, panier min = 3 000 F, dates 20/03/26 → 20/04/26, max total 500 usages.<br>
+  <strong>Diffusion :</strong> Message WhatsApp broadcasté à tous les clients existants.<br>
+  <strong>Suivi :</strong> Dashboard stats vous montre en temps réel qui a utilisé le code et combien vous avez généré.
+</div>
+
+<h2>Cas 5 · Écouler du stock qui approche de la péremption</h2>
+<div class="exemple">
+  <strong>Contexte :</strong> Éclairs café qui ne partent pas.<br>
+  <strong>Configuration :</strong> Promo automatique -30% sur le produit « Éclair café », créneau <code>18:00–21:00</code>, tous les jours.<br>
+  <strong>Résultat attendu :</strong> Le badge -30% sur la carte produit + la bannière déclenchent des ventes rapides en fin de journée.
+</div>
+
+<h1>8. Bonnes pratiques</h1>
+
+<h3>À faire</h3>
+<ul>
+  <li>✅ <strong>Nommer clairement</strong> le nom interne (« Ramadan 2026 » et pas « Promo 3 »)</li>
+  <li>✅ <strong>Toujours mettre un panier minimum</strong> pour éviter les remises sur toutes petites commandes</li>
+  <li>✅ <strong>Utiliser les dates de fin</strong> pour créer un sentiment d'urgence + éviter d'oublier la promo active</li>
+  <li>✅ <strong>Limiter à 1 usage/client</strong> pour les codes de bienvenue</li>
+  <li>✅ <strong>Vérifier les stats chaque semaine</strong> pour ajuster ce qui ne marche pas</li>
+</ul>
+
+<h3>À éviter</h3>
+<ul>
+  <li>❌ <strong>Empiler trop de promos</strong> — 2-3 actives max en même temps pour rester lisible</li>
+  <li>❌ <strong>Codes trop compliqués</strong> — <code>PAT20</code> vaut mieux que <code>PATISSERIE_MARS_2026_20PCT</code></li>
+  <li>❌ <strong>Réductions supérieures à 30%</strong> sans réel besoin — ça banalise vos prix</li>
+  <li>❌ <strong>Bannières permanentes</strong> — perdent leur pouvoir d'attention si elles restent trop longtemps</li>
+</ul>
+
+<h1>9. Aide-mémoire rapide</h1>
+
+<table>
+  <tr>
+    <th>Vous voulez…</th>
+    <th>Comment faire</th>
+  </tr>
+  <tr>
+    <td>Créer un code promo simple</td>
+    <td>Admin → Promotions → Nouvelle → renseigner nom + code + pourcentage</td>
+  </tr>
+  <tr>
+    <td>Offrir la livraison à partir d'un montant</td>
+    <td>Admin → Paramètres → <code>web_livraison_gratuite_seuil</code> = montant</td>
+  </tr>
+  <tr>
+    <td>Créer une happy hour</td>
+    <td>Nouvelle promotion sans code, remplir <strong>Créneau horaire</strong> + jours</td>
+  </tr>
+  <tr>
+    <td>Suspendre une promo sans supprimer</td>
+    <td>Bouton pause ⏸ dans la liste des promotions</td>
+  </tr>
+  <tr>
+    <td>Dupliquer une promo pour une variante</td>
+    <td>Bouton copie 📋 puis ajuster les champs</td>
+  </tr>
+  <tr>
+    <td>Voir qui a utilisé un code</td>
+    <td>Cliquer sur la promotion → onglet « Historique des utilisations »</td>
+  </tr>
+  <tr>
+    <td>Analyser la performance globale</td>
+    <td>Bouton « Statistiques » en haut de la liste des promotions</td>
+  </tr>
+  <tr>
+    <td>Exporter les données pour le comptable</td>
+    <td>Dans Stats → bouton « Export CSV »</td>
+  </tr>
+</table>
+
+<div class="callout-vert">
+  <strong>🎯 Rappel des 4 phases livrées :</strong>
+  <ol>
+    <li><strong>Phase 1</strong> — Livraison gratuite dès X FCFA + section « Nos Menus & Combos »</li>
+    <li><strong>Phase 2</strong> — Table promotion + admin CRUD + codes promo au checkout</li>
+    <li><strong>Phase 3</strong> — Happy hour temporel + bannières automatiques + page /commander/offres + badges produits</li>
+    <li><strong>Phase 4</strong> — Dashboard stats marketing complet (KPIs, graphiques, tops, export CSV)</li>
+  </ol>
+</div>
+
+<div class="footer">
+  Guide Marketing Bistock — Le Traiteur du Bistrot SUARL<br>
+  Douala, Cameroun · Bonapriso · Juillet 2026
+</div>
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+<%- include('../partials/header') %>
+<style>
+.param-card { margin-bottom: 20px; }
+.param-card .card-header { background: linear-gradient(to right, rgba(30, 58, 138, 0.06), transparent); border-bottom: 2px solid var(--gold); font-weight: 700; font-size: 1rem; padding: 14px 18px; }
+.param-card .card-header i { color: var(--gold); margin-right: 8px; }
+.section-hint { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px; }
+.field-group { padding: 4px 0; }
+.field-required::after { content: ' *'; color: var(--danger); font-weight: 700; }
+.paiement-mode { background: var(--bg-soft, #F8FAFC); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px; margin-bottom: 12px; }
+.paiement-mode h6 { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 700; color: var(--text); }
+.paiement-mode h6 i { color: var(--gold); font-size: 1.2rem; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Paramètres système</h1>
+        <p class="page-subtitle">Identité, fiscalité, modalités de paiement affichées sur vos documents commerciaux</p>
+    </div>
+    <a href="/admin/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<% function param(cle) { return parametres.find(p => p.cle === cle) || { cle, valeur: '', libelle: cle }; } %>
+
+<form method="post">
+    <!-- Identité entreprise -->
+    <div class="card param-card">
+        <div class="card-header"><i class="bi bi-building"></i> Identité de l'entreprise</div>
+        <div class="card-body">
+            <p class="section-hint">Ces informations apparaissent en en-tête de vos proformas, bons de commande, bons de livraison, factures et reçus.</p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label field-required">Raison sociale</label>
+                    <input type="text" class="form-control" name="entreprise_nom" value="<%= param('entreprise_nom').valeur %>" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Adresse</label>
+                    <input type="text" class="form-control" name="entreprise_adresse" value="<%= param('entreprise_adresse').valeur %>" placeholder="Ex : BP 1234, Douala, Cameroun">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Téléphone</label>
+                    <input type="text" class="form-control" name="entreprise_tel" value="<%= param('entreprise_tel').valeur %>" placeholder="+237 6XX XXX XXX">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="entreprise_email" value="<%= param('entreprise_email').valeur %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">NIU (Numéro d'Identification Unique)</label>
+                    <input type="text" class="form-control" name="entreprise_niu" value="<%= param('entreprise_niu').valeur %>" placeholder="M012345678901X">
+                    <div class="form-text">Obligatoire sur les factures pour les entreprises immatriculées.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">RCCM</label>
+                    <input type="text" class="form-control" name="entreprise_rccm" value="<%= param('entreprise_rccm').valeur %>" placeholder="RC/DLA/2020/B/1234">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modalités de paiement -->
+    <div class="card param-card">
+        <div class="card-header"><i class="bi bi-bank"></i> Modalités de paiement (proforma / facture)</div>
+        <div class="card-body">
+            <p class="section-hint">Renseignez ces informations pour qu'elles apparaissent automatiquement sur vos <strong>proformas</strong> et <strong>factures</strong> lorsque le mode de paiement choisi est <em>virement</em> ou <em>chèque</em>.</p>
+
+            <!-- VIREMENT BANCAIRE -->
+            <div class="paiement-mode">
+                <h6><i class="bi bi-bank2"></i> Virement bancaire</h6>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Nom de la banque</label>
+                        <input type="text" class="form-control" name="entreprise_banque_nom" value="<%= param('entreprise_banque_nom').valeur %>" placeholder="Ex : SGBC, Afriland First Bank...">
+                    </div>
+                    <div class="col-md-5 mb-3">
+                        <label class="form-label">Numéro de compte / RIB / IBAN</label>
+                        <input type="text" class="form-control" name="entreprise_banque_compte" value="<%= param('entreprise_banque_compte').valeur %>" placeholder="10005 00050 0001234567 89">
+                        <div class="form-text">Compte destinataire des virements.</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Code SWIFT / BIC</label>
+                        <input type="text" class="form-control" name="entreprise_banque_swift" value="<%= param('entreprise_banque_swift').valeur %>" placeholder="SGCMCMCX">
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHÈQUE -->
+            <div class="paiement-mode">
+                <h6><i class="bi bi-file-earmark-check"></i> Paiement par chèque</h6>
+                <div class="row">
+                    <div class="col-md-12 mb-2">
+                        <label class="form-label">Libellé du chèque (à l'ordre de...)</label>
+                        <input type="text" class="form-control" name="entreprise_cheque_libelle" value="<%= param('entreprise_cheque_libelle').valeur %>" placeholder="Ex : LE TRAITEUR DU BISTROT SARL">
+                        <div class="form-text">Nom exact à faire figurer sur les chèques. Si laissé vide, la raison sociale sera utilisée.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devise et fiscalité -->
+    <div class="card param-card">
+        <div class="card-header"><i class="bi bi-percent"></i> Devise et fiscalité</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Devise</label>
+                    <input type="text" class="form-control" name="devise" value="<%= param('devise').valeur %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Taux TVA par défaut (%)</label>
+                    <input type="number" step="0.01" class="form-control" name="taux_tva" value="<%= param('taux_tva').valeur %>">
+                    <div class="form-text">TVA standard Cameroun : 19,25 %.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canal client /commander/ -->
+    <div class="card param-card">
+        <div class="card-header"><i class="bi bi-globe2"></i> Canal client en ligne (/commander/)</div>
+        <div class="card-body">
+            <p class="section-hint">Paramètres visibles par les clients sur le site public de commande.</p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Horaires affichés</label>
+                    <input type="text" class="form-control" name="web_horaires" value="<%= param('web_horaires').valeur %>" placeholder="Lun-Ven 8h-22h">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Frais livraison (FCFA)</label>
+                    <input type="number" step="100" min="0" class="form-control" name="web_frais_livraison" value="<%= param('web_frais_livraison').valeur %>">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Canal actif</label>
+                    <select class="form-select" name="web_canal_actif">
+                        <option value="1" <%= param('web_canal_actif').valeur === '1' ? 'selected' : '' %>>Oui — commandes en ligne ouvertes</option>
+                        <option value="0" <%= param('web_canal_actif').valeur === '0' ? 'selected' : '' %>>Non — canal désactivé</option>
+                    </select>
+                </div>
+            </div>
+
+            <h6 style="margin-top: 8px; margin-bottom: 12px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-phone-vibrate" style="color: var(--gold);"></i> Codes marchand Mobile Money
+            </h6>
+            <p class="section-hint">Affichés au client qui choisit Orange ou MTN au moment de commander. Laissez vide pour cacher l'encart.</p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><span style="color: #EA580C; font-weight: 700;">●</span> Code Orange Money</label>
+                    <input type="text" class="form-control" name="web_orange_code" value="<%= param('web_orange_code').valeur %>" placeholder="Ex : 699695969 ou #150*4*6*699695969#">
+                    <div class="form-text">Numéro marchand ou code USSD complet à composer par le client.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><span style="color: #CA8A04; font-weight: 700;">●</span> Code MTN Mobile Money</label>
+                    <input type="text" class="form-control" name="web_mtn_code" value="<%= param('web_mtn_code').valeur %>" placeholder="Ex : 699695969">
+                    <div class="form-text">Numéro marchand ou code USSD à afficher.</div>
+                </div>
+            </div>
+
+            <h6 style="margin-top: 8px; margin-bottom: 12px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-star-fill" style="color: var(--gold);"></i> Preuve sociale
+            </h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Note moyenne affichée</label>
+                    <input type="text" class="form-control" name="web_note_moyenne" value="<%= param('web_note_moyenne').valeur %>" placeholder="4.8">
+                    <div class="form-text">Mettez <code>0</code> pour cacher la bandelette.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nombre d'avis (affichage)</label>
+                    <input type="text" class="form-control" name="web_nb_avis" value="<%= param('web_nb_avis').valeur %>" placeholder="127 (vide pour cacher)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Règles commerciales -->
+    <div class="card param-card">
+        <div class="card-header"><i class="bi bi-calendar-check"></i> Règles commerciales</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Délai paiement B2B par défaut (jours)</label>
+                    <input type="number" step="1" class="form-control" name="delai_paiement_defaut" value="<%= param('delai_paiement_defaut').valeur %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Remise max sans validation DG (%)</label>
+                    <input type="number" step="1" class="form-control" name="remise_max_gestionnaire" value="<%= param('remise_max_gestionnaire').valeur %>">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="position: sticky; bottom: 0; background: var(--surface, #fff); padding: 16px 0; border-top: 1px solid var(--border); display: flex; gap: 10px; margin-top: 20px;">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg"></i> Enregistrer les paramètres</button>
+        <a href="/admin/" class="btn btn-outline-secondary btn-lg">Annuler</a>
+    </div>
+</form>
+<%- include('../partials/footer') %>

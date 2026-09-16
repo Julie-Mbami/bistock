@@ -1,0 +1,424 @@
+<%- include('../partials/header') %>
+<style>
+.pill { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.pill-BROUILLON { background: #FEF3C7; color: #92400E; }
+.pill-EN_COURS  { background: #DBEAFE; color: #1E40AF; }
+.pill-TERMINEE  { background: #D1FAE5; color: #065F46; }
+.pill-ANNULEE   { background: #FEE2E2; color: #991B1B; }
+.step-progress { display: flex; gap: 4px; margin-bottom: 20px; }
+.step-progress .step { flex: 1; padding: 10px; border-radius: 6px; background: #f1f5f9; text-align: center; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); position: relative; }
+.step-progress .step.done { background: #D1FAE5; color: #065F46; }
+.step-progress .step.current { background: var(--gold); color: #fff; }
+.step-progress .step.pending { background: #f1f5f9; color: var(--text-muted); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Production <%= production.numero %></h1>
+        <p class="page-subtitle">
+            <%= h.formatDate(production.date_production, true) %>
+            · Demandée par <strong><%= production.auteur_prenom || production.auteur_username %></strong>
+            · <span class="pill pill-<%= production.statut %>"><%= production.statut %></span>
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/productions/<%= production.id %>/pdf" target="_blank" class="btn btn-outline-primary"><i class="bi bi-file-pdf"></i> Bon PDF</a>
+        <a href="/productions/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+    </div>
+</div>
+
+<!-- Barre de progression du workflow -->
+<div class="step-progress">
+    <% var st = production.statut; %>
+    <div class="step <%= st === 'BROUILLON' ? 'current' : (['EN_COURS','TERMINEE'].includes(st) ? 'done' : (st === 'ANNULEE' ? 'pending' : '')) %>">
+        <i class="bi bi-<%= ['EN_COURS','TERMINEE'].includes(st) ? 'check-lg' : 'file-earmark-text' %>"></i> 1. Demande envoyée
+    </div>
+    <div class="step <%= st === 'EN_COURS' ? 'current' : (st === 'TERMINEE' ? 'done' : 'pending') %>">
+        <i class="bi bi-<%= st === 'TERMINEE' ? 'check-lg' : 'box-arrow-up' %>"></i> 2. Ingrédients sortis
+    </div>
+    <div class="step <%= st === 'TERMINEE' ? 'done' : 'pending' %>">
+        <i class="bi bi-<%= st === 'TERMINEE' ? 'check-lg' : 'fire' %>"></i> 3. Production terminée
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Panneau produit fini -->
+        <div class="card mb-3">
+            <div class="card-body" style="text-align: center; padding: 24px;">
+                <div class="small text-muted" style="text-transform: uppercase; font-weight: 600;">
+                    <%= st === 'TERMINEE' ? 'Fabrication réalisée' : (st === 'ANNULEE' ? 'Production annulée' : 'Demande de fabrication') %>
+                </div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--gold-dark); margin-top: 4px;">
+                    <%= h.formatDecimal(production.quantite_produite, 2) %> × <%= production.produit_nom %>
+                </div>
+                <div class="small text-muted" style="margin-top: 4px;"><%= production.produit_ref %> · <%= production.produit_unite %></div>
+            </div>
+        </div>
+
+        <!-- Étape 2 : validation ingrédients par gestionnaire (uniquement si BROUILLON) -->
+        <% if (production.statut === 'BROUILLON' && peut_valider_ingredients && fiche && composition.length) { %>
+        <div class="card mb-3" style="border-left: 4px solid var(--gold);">
+            <div class="card-header" style="background: var(--gold-50, #fefce8); font-weight: 600;">
+                <i class="bi bi-box-arrow-up"></i> Valider la sortie des ingrédients
+            </div>
+            <div class="card-body">
+                <p class="text-muted small" style="margin-bottom: 14px;">
+                    Confirmez les quantités <strong>réellement sorties</strong> du magasin (vous pouvez ajuster si nécessaire).
+                </p>
+                <form action="/productions/<%= production.id %>/valider-ingredients" method="post"
+                      data-confirm="Confirmer la sortie des ingrédients ? Le stock sera décrémenté et la production passera en cours."
+                      data-confirm-title="Valider la sortie" data-confirm-ok="Sortir les ingrédients">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Ingrédient</th>
+                                    <th style="text-align: right;">Stock actuel</th>
+                                    <th style="text-align: right;">Théorique</th>
+                                    <th style="text-align: right;">Quantité à sortir</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% composition.forEach(function(c) {
+                                    const suffisant = Number(c.stock_actuel) >= c.qte_theorique;
+                                %>
+                                    <tr>
+                                        <td>
+                                            <strong><%= c.designation %></strong>
+                                            <br><small class="text-muted"><%= c.reference %></small>
+                                        </td>
+                                        <td style="text-align: right; color: <%= suffisant ? 'var(--success)' : 'var(--danger)' %>;">
+                                            <%= h.formatDecimal(c.stock_actuel, 2) %> <span class="small text-muted"><%= c.unite %></span>
+                                        </td>
+                                        <td style="text-align: right; font-weight: 600;">
+                                            <%= h.formatDecimal(c.qte_theorique, 2) %>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <input type="hidden" name="ingredient_id" value="<%= c.ingredient_id %>">
+                                            <input type="number" name="quantite_reelle" step="0.01" min="0"
+                                                   value="<%= h.formatDecimal(c.qte_theorique, 2) %>"
+                                                   class="form-control form-control-sm"
+                                                   style="width: 110px; margin-left: auto; text-align: right; <%= !suffisant ? 'border-color: var(--danger);' : '' %>">
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="form-check mb-3" style="background: #FEF2F2; padding: 10px 14px; border-radius: 6px; border-left: 3px solid var(--danger); margin-top: 12px;">
+                        <input type="checkbox" name="forcer" value="1" id="chk-forcer" class="form-check-input">
+                        <label for="chk-forcer" class="form-check-label small">
+                            <strong>Forcer la sortie</strong> même si le stock est insuffisant (créera des stocks négatifs)
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">
+                            <i class="bi bi-check-lg"></i> Sortir les ingrédients
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="document.getElementById('form-refus').style.display='block'; this.closest('.card-body').querySelector('form').style.display='none'; this.style.display='none';">
+                            <i class="bi bi-x-circle"></i> Refuser
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Formulaire de refus (caché par défaut) -->
+                <form action="/productions/<%= production.id %>/refuser" method="post" id="form-refus" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+                    <label class="form-label" style="color: var(--danger); font-weight: 600;">Motif de refus (obligatoire) :</label>
+                    <textarea name="motif" class="form-control" rows="2" required minlength="3" placeholder="Ex : Ingrédient indisponible, production non planifiée..."></textarea>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="location.reload();">Annuler</button>
+                        <button type="submit" class="btn btn-danger" style="flex: 1;" data-confirm="Refuser cette demande de production ?" data-confirm-danger="true" data-confirm-ok="Refuser">
+                            <i class="bi bi-x-circle"></i> Refuser la demande
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <% } %>
+
+        <!-- Étape 3 : Cuisinier termine la production (uniquement si EN_COURS) -->
+        <% if (production.statut === 'EN_COURS' && peut_terminer) { %>
+        <div class="card mb-3" style="border-left: 4px solid var(--success);">
+            <div class="card-header" style="background: #ecfdf5; font-weight: 600;">
+                <i class="bi bi-fire"></i> Terminer la production
+            </div>
+            <div class="card-body">
+                <p class="text-muted small" style="margin-bottom: 14px;">
+                    Ingrédients sortis. Confirmez la quantité réellement produite (perte à la cuisson, casse, excédent de rendement).
+                </p>
+                <form action="/productions/<%= production.id %>/terminer" method="post" id="form-terminer">
+                    <input type="hidden" name="mode" value="perdus">
+                    <div class="mb-3">
+                        <label class="form-label">Quantité réellement produite (<%= production.produit_nom %>)</label>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <input type="number" name="quantite_finale" id="qte-finale" step="0.01" min="0" value="<%= production.quantite_produite %>" class="form-control" required style="max-width: 200px;" oninput="ajusterFormulaire()">
+                            <span class="text-muted"><%= production.produit_unite %></span>
+                        </div>
+                        <div class="form-text">Prévu : <strong><%= h.formatDecimal(production.quantite_produite, 2) %> <%= production.produit_unite %></strong>. Mettez <strong>0</strong> si la production est totalement ratée.</div>
+                    </div>
+
+                    <!-- Bloc PERTE (écart négatif) -->
+                    <div id="bloc-perte" style="display: none; background: #FEF2F2; padding: 12px 14px; border-radius: 6px; border-left: 3px solid var(--danger); margin-bottom: 14px;">
+                        <div style="font-weight: 600; color: var(--danger); margin-bottom: 8px;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Perte cuisson : <span id="valeur-perte">0</span> <%= production.produit_unite %>
+                        </div>
+                        <label class="form-label small">Motif de la perte <span style="color: var(--danger);">*</span></label>
+                        <select name="motif_perte_type" id="motif-perte-type" class="form-select form-select-sm mb-2" onchange="syncMotif()">
+                            <option value="">— Choisir un motif —</option>
+                            <option value="Rebus cuisson">Rebus cuisson (raté, brûlé)</option>
+                            <option value="Casse">Casse (cassé, tombé)</option>
+                            <option value="Non conforme qualité">Non conforme qualité (contamination, aspect)</option>
+                            <option value="Autre">Autre (préciser ci-dessous)</option>
+                        </select>
+                        <textarea name="motif_perte" id="motif-perte-txt" class="form-control form-control-sm" rows="2" placeholder="Détails sur la perte..." style="display: none;"></textarea>
+                    </div>
+
+                    <!-- Bloc EXCÉDENT (écart positif) -->
+                    <div id="bloc-excedent" style="display: none; background: #ECFDF5; padding: 12px 14px; border-radius: 6px; border-left: 3px solid var(--success); margin-bottom: 14px;">
+                        <div style="font-weight: 600; color: var(--success); margin-bottom: 8px;">
+                            <i class="bi bi-plus-circle-fill"></i> Excédent : +<span id="valeur-excedent">0</span> <%= production.produit_unite %>
+                            <span id="alerte-excedent" style="display: none; color: var(--gold-dark); font-weight: 700; margin-left: 8px;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Écart important — sera signalé au gestionnaire
+                            </span>
+                        </div>
+                        <label class="form-label small">Note (facultatif)</label>
+                        <textarea name="note_excedent" class="form-control form-control-sm" rows="2" placeholder="Ex : rendement supérieur, économe sur les portions..."></textarea>
+                    </div>
+
+                    <button type="submit" id="btn-terminer" class="btn btn-success" style="width: 100%;"
+                            data-confirm="Confirmer la fin de production ? Le produit fini sera ajouté au stock."
+                            data-confirm-title="Terminer la production" data-confirm-ok="Terminer">
+                        <i class="bi bi-check-circle-fill"></i> Terminer et ajouter au stock
+                    </button>
+                    <button type="submit" id="btn-perte-totale" class="btn btn-danger" style="width: 100%; display: none;"
+                            formaction="/productions/<%= production.id %>/annuler-en-cours"
+                            data-confirm="Confirmer la perte totale de cette production ? Aucun produit n'entrera au stock, les ingrédients sortis sont perdus."
+                            data-confirm-danger="true" data-confirm-ok="Confirmer la perte">
+                        <i class="bi bi-x-octagon-fill"></i> Confirmer la perte totale (aucun produit au stock)
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Étape 3-bis : Annuler une production en cours (fabrication totalement ratée) -->
+        <div class="card mb-3" style="border-left: 4px solid var(--danger);">
+            <div class="card-header" style="background: #FEF2F2; color: var(--danger); font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-x-octagon"></i> Annuler la production (rien à récupérer)</span>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('bloc-annuler-en-cours').style.display='block'; this.style.display='none';">
+                    <i class="bi bi-chevron-down"></i> Ouvrir
+                </button>
+            </div>
+            <div class="card-body" id="bloc-annuler-en-cours" style="display: none;">
+                <p class="text-muted small" style="margin-bottom: 14px;">
+                    Utilisez cette option si la fabrication est <strong>totalement ratée</strong> et qu'aucune unité de produit fini n'est utilisable.
+                    Une alerte sera envoyée au gestionnaire de stock.
+                </p>
+                <form action="/productions/<%= production.id %>/annuler-en-cours" method="post"
+                      data-confirm="Confirmer l'annulation de cette production ? Cette action est irréversible."
+                      data-confirm-danger="true" data-confirm-ok="Annuler la production">
+                    <div class="mb-3">
+                        <label class="form-label small">Que faire des ingrédients ? <span style="color: var(--danger);">*</span></label>
+                        <label style="display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 6px; margin-bottom: 6px; cursor: pointer;">
+                            <input type="radio" name="mode" value="perdus" checked style="margin-top: 3px;">
+                            <div style="flex: 1;">
+                                <strong style="color: var(--danger);">Perte totale</strong> — Les ingrédients sont détruits/inutilisables
+                                <div class="small text-muted">Aucun mouvement compensatoire. La sortie stock reste enregistrée comme perte.</div>
+                            </div>
+                        </label>
+                        <label style="display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; background: #EFF6FF; border: 1px solid #93C5FD; border-radius: 6px; cursor: pointer;">
+                            <input type="radio" name="mode" value="retour_stock" style="margin-top: 3px;">
+                            <div style="flex: 1;">
+                                <strong style="color: #1E40AF;">Retour ingrédients au magasin</strong> — Rare, uniquement si la cuisson n'a pas commencé
+                                <div class="small text-muted">Les ingrédients seront remis en stock. À valider avec le gestionnaire.</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Motif détaillé <span style="color: var(--danger);">*</span></label>
+                        <textarea name="motif" class="form-control" rows="3" required minlength="3" placeholder="Ex : coupure d'électricité pendant la cuisson, contamination du plat entier, mauvaise formulation..."></textarea>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('bloc-annuler-en-cours').style.display='none'; document.querySelector('#bloc-annuler-en-cours').previousElementSibling.querySelector('button').style.display='';">Annuler</button>
+                        <button type="submit" class="btn btn-danger" style="flex: 1;">
+                            <i class="bi bi-x-octagon-fill"></i> Confirmer l'annulation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+        const QTE_PREVUE = <%= production.quantite_produite %>;
+        const SEUIL_EXCEDENT = 0.20;
+        function ajusterFormulaire() {
+            const qte = parseFloat(document.getElementById('qte-finale').value);
+            const qteNum = isNaN(qte) ? NaN : qte;
+            const ecart = isNaN(qteNum) ? 0 : qteNum - QTE_PREVUE;
+            const blocPerte = document.getElementById('bloc-perte');
+            const blocExc = document.getElementById('bloc-excedent');
+            const motifSel = document.getElementById('motif-perte-type');
+            const btnTerminer = document.getElementById('btn-terminer');
+            const btnPerteTotale = document.getElementById('btn-perte-totale');
+            // Cas perte totale : quantite = 0
+            if (qteNum === 0) {
+                blocPerte.style.display = 'block';
+                blocExc.style.display = 'none';
+                document.getElementById('valeur-perte').textContent = QTE_PREVUE.toFixed(2);
+                motifSel.required = true;
+                btnTerminer.style.display = 'none';
+                btnPerteTotale.style.display = '';
+                return;
+            }
+            // Retour aux boutons normaux si qte > 0
+            btnTerminer.style.display = '';
+            btnPerteTotale.style.display = 'none';
+            if (ecart < -0.001) {
+                blocPerte.style.display = 'block';
+                blocExc.style.display = 'none';
+                document.getElementById('valeur-perte').textContent = (-ecart).toFixed(2);
+                motifSel.required = true;
+            } else if (ecart > 0.001) {
+                blocPerte.style.display = 'none';
+                blocExc.style.display = 'block';
+                document.getElementById('valeur-excedent').textContent = ecart.toFixed(2);
+                const ratio = QTE_PREVUE > 0 ? ecart / QTE_PREVUE : 0;
+                document.getElementById('alerte-excedent').style.display = ratio > SEUIL_EXCEDENT ? 'inline-block' : 'none';
+                motifSel.required = false;
+            } else {
+                blocPerte.style.display = 'none';
+                blocExc.style.display = 'none';
+                motifSel.required = false;
+            }
+        }
+        function syncMotif() {
+            const type = document.getElementById('motif-perte-type').value;
+            const txt = document.getElementById('motif-perte-txt');
+            if (type === 'Autre') {
+                txt.style.display = 'block';
+                txt.required = true;
+                txt.name = 'motif_perte';
+            } else if (type) {
+                txt.style.display = 'none';
+                txt.required = false;
+                txt.value = type;
+                txt.name = 'motif_perte';
+            } else {
+                txt.style.display = 'none';
+                txt.value = '';
+            }
+        }
+        </script>
+        <% } %>
+
+        <!-- Composition (toujours affichée si fiche existe) -->
+        <% if (composition.length) { %>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-list-ul"></i> Composition de la recette</div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead><tr><th>Ingrédient</th><th style="text-align: right;">Qté / portion</th><th style="text-align: right;">Qté nécessaire</th></tr></thead>
+                    <tbody>
+                        <% composition.forEach(function(c) { %>
+                            <tr>
+                                <td><strong><%= c.designation %></strong> <small class="text-muted"><%= c.reference %></small></td>
+                                <td style="text-align: right;"><%= h.formatDecimal(c.quantite, 3) %> <small class="text-muted"><%= c.unite %></small></td>
+                                <td style="text-align: right; font-weight: 600;"><%= h.formatDecimal(c.qte_theorique, 2) %> <small class="text-muted"><%= c.unite %></small></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <% } %>
+
+        <!-- Mouvements de stock générés -->
+        <% if (mouvements.length) { %>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-arrow-repeat"></i> Mouvements de stock générés</div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead><tr><th>Type</th><th>Produit</th><th style="text-align: right;">Quantité</th></tr></thead>
+                    <tbody>
+                        <% mouvements.forEach(function(m) { %>
+                            <tr>
+                                <td>
+                                    <% if (m.type === 'ENTREE') { %><span class="badge bg-success"><i class="bi bi-arrow-down"></i> Entrée</span>
+                                    <% } else { %><span class="badge bg-danger"><i class="bi bi-arrow-up"></i> Sortie</span><% } %>
+                                </td>
+                                <td><%= m.produit_nom %></td>
+                                <td style="text-align: right; font-weight: 600; color: <%= m.type === 'ENTREE' ? 'var(--success)' : 'var(--danger)' %>;">
+                                    <%= m.type === 'ENTREE' ? '+' : '-' %><%= h.formatDecimal(m.quantite, 2) %> <span class="small text-muted"><%= m.produit_unite %></span>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <% } %>
+
+        <% if (production.notes) { %>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-chat-square-text"></i> Notes du cuisinier</div>
+            <div class="card-body"><%= production.notes %></div>
+        </div>
+        <% } %>
+
+        <% if (production.motif_annulation) { %>
+        <div class="card mb-3" style="border-left: 4px solid var(--danger);">
+            <div class="card-header" style="background: #FEF2F2; color: var(--danger);"><i class="bi bi-exclamation-triangle-fill"></i> Production annulée</div>
+            <div class="card-body">
+                <strong>Motif :</strong> <%= production.motif_annulation %>
+                <% if (production.date_fin) { %>
+                    <div class="small text-muted" style="margin-top: 6px;">Annulée le <%= h.formatDate(production.date_fin, true) %></div>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Informations</div>
+            <div class="card-body small">
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span class="text-muted">Numéro</span><strong><%= production.numero %></strong></div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span class="text-muted">Statut</span><span class="pill pill-<%= production.statut %>"><%= production.statut %></span></div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span class="text-muted">Demande</span><strong class="small"><%= h.formatDate(production.date_production, true) %></strong></div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span class="text-muted">Demandée par</span><strong><%= production.auteur_prenom || production.auteur_username %></strong></div>
+                <% if (production.valide_par_prenom || production.valide_par_username) { %>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span class="text-muted">Validée par</span><strong><%= production.valide_par_prenom || production.valide_par_username %></strong></div>
+                <% } %>
+                <% if (production.date_validation) { %>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span class="text-muted">Ingrédients sortis</span><strong class="small"><%= h.formatDate(production.date_validation, true) %></strong></div>
+                <% } %>
+                <% if (production.date_fin) { %>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;"><span class="text-muted"><%= production.statut === 'ANNULEE' ? 'Annulée' : 'Terminée' %></span><strong class="small"><%= h.formatDate(production.date_fin, true) %></strong></div>
+                <% } %>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 8px;">
+                    <span style="font-weight: 700;">Coût matière</span>
+                    <strong style="color: var(--gold-dark);"><%= h.formatNombre(production.cout_matiere) %> <%= devise %></strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions secondaires : annulation par cuisinier si BROUILLON -->
+        <% if (production.statut === 'BROUILLON' && peut_terminer) { %>
+        <div class="card" style="border-left: 3px solid var(--danger);">
+            <div class="card-header" style="font-size: 0.85rem; color: var(--danger); font-weight: 600;">
+                <i class="bi bi-x-circle"></i> Annuler ma demande
+            </div>
+            <div class="card-body">
+                <form action="/productions/<%= production.id %>/annuler" method="post">
+                    <label class="form-label small text-muted">Motif</label>
+                    <textarea name="motif" class="form-control form-control-sm" rows="2" required minlength="3" placeholder="Ex : erreur de saisie, plus besoin..."></textarea>
+                    <button type="submit" class="btn btn-outline-danger btn-sm" style="width: 100%; margin-top: 8px;" data-confirm="Annuler cette demande de production ?" data-confirm-danger="true" data-confirm-ok="Annuler">
+                        <i class="bi bi-x"></i> Annuler la demande
+                    </button>
+                </form>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,72 @@
+<%- include('../partials/header') %>
+<style>
+.type-card { cursor: pointer; display: block; margin: 0; }
+.type-card-content { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); border-radius: var(--r-lg); background: var(--surface); transition: all 0.15s; position: relative; }
+.type-card-content:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.type-card input:checked ~ .type-card-content, .type-card.selected .type-card-content { border-color: var(--navy); background: var(--navy-50); }
+.type-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+.type-title { font-weight: 700; color: var(--text); }
+.type-sub { font-size: 0.78rem; color: var(--text-muted); }
+.type-check { position: absolute; right: 14px; font-size: 1.3rem; opacity: 0; transition: opacity 0.15s; }
+.type-card.selected .type-check { opacity: 1; }
+</style>
+<div class="page-header">
+    <div><h1 class="page-title"><%= page_title %></h1></div>
+    <a href="/ventes/clients/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Type de client *</label>
+                    <select class="form-select" name="type_client" onchange="toggleEntreprise()">
+                        <option value="PART" <%= clientData.type_client === 'PART' ? 'selected' : '' %>>Particulier</option>
+                        <option value="ENTR" <%= clientData.type_client === 'ENTR' ? 'selected' : '' %>>Entreprise</option>
+                    </select>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Nom / Raison sociale *</label>
+                    <input type="text" class="form-control" name="nom" value="<%= clientData.nom || '' %>" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Téléphone</label>
+                    <input type="text" class="form-control" name="telephone" value="<%= clientData.telephone || '' %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" value="<%= clientData.email || '' %>">
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label class="form-label">Adresse</label>
+                    <input type="text" class="form-control" name="adresse" value="<%= clientData.adresse || '' %>">
+                </div>
+                <div class="col-md-4 mb-3 entreprise-only">
+                    <label class="form-label">NIU</label>
+                    <input type="text" class="form-control" name="niu" value="<%= clientData.niu || '' %>">
+                </div>
+                <div class="col-md-4 mb-3 entreprise-only">
+                    <label class="form-label">RCCM</label>
+                    <input type="text" class="form-control" name="rccm" value="<%= clientData.rccm || '' %>">
+                </div>
+                <div class="col-md-4 mb-3 entreprise-only">
+                    <label class="form-label">Personne à contacter</label>
+                    <input type="text" class="form-control" name="contact_personne" value="<%= clientData.contact_personne || '' %>">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+                <a href="/ventes/clients/" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function toggleEntreprise() {
+    const isEntr = document.querySelector('[name=type_client]').value === 'ENTR';
+    document.querySelectorAll('.entreprise-only').forEach(el => el.style.display = isEntr ? '' : 'none');
+}
+toggleEntreprise();
+</script>
+<%- include('../partials/footer') %>

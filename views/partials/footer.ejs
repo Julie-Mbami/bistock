@@ -1,0 +1,19 @@
+<% if (user) { %>
+        </main>
+        <footer class="app-footer">
+            © <%= new Date().getFullYear() %> Bistock — Billing &amp; Stock
+        </footer>
+    </div>
+</div>
+<% } %>
+<script>
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('user-dropdown');
+    const trigger = document.querySelector('.user-menu');
+    if (menu && trigger && !trigger.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('show');
+    }
+});
+</script>
+</body>
+</html>

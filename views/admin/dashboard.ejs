@@ -1,0 +1,94 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Administration</h1>
+        <p class="page-subtitle">Gestion des utilisateurs, activités et paramètres système</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <a href="/comptes/utilisateurs" style="text-decoration: none;">
+            <div class="card" style="cursor: pointer; height: 100%; transition: all 0.15s;">
+                <div class="card-body">
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 10px;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--navy-50); color: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; color: var(--text);">Utilisateurs</h4>
+                            <small class="text-muted"><%= nb_actifs %> actif<%= nb_actifs > 1 ? 's' : '' %> sur <%= nb_utilisateurs %></small>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Créer, modifier et gérer les comptes utilisateurs et leurs droits.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <a href="/admin/activites/" style="text-decoration: none;">
+            <div class="card" style="cursor: pointer; height: 100%;">
+                <div class="card-body">
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 10px;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--gold-50); color: var(--gold-dark); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                            <i class="bi bi-shop-window"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; color: var(--text);">Activités</h4>
+                            <small class="text-muted"><%= nb_activites_actives %> active<%= nb_activites_actives > 1 ? 's' : '' %> sur <%= nb_activites %></small>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Créer, renommer et activer/désactiver les activités de l'entreprise.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <a href="/admin/parametres/" style="text-decoration: none;">
+            <div class="card" style="cursor: pointer; height: 100%;">
+                <div class="card-body">
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 10px;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--info-50); color: var(--info); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                            <i class="bi bi-sliders2"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; color: var(--text);">Paramètres système</h4>
+                            <small class="text-muted">Entreprise, TVA, délais</small>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Nom de l'entreprise, TVA, délais de paiement, coordonnées.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5><i class="bi bi-person-plus" style="color: var(--gold);"></i> Utilisateurs récents</h5>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>Utilisateur</th><th>Rôle</th><th>Activité</th><th>Statut</th><th>Inscription</th></tr>
+                </thead>
+                <tbody>
+                <% derniers_users.forEach(function(u) { %>
+                    <tr>
+                        <td><strong><%= (u.titre ? u.titre + ' ' : '') + (u.first_name || u.username) %></strong> <small class="text-muted">(<%= u.username %>)</small></td>
+                        <td><span class="badge bg-secondary"><%= h.ROLE_LABEL[u.role] %></span></td>
+                        <td class="text-muted"><%= u.activite_nom || '—' %></td>
+                        <td>
+                            <% if (u.is_active) { %><span class="badge badge-ok">Actif</span>
+                            <% } else { %><span class="badge badge-rupture">Inactif</span><% } %>
+                        </td>
+                        <td class="text-muted small"><%= h.formatDate(u.date_joined) %></td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

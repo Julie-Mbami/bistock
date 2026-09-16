@@ -1,0 +1,98 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Distribution <%= distribution.numero %></h1>
+        <p class="page-subtitle">
+            Destination : <strong style="color: <%= distribution.activite_couleur %>;"><%= distribution.activite_nom %></strong> ·
+            Créée par <%= distribution.cree_par_nom %> le <%= h.formatDate(distribution.date_creation, true) %>
+        </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/distributions/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+        <% if (distribution.statut === 'PREPAREE' && peut_remettre) { %>
+        <form method="post" action="/distributions/<%= distribution.id %>/remettre" style="margin: 0;"
+              data-confirm="Confirmer avoir <strong>physiquement remis</strong> cette distribution au gestionnaire ?<br><br>Le gestionnaire sera notifié pour confirmer la réception."
+              data-confirm-title="Remettre au gestionnaire ?"
+              data-confirm-ok="Oui, remis">
+            <button class="btn btn-primary"><i class="bi bi-truck"></i> Marquer remise</button>
+        </form>
+        <% } %>
+        <a href="javascript:window.print()" class="btn btn-outline-primary"><i class="bi bi-printer"></i> Imprimer</a>
+        <% if (['PREPAREE', 'REMISE'].includes(distribution.statut) && peut_annuler) { %>
+        <form method="post" action="/distributions/<%= distribution.id %>/annuler" style="margin: 0;"
+              data-confirm="Annuler cette distribution ? Les quantités seront remises comme disponibles à distribuer sur le bon d'achat d'origine."
+              data-confirm-title="Annuler la distribution ?"
+              data-confirm-ok="Oui, annuler"
+              data-confirm-danger="true">
+            <button class="btn btn-outline-danger"><i class="bi bi-x-circle"></i> Annuler</button>
+        </form>
+        <% } %>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-card">
+            <div class="kpi-label">Statut</div>
+            <div class="kpi-value" style="font-size: 1.1rem;">
+                <% var sb = { PREPAREE: ['badge-alerte', 'Préparée'], REMISE: ['bg-primary', 'Remise'], RECEPTIONNEE: ['badge-ok', 'Réceptionnée'], REFUSEE: ['badge-rupture', 'Refusée'], ANNULEE: ['bg-secondary', 'Annulée'] }[distribution.statut]; %>
+                <span class="badge <%= sb[0] %>" style="font-size: 0.9rem;"><%= sb[1] %></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card"><div class="kpi-label">Lignes</div><div class="kpi-value"><%= lignes.length %></div></div></div>
+    <% if (distribution.date_remise) { %>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card"><div class="kpi-label">Remise le</div><div class="kpi-value" style="font-size: 0.95rem;"><%= h.formatDate(distribution.date_remise, true) %></div></div></div>
+    <% } %>
+    <% if (distribution.date_reception) { %>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-card"><div class="kpi-label">Réceptionnée le</div><div class="kpi-value" style="font-size: 0.95rem;"><%= h.formatDate(distribution.date_reception, true) %></div></div></div>
+    <% } %>
+</div>
+
+<% if (distribution.statut === 'REFUSEE' && distribution.motif_refus) { %>
+<div class="alert alert-danger">
+    <strong>⚠ Réception refusée par <%= distribution.receptionne_par_nom %> :</strong><br>
+    <%= distribution.motif_refus %>
+</div>
+<% } %>
+
+<div class="card">
+    <div class="card-body">
+        <h5>Détail des articles</h5>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Produit destination</th>
+                        <th>Achat d'origine</th>
+                        <th style="text-align: right;">Qté annoncée</th>
+                        <th style="text-align: right;">Qté reçue</th>
+                        <th>Motif écart</th>
+                        <th style="text-align: center;">Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <% lignes.forEach(function(l) { %>
+                    <% var ecart = (l.quantite_recue !== null && l.quantite_recue !== undefined) ? l.quantite_recue - l.quantite_annoncee : null; %>
+                    <tr>
+                        <td>
+                            <strong><%= l.designation %></strong><br>
+                            <small class="text-muted"><code><%= l.reference %></code> · <%= l.unite %></small>
+                        </td>
+                        <td class="text-muted small"><% if (l.achat_numero) { %><code><%= l.achat_numero %></code><br><%= l.achat_designation %><% } else { %>—<% } %></td>
+                        <td style="text-align: right; font-weight: 700;"><%= l.quantite_annoncee %></td>
+                        <td style="text-align: right; font-weight: 700;"><%= (l.quantite_recue !== null && l.quantite_recue !== undefined) ? l.quantite_recue : '—' %></td>
+                        <td class="text-muted small"><%= l.motif_ecart || '—' %></td>
+                        <td style="text-align: center;">
+                            <% if (ecart === null) { %><span class="text-muted">—</span>
+                            <% } else if (Math.abs(ecart) < 0.01) { %><span class="badge badge-ok">OK</span>
+                            <% } else { %><span class="badge <%= ecart < 0 ? 'badge-rupture' : 'badge-alerte' %>"><%= ecart > 0 ? '+' + ecart : ecart %></span><% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<%- include('../partials/footer') %>

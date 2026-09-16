@@ -1,0 +1,219 @@
+<%- include('../partials/header') %>
+<style>
+.kpi-rapport { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; position: relative; overflow: hidden; }
+.kpi-rapport::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gold); }
+.kpi-rapport.success::before { background: var(--success); }
+.kpi-rapport.danger::before { background: var(--danger); }
+.kpi-rapport .lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.kpi-rapport .val { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+.kpi-rapport .sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+.evo-up { color: var(--success); }
+.evo-down { color: var(--danger); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Rapport mensuel — <%= rapport.label %></h1>
+        <p class="page-subtitle">Bilan consolidé pour la Direction Générale</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/admin/rapport-mensuel/pdf?mois=<%= mois_selectionne %>" target="_blank" class="btn btn-primary"><i class="bi bi-file-earmark-pdf"></i> Télécharger PDF</a>
+        <a href="/admin/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+    </div>
+</div>
+
+<!-- Sélecteur de mois -->
+<div class="card mb-3">
+    <div class="card-body" style="padding: 14px 18px;">
+        <form method="get" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
+            <div>
+                <label class="form-label small" style="margin-bottom: 2px;">Mois analysé</label>
+                <input type="month" name="mois" value="<%= mois_selectionne %>" class="form-control" style="width: 200px;">
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Générer</button>
+            <div class="text-muted small" style="margin-left: auto; align-self: center;">
+                Période analysée : <strong><%= h.formatDate(rapport.debut) %></strong> → <strong><%= h.formatDate(rapport.fin) %></strong>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- KPIs synthèse -->
+<div class="row" style="margin-bottom: 16px;">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-rapport success">
+            <div class="lbl">Chiffre d'affaires</div>
+            <div class="val"><%= h.formatNombre(rapport.ca_total) %> <span class="small text-muted"><%= devise %></span></div>
+            <div class="sub">
+                <% if (rapport.evolution_totale !== null) { %>
+                    <span class="<%= rapport.evolution_totale >= 0 ? 'evo-up' : 'evo-down' %>">
+                        <i class="bi bi-<%= rapport.evolution_totale >= 0 ? 'arrow-up' : 'arrow-down' %>"></i>
+                        <%= Math.abs(rapport.evolution_totale) %>% vs <%= rapport.mois_precedent_label %>
+                    </span>
+                <% } else { %>Pas de comparaison<% } %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-rapport">
+            <div class="lbl">Transactions</div>
+            <div class="val"><%= rapport.nb_transactions_total %></div>
+            <div class="sub">Ventes + commandes soldées</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-rapport <%= rapport.impaye_total > 0 ? 'danger' : 'success' %>">
+            <div class="lbl">Impayés en cours</div>
+            <div class="val"><%= h.formatNombre(rapport.impaye_total) %> <span class="small text-muted"><%= devise %></span></div>
+            <div class="sub">Factures B2B non soldées</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-rapport">
+            <div class="lbl">Achats du mois</div>
+            <div class="val"><%= h.formatNombre(rapport.achatsMois.mt) %> <span class="small text-muted"><%= devise %></span></div>
+            <div class="sub"><%= rapport.achatsMois.n %> bon<%= rapport.achatsMois.n > 1 ? 's' : '' %> d'achat</div>
+        </div>
+    </div>
+</div>
+
+<!-- Par activité -->
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-grid"></i> Performance par activité</div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Activité</th>
+                    <th style="text-align: right;">CA du mois</th>
+                    <th style="text-align: right;">Évolution</th>
+                    <th style="text-align: right;">Transactions</th>
+                    <th style="text-align: right;">Panier moyen</th>
+                    <th style="text-align: right;">Impayés</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% rapport.par_activite.forEach(function(a) { %>
+                    <tr>
+                        <td>
+                            <span class="badge" style="background: <%= a.activite.couleur %>20; color: <%= a.activite.couleur %>; font-weight: 600;">
+                                <i class="bi <%= a.activite.icone %>"></i> <%= a.activite.nom %>
+                            </span>
+                            <div class="small text-muted" style="margin-top: 4px;"><%= a.activite.type === 'B2C_CAISSE' ? 'Caisse B2C' : 'Commandes B2B' %></div>
+                        </td>
+                        <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(a.ca) %> <%= devise %></td>
+                        <td style="text-align: right;">
+                            <% if (a.evolution !== null) { %>
+                                <span class="<%= a.evolution >= 0 ? 'evo-up' : 'evo-down' %>">
+                                    <%= a.evolution >= 0 ? '+' : '' %><%= a.evolution %>%
+                                </span>
+                            <% } else { %><span class="text-muted">—</span><% } %>
+                        </td>
+                        <td style="text-align: right;"><%= a.nb_transactions %></td>
+                        <td style="text-align: right;"><%= h.formatNombre(a.panier_moyen) %> <%= devise %></td>
+                        <td style="text-align: right;">
+                            <% if (a.montant_impaye > 0) { %>
+                                <span style="color: var(--danger); font-weight: 600;"><%= h.formatNombre(a.montant_impaye) %></span>
+                                <br><small class="text-muted"><%= a.nb_impayes %> facture<%= a.nb_impayes > 1 ? 's' : '' %></small>
+                            <% } else { %><span class="text-muted">—</span><% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+            <tfoot style="background: rgba(202, 138, 4, 0.08);">
+                <tr>
+                    <th style="color: var(--gold-dark);">TOTAL</th>
+                    <th style="text-align: right; color: var(--gold-dark); font-size: 1.05rem;"><%= h.formatNombre(rapport.ca_total) %> <%= devise %></th>
+                    <th style="text-align: right; color: var(--gold-dark);">
+                        <% if (rapport.evolution_totale !== null) { %>
+                            <%= rapport.evolution_totale >= 0 ? '+' : '' %><%= rapport.evolution_totale %>%
+                        <% } %>
+                    </th>
+                    <th style="text-align: right;"><%= rapport.nb_transactions_total %></th>
+                    <th></th>
+                    <th style="text-align: right; color: var(--danger);"><%= h.formatNombre(rapport.impaye_total) %></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-trophy"></i> Top 10 produits</div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead><tr><th>#</th><th>Produit</th><th>Activité</th><th style="text-align: right;">Qté</th><th style="text-align: right;">CA</th></tr></thead>
+                    <tbody>
+                        <% rapport.topProduits.forEach(function(p, i) { %>
+                            <tr>
+                                <td class="text-muted"><%= i + 1 %></td>
+                                <td><%= p.designation %></td>
+                                <td><span class="badge" style="background: <%= p.activite_couleur %>20; color: <%= p.activite_couleur %>; font-size: 0.72rem;"><%= p.activite_nom %></span></td>
+                                <td style="text-align: right;"><%= h.formatNombre(p.qte) %></td>
+                                <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(p.ca) %></td>
+                            </tr>
+                        <% }); %>
+                        <% if (!rapport.topProduits.length) { %>
+                            <tr><td colspan="5" class="text-center text-muted" style="padding: 20px;">Aucune vente ce mois-ci</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-person-vcard"></i> Top 10 clients B2B</div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead><tr><th>#</th><th>Client</th><th>Activité</th><th style="text-align: right;">Nb cmd</th><th style="text-align: right;">Encaissé</th></tr></thead>
+                    <tbody>
+                        <% rapport.topClientsB2B.forEach(function(c, i) { %>
+                            <tr>
+                                <td class="text-muted"><%= i + 1 %></td>
+                                <td><%= c.client_nom %></td>
+                                <td><span class="badge" style="background: <%= c.activite_couleur %>20; color: <%= c.activite_couleur %>; font-size: 0.72rem;"><%= c.activite_nom %></span></td>
+                                <td style="text-align: right;"><%= c.nb %></td>
+                                <td style="text-align: right; font-weight: 600;"><%= h.formatNombre(c.mt) %></td>
+                            </tr>
+                        <% }); %>
+                        <% if (!rapport.topClientsB2B.length) { %>
+                            <tr><td colspan="5" class="text-center text-muted" style="padding: 20px;">Aucun encaissement B2B ce mois-ci</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<% if (rapport.ecartsCaisse.length) { %>
+<div class="card mb-3">
+    <div class="card-header" style="color: var(--danger);"><i class="bi bi-exclamation-triangle"></i> Écarts de caisse (> 100 FCFA)</div>
+    <div class="table-responsive">
+        <table class="table table-sm">
+            <thead><tr><th>N° clôture</th><th>Activité</th><th>Caissier</th><th>Date</th><th style="text-align: right;">Écart</th></tr></thead>
+            <tbody>
+                <% rapport.ecartsCaisse.forEach(function(e) { %>
+                    <tr>
+                        <td><a href="/caisses/<%= e.id %>"><code><%= e.numero %></code></a></td>
+                        <td><%= e.activite_nom %></td>
+                        <td><%= e.caissier_prenom || e.username || '—' %></td>
+                        <td class="small"><%= h.formatDate(e.date_cloture) %></td>
+                        <td style="text-align: right; font-weight: 700; color: <%= e.ecart < 0 ? 'var(--danger)' : 'var(--gold-dark)' %>;">
+                            <%= e.ecart > 0 ? '+' : '' %><%= h.formatNombre(e.ecart) %> <%= devise %>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+<% } %>
+
+<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.85rem;">
+    <i class="bi bi-info-circle"></i> Le PDF complet inclut la synthèse, tous les tableaux, les points d'attention et un cadre signature Direction.
+</div>
+<%- include('../partials/footer') %>

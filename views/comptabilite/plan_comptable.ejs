@@ -1,0 +1,50 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Plan comptable OHADA</h1>
+        <p class="page-subtitle">Comptes SYSCOHADA utilisés dans l'application</p>
+    </div>
+</div>
+
+<% const parClasse = {}; comptes.forEach(c => { (parClasse[c.classe] = parClasse[c.classe] || []).push(c); }); %>
+<% const NOMS_CLASSES = { 1: 'Ressources durables', 2: 'Immobilisations', 3: 'Stocks', 4: 'Tiers', 5: 'Trésorerie', 6: 'Charges', 7: 'Produits' }; %>
+
+<% [1,2,3,4,5,6,7].forEach(function(cls) { const liste = parClasse[cls] || []; if (!liste.length) return; %>
+    <div class="card mb-3">
+        <div class="card-header" style="font-weight: 700;">
+            <span style="display: inline-block; width: 32px; height: 32px; border-radius: 50%; background: var(--gold); color: #fff; text-align: center; line-height: 32px; margin-right: 10px;"><%= cls %></span>
+            Classe <%= cls %> — <%= NOMS_CLASSES[cls] %>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">N°</th>
+                        <th>Libellé</th>
+                        <th style="width: 100px;">Type</th>
+                        <th style="width: 100px;">Sens</th>
+                        <th style="width: 100px; text-align: right;">Mouvements</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% liste.forEach(function(c) { %>
+                        <tr>
+                            <td><code style="font-weight: 700; color: var(--navy);"><%= c.numero %></code></td>
+                            <td><%= c.libelle %></td>
+                            <td><span class="badge <%= c.type === 'BILAN' ? 'bg-primary' : 'bg-info' %>"><%= c.type %></span></td>
+                            <td><span class="badge <%= c.sens_normal === 'D' ? 'bg-success' : 'bg-danger' %>"><%= c.sens_normal === 'D' ? 'Débiteur' : 'Créditeur' %></span></td>
+                            <td style="text-align: right;">
+                                <% if (c.nb_mouvements) { %>
+                                    <a href="/comptabilite/grand-livre/?compte=<%= c.numero %>" style="color: var(--navy); font-weight: 700;"><%= c.nb_mouvements %></a>
+                                <% } else { %>
+                                    <span class="text-muted">0</span>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+<% }); %>
+<%- include('../partials/footer') %>

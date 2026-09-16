@@ -1,0 +1,151 @@
+<%- include('../partials/header') %>
+<style>
+.mag-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.mag-kpi .kpi { background: var(--surface); border-radius: 10px; padding: 14px 18px; border-left: 4px solid; }
+.mag-kpi .kpi .n { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.mag-kpi .kpi .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+.pill { display: inline-block; padding: 1px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; }
+.pill-nestor { background: #FEF3C7; color: #92400E; }
+.pill-transit { background: #DBEAFE; color: #1E40AF; }
+.pill-ok { background: #D1FAE5; color: #065F46; }
+.pill-refuse { background: #FEE2E2; color: #991B1B; }
+.pill-ecart { background: #FED7AA; color: #9A3412; }
+tr.row-anomalie { background: #FEF2F2 !important; }
+tr.row-anomalie:hover { background: #FEE2E2 !important; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-shop"></i> Magasin Nestor</h1>
+        <p class="page-subtitle">Suivi post-achat : où sont les produits que Mme Sandra a achetés ?</p>
+    </div>
+</div>
+
+<div class="mag-kpi">
+    <div class="kpi" style="border-color: var(--gold);"><div class="n" style="color: var(--gold);"><%= h.formatDecimal(kpis.total_chez_nestor, 2) %></div><div class="lbl">Chez Nestor (jamais parti)</div></div>
+    <div class="kpi" style="border-color: #2563EB;"><div class="n" style="color: #2563EB;"><%= h.formatDecimal(kpis.total_en_transit, 2) %></div><div class="lbl">En transit</div></div>
+    <div class="kpi" style="border-color: var(--danger);"><div class="n" style="color: var(--danger);"><%= h.formatDecimal(kpis.total_refuse, 2) %></div><div class="lbl">Refusé (retour)</div></div>
+    <div class="kpi" style="border-color: #EA580C;"><div class="n" style="color: #EA580C;"><%= h.formatDecimal(kpis.total_ecart, 2) %></div><div class="lbl">Écart / manquant</div></div>
+    <div class="kpi" style="border-color: var(--text-muted);"><div class="n"><%= kpis.lignes_anomalie %></div><div class="lbl">Lignes en anomalie</div></div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding-bottom: 0;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+            <a href="?" class="btn btn-sm <%= mode_affichage === 'ACTIVES' ? 'btn-primary' : 'btn-outline-secondary' %>">
+                <i class="bi bi-arrow-clockwise"></i> À surveiller (<%= kpis.lignes_actives %>)
+            </a>
+            <a href="?anomalies=1" class="btn btn-sm <%= mode_affichage === 'ANOMALIES' ? 'btn-primary' : 'btn-outline-secondary' %>" style="<%= mode_affichage === 'ANOMALIES' ? '' : 'color: var(--danger); border-color: var(--danger);' %>">
+                <i class="bi bi-exclamation-triangle"></i> Anomalies (<%= kpis.lignes_anomalie %>)
+            </a>
+            <a href="?tout=1" class="btn btn-sm <%= mode_affichage === 'TOUT' ? 'btn-primary' : 'btn-outline-secondary' %>">
+                <i class="bi bi-list-ul"></i> Historique complet (<%= kpis.lignes_total %>)
+            </a>
+        </div>
+        <div style="padding: 8px 0 12px; border-top: 1px dashed var(--border);">
+            <%- include('../partials/filtre_periode', { periode, autresFiltres: { anomalies: mode_affichage === 'ANOMALIES' ? '1' : '', tout: mode_affichage === 'TOUT' ? '1' : '' } }) %>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Achat / produit</th>
+                    <th>Fournisseur</th>
+                    <th style="text-align: right;">Acheté</th>
+                    <th style="text-align: right;">Chez Nestor</th>
+                    <th style="text-align: right;">En transit</th>
+                    <th style="text-align: right;">Reçu OK</th>
+                    <th style="text-align: right;">Refusé</th>
+                    <th style="text-align: right;">Écart</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% lignes.forEach(function(l) {
+                    const anom = l.solde.refuse > 0 || l.solde.ecart_manquant > 0;
+                %>
+                    <tr class="<%= anom ? 'row-anomalie' : '' %>">
+                        <td>
+                            <div style="font-weight: 600;"><%= l.designation %></div>
+                            <div class="small text-muted">
+                                <a href="/achats/<%= l.achat_id %>"><code><%= l.achat_numero %></code></a> · <%= h.formatDate(l.date_achat) %>
+                                <% if (l.activite_pressentie_code) { %> · <span style="padding: 1px 6px; background: <%= l.activite_pressentie_couleur %>20; color: <%= l.activite_pressentie_couleur %>; border-radius: 4px; font-size: 0.68rem;"><%= l.activite_pressentie_code %></span><% } %>
+                            </div>
+                        </td>
+                        <td class="text-muted small"><%= l.fournisseur_nom || '—' %></td>
+                        <td style="text-align: right; font-weight: 700;"><%= h.formatDecimal(l.solde.total, 2) %></td>
+                        <td style="text-align: right;">
+                            <% if (l.solde.chez_nestor > 0) { %>
+                                <span class="pill pill-nestor"><%= h.formatDecimal(l.solde.chez_nestor, 2) %></span>
+                            <% } else { %>
+                                <span class="text-muted">—</span>
+                            <% } %>
+                        </td>
+                        <td style="text-align: right;">
+                            <% if (l.solde.en_transit > 0) { %>
+                                <span class="pill pill-transit"><%= h.formatDecimal(l.solde.en_transit, 2) %></span>
+                            <% } else { %>
+                                <span class="text-muted">—</span>
+                            <% } %>
+                        </td>
+                        <td style="text-align: right;">
+                            <% if (l.solde.recu_ok > 0) { %>
+                                <span class="pill pill-ok"><%= h.formatDecimal(l.solde.recu_ok, 2) %></span>
+                            <% } else { %>
+                                <span class="text-muted">—</span>
+                            <% } %>
+                        </td>
+                        <td style="text-align: right;">
+                            <% if (l.solde.refuse > 0) { %>
+                                <span class="pill pill-refuse"><%= h.formatDecimal(l.solde.refuse, 2) %></span>
+                            <% } else { %>
+                                <span class="text-muted">—</span>
+                            <% } %>
+                        </td>
+                        <td style="text-align: right;">
+                            <% if (l.solde.ecart_manquant > 0) { %>
+                                <span class="pill pill-ecart"><%= h.formatDecimal(l.solde.ecart_manquant, 2) %></span>
+                            <% } else { %>
+                                <span class="text-muted">—</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <a href="/magasin-nestor/rapprochement/<%= l.achat_id %>" class="btn btn-sm btn-outline-primary" title="Rapprochement de cet achat"><i class="bi bi-diagram-2"></i></a>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (!lignes.length) { %>
+                    <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="bi bi-check-circle-fill" style="font-size: 2.5rem; display: block; margin-bottom: 8px; color: var(--success);"></i>
+                        <% if (mode_affichage === 'ANOMALIES') { %>
+                            <strong style="color: var(--success);">Aucune anomalie sur la période.</strong><br>
+                            Tout le stock a été distribué et validé sans écart ni refus.
+                        <% } else if (mode_affichage === 'ACTIVES') { %>
+                            <strong style="color: var(--success);">Rien à surveiller.</strong><br>
+                            Tous les achats de la période ont été entièrement distribués et validés par les gestionnaires.
+                            <% if (kpis.lignes_total > 0) { %>
+                                <br><a href="?tout=1" style="margin-top: 10px; display: inline-block;">Voir l'historique complet (<%= kpis.lignes_total %> lignes) →</a>
+                            <% } %>
+                        <% } else { %>
+                            Aucun achat sur la période.
+                        <% } %>
+                    </td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div style="background: var(--gold-50, #FEFCE8); padding: 14px 18px; border-radius: 8px; margin-top: 20px; font-size: 0.85rem; color: var(--gold-dark);">
+    <i class="bi bi-info-circle-fill"></i>
+    <strong>Légende :</strong>
+    <span class="pill pill-nestor">Chez Nestor</span> = pas encore distribué ·
+    <span class="pill pill-transit">En transit</span> = distribué mais gestionnaire n'a pas encore validé ·
+    <span class="pill pill-ok">Reçu OK</span> = validé par le gestionnaire ·
+    <span class="pill pill-refuse">Refusé</span> = distribution refusée par le gestionnaire (revient chez Nestor) ·
+    <span class="pill pill-ecart">Écart</span> = quantité manquante déclarée à la réception avec motif
+</div>
+
+<%- include('../partials/footer') %>

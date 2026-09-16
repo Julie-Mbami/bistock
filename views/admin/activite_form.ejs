@@ -1,0 +1,54 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div><h1 class="page-title"><%= page_title %></h1></div>
+    <a href="/admin/activites/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <% if (erreurs && erreurs.length) { %>
+            <div class="alert alert-danger"><ul style="margin: 0;"><% erreurs.forEach(function(e) { %><li><%= e %></li><% }); %></ul></div>
+        <% } %>
+        <form method="post">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Code *</label>
+                    <input type="text" class="form-control" name="code" value="<%= activite.code || '' %>" <%= mode === 'modifier' ? 'readonly' : 'required' %> maxlength="10" placeholder="Ex : TRAIT, CAN, PAT, BUR" style="text-transform: uppercase;">
+                    <small class="text-muted">2 à 10 caractères, majuscules + chiffres. Non modifiable ensuite (utilisé dans les numéros de documents).</small>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Nom *</label>
+                    <input type="text" class="form-control" name="nom" value="<%= activite.nom || '' %>" required placeholder="Ex : Le Traiteur">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Type de facturation *</label>
+                    <select class="form-select" name="type">
+                        <option value="B2B_COMMANDE" <%= activite.type === 'B2B_COMMANDE' ? 'selected' : '' %>>B2B — Sur commande (Proforma, Facture, BL)</option>
+                        <option value="B2C_CAISSE" <%= activite.type === 'B2C_CAISSE' ? 'selected' : '' %>>B2C — Caisse quotidienne (tickets)</option>
+                    </select>
+                    <small class="text-muted">Détermine le workflow de vente et les modes de paiement disponibles.</small>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Couleur</label>
+                    <input type="color" class="form-control form-control-color" name="couleur" value="<%= activite.couleur || '#1e3a8a' %>" style="width: 100%; height: 42px;">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Icône Bootstrap</label>
+                    <input type="text" class="form-control" name="icone" value="<%= activite.icone || 'bi-shop' %>" placeholder="bi-shop">
+                    <small class="text-muted">Ex : bi-cup-hot, bi-fire, bi-bag-heart</small>
+                </div>
+                <div class="col-12 mb-3">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="actif" id="actif" <%= activite.actif ? 'checked' : '' %>>
+                        <label class="form-check-label" for="actif">Activité active (visible dans le sélecteur)</label>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+                <a href="/admin/activites/" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+<%- include('../partials/footer') %>

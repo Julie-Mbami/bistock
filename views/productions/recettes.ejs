@@ -1,0 +1,125 @@
+<%- include('../partials/header') %>
+<style>
+.kpi-fiche { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; text-align: center; }
+.kpi-fiche .n { font-size: 1.6rem; font-weight: 700; }
+.kpi-fiche .lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.fiche-desactivee { opacity: 0.55; }
+.marge-vert { color: var(--success); font-weight: 700; }
+.marge-or   { color: var(--gold-dark); font-weight: 700; }
+.marge-rouge { color: var(--danger); font-weight: 700; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Recettes cuisine</h1>
+        <p class="page-subtitle">
+            Fiches techniques utilisées par les ordres de production — <%= activite.nom %>
+            <% if (user.est_cuisinier) { %>
+                <span class="badge bg-secondary" style="margin-left: 8px;"><i class="bi bi-eye"></i> Consultation</span>
+            <% } %>
+        </p>
+    </div>
+    <% if (!user.est_cuisinier) { %>
+    <div style="display: flex; gap: 8px;">
+        <a href="/produits/fiches-techniques/import" class="btn btn-outline-primary"><i class="bi bi-file-earmark-excel"></i> Import Excel</a>
+    </div>
+    <% } %>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-fiche"><div class="n"><%= kpi.total %></div><div class="lbl">Recettes définies</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-fiche"><div class="n" style="color: var(--success);"><%= kpi.actives %></div><div class="lbl">Actives</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2"><div class="kpi-fiche"><div class="n" style="color: var(--text-muted);"><%= kpi.inactives %></div><div class="lbl">Inactives</div></div></div>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="kpi-fiche">
+            <div class="n" style="color: <%= kpi.marge_moyenne >= 40 ? 'var(--success)' : (kpi.marge_moyenne >= 20 ? 'var(--gold-dark)' : 'var(--danger)') %>;">
+                <%= kpi.marge_moyenne || 0 %>%
+            </div>
+            <div class="lbl">Marge brute moyenne</div>
+        </div>
+    </div>
+</div>
+
+<% if (!user.est_cuisinier && candidats && candidats.length > 0) { %>
+<div class="card mb-3" style="background: linear-gradient(135deg, rgba(30, 58, 138, 0.04), rgba(202, 138, 4, 0.03)); border: 1px solid var(--gold);">
+    <div class="card-body">
+        <h6 style="margin-top: 0;"><i class="bi bi-lightbulb" style="color: var(--gold);"></i> Produits sans recette</h6>
+        <p style="margin-bottom: 8px; font-size: 0.9rem;">Ces <%= candidats.length %> produit(s) sont vendus mais n'ont pas de recette. Créez leur fiche technique pour permettre leur fabrication en cuisine :</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <% candidats.slice(0, 20).forEach(function(c) { %>
+                <a href="/produits/<%= c.id %>/fiche-technique" style="padding: 4px 12px; background: #fff; border: 1px solid var(--border); border-radius: 20px; text-decoration: none; font-size: 0.85rem; color: var(--text);">
+                    <i class="bi bi-plus"></i> <%= c.designation %>
+                </a>
+            <% }); %>
+            <% if (candidats.length > 20) { %>
+                <span style="padding: 4px 12px; color: var(--text-muted); font-size: 0.85rem;">+ <%= candidats.length - 20 %> autres…</span>
+            <% } %>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<div class="card">
+    <div class="card-header"><i class="bi bi-clipboard-check"></i> Toutes les recettes</div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Recette</th>
+                    <th style="text-align: center;">Ingrédients</th>
+                    <th style="text-align: right;">Prix vente</th>
+                    <th style="text-align: right;">Coût matière</th>
+                    <th style="text-align: right;">Marge brute</th>
+                    <th style="text-align: center;">Statut</th>
+                    <th style="text-align: center;">Productions</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% fiches.forEach(function(f) {
+                    const marge = f.prix_vente - f.cout_matiere;
+                    const tauxMarge = f.prix_vente > 0 ? Math.round(marge / f.prix_vente * 100) : 0;
+                    const cssMarge = tauxMarge >= 40 ? 'marge-vert' : tauxMarge >= 20 ? 'marge-or' : 'marge-rouge';
+                %>
+                    <tr class="<%= f.actif ? '' : 'fiche-desactivee' %>" style="cursor: pointer;" onclick="if (!event.target.closest('a,button,form')) location='/produits/<%= f.produit_id %>/fiche-technique'">
+                        <td>
+                            <strong><%= f.designation %></strong>
+                            <br><small class="text-muted"><%= f.reference %></small>
+                        </td>
+                        <td style="text-align: center; font-weight: 600;"><%= f.nb_ingredients %></td>
+                        <td style="text-align: right;"><%= h.formatNombre(f.prix_vente) %> <span class="small text-muted"><%= devise %></span></td>
+                        <td style="text-align: right; color: var(--text-muted);"><%= h.formatNombre(f.cout_matiere) %></td>
+                        <td style="text-align: right;" class="<%= cssMarge %>">
+                            <%= h.formatNombre(marge) %>
+                            <br><small><%= tauxMarge %>%</small>
+                        </td>
+                        <td style="text-align: center;">
+                            <% if (f.actif) { %>
+                                <span class="badge bg-success">Active</span>
+                            <% } else { %>
+                                <span class="badge bg-secondary">Inactive</span>
+                            <% } %>
+                        </td>
+                        <td style="text-align: center; color: var(--text-muted);"><%= f.nb_productions %></td>
+                        <td>
+                            <a href="/produits/<%= f.produit_id %>/fiche-technique" class="btn btn-sm btn-outline-primary" title="Modifier la recette"><i class="bi bi-pencil"></i></a>
+                            <a href="/productions/nouveau?produit_id=<%= f.produit_id %>" class="btn btn-sm btn-outline-success" title="Lancer une production"><i class="bi bi-fire"></i></a>
+                        </td>
+                    </tr>
+                <% }); %>
+                <% if (!fiches.length) { %>
+                    <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="bi bi-book" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                        Aucune recette encore définie.
+                        <% if (candidats && candidats.length > 0) { %>
+                            <br>Cliquez sur un produit dans "Produits sans recette" ci-dessus pour créer sa première recette.
+                        <% } else { %>
+                            <br>Créez d'abord un produit à vendre (menu Catalogue → Produits) puis revenez ici.
+                        <% } %>
+                    </td></tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+<%- include('../partials/footer') %>

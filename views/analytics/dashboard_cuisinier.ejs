@@ -1,0 +1,223 @@
+<%- include('../partials/header') %>
+<style>
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.pill-BROUILLON { background: #FEF3C7; color: #92400E; }
+.pill-EN_COURS  { background: #DBEAFE; color: #1E40AF; }
+.pill-TERMINEE  { background: #D1FAE5; color: #065F46; }
+.pill-ANNULEE   { background: #FEE2E2; color: #991B1B; }
+.alerte-ing-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+.alerte-ing-row:last-child { border-bottom: none; }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Cuisine — <%= activite.nom %></h1>
+        <p class="page-subtitle">Bienvenue <strong><%= user.nom_affiche %></strong> — pilotage de vos productions</p>
+    </div>
+    <a href="/productions/nouveau" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvelle demande</a>
+</div>
+
+<% if (notifs_recentes && notifs_recentes.length) { %>
+<div class="card mb-3" style="border-left: 4px solid #2563EB; background: linear-gradient(90deg, #EFF6FF 0%, #fff 60%);">
+    <div class="card-body" style="padding: 14px 18px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <i class="bi bi-bell-fill" style="color: #2563EB; font-size: 1.2rem;"></i>
+            <strong style="color: #1E40AF;">
+                <%= notifs_recentes.length %> nouvelle<%= notifs_recentes.length > 1 ? 's' : '' %> réponse<%= notifs_recentes.length > 1 ? 's' : '' %> du gestionnaire
+            </strong>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <% notifs_recentes.forEach(function(n) { %>
+                <a href="/productions/<%= n.id %>" style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #fff; border-radius: 6px; text-decoration: none; color: inherit; border: 1px solid var(--border);">
+                    <% if (n.statut === 'EN_COURS') { %>
+                        <i class="bi bi-check-circle-fill" style="color: var(--success);"></i>
+                        <div style="flex: 1;">
+                            <strong><%= n.numero %></strong> — Ingrédients sortis pour <strong><%= n.produit_nom %></strong>
+                            <div class="small text-muted">
+                                Validé par <%= n.valide_par_prenom || n.valide_par_username || 'le gestionnaire' %>
+                                · Vous pouvez commencer la fabrication
+                            </div>
+                        </div>
+                        <span class="badge bg-primary">À terminer</span>
+                    <% } else { %>
+                        <i class="bi bi-x-circle-fill" style="color: var(--danger);"></i>
+                        <div style="flex: 1;">
+                            <strong><%= n.numero %></strong> — Demande <strong>refusée</strong> pour <%= n.produit_nom %>
+                            <div class="small text-muted">
+                                <%= (n.motif_annulation || '').replace(/^Refus gestionnaire\s*:\s*/, '') %>
+                            </div>
+                        </div>
+                        <span class="badge bg-danger">Refusée</span>
+                    <% } %>
+                </a>
+            <% }); %>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<!-- KPIs -->
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= nb_en_cours > 0 ? 'primary' : '' %>">
+            <div class="kpi-icon"><i class="bi bi-fire"></i></div>
+            <div class="kpi-label">Productions en cours</div>
+            <div class="kpi-value"><%= nb_en_cours %></div>
+            <div class="kpi-meta">Ingrédients sortis, à terminer</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="kpi-label">En attente de validation</div>
+            <div class="kpi-value"><%= nb_en_attente %></div>
+            <div class="kpi-meta">Demandes envoyées au gestionnaire</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= nb_notifs > 0 ? 'info' : '' %>">
+            <div class="kpi-icon"><i class="bi bi-bell"></i></div>
+            <div class="kpi-label">Notifications</div>
+            <div class="kpi-value"><%= nb_notifs %></div>
+            <div class="kpi-meta">
+                <% if (nb_notifs) { %>Nouvelles réponses<% } else { %>Rien à consulter<% } %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card success">
+            <div class="kpi-icon"><i class="bi bi-check2-circle"></i></div>
+            <div class="kpi-label">Terminées ce mois</div>
+            <div class="kpi-value"><%= kpi_mois.n %></div>
+            <div class="kpi-meta">
+                Coût matière : <strong><%= h.formatNombre(kpi_mois.cout) %> <%= devise %></strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Alertes ingrédients (les plus importantes en cuisine pour anticiper) -->
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-exclamation-triangle" style="color: var(--gold-dark);"></i> Alertes ingrédients</span>
+                <a href="/stocks/alertes/" class="small">Voir tout →</a>
+            </div>
+            <% if (alertes_ingredients.length) { %>
+                <div style="padding: 4px 0;">
+                    <% alertes_ingredients.forEach(function(a) { %>
+                        <div class="alerte-ing-row">
+                            <% if (a.niveau === 'RUPTURE') { %>
+                                <i class="bi bi-x-octagon-fill" style="color: var(--danger); font-size: 1.1rem;"></i>
+                            <% } else { %>
+                                <i class="bi bi-exclamation-triangle-fill" style="color: var(--gold-dark); font-size: 1.1rem;"></i>
+                            <% } %>
+                            <div style="flex: 1;">
+                                <strong><%= a.designation %></strong>
+                                <div class="small text-muted"><%= a.reference %></div>
+                            </div>
+                            <div style="text-align: right;">
+                                <% if (a.niveau === 'RUPTURE') { %>
+                                    <span class="badge bg-danger">Rupture</span>
+                                <% } else { %>
+                                    <span class="small" style="color: var(--gold-dark); font-weight: 700;">
+                                        <%= h.formatDecimal(a.stock_actuel, 2) %> <span class="text-muted"><%= a.unite %></span>
+                                    </span>
+                                    <div class="small text-muted">seuil <%= h.formatDecimal(a.stock_minimum, 2) %></div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div class="card-body" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="bi bi-check2-circle" style="font-size: 2rem; color: var(--success); display: block; margin-bottom: 8px;"></i>
+                    <strong style="color: var(--success);">Tous les ingrédients sont OK</strong>
+                    <div class="small" style="margin-top: 4px;">Aucun ingrédient de vos recettes en alerte</div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Productions récentes -->
+    <div class="col-md-6 mb-3">
+        <div class="card" style="height: 100%;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-clock-history" style="color: var(--gold);"></i> Productions récentes</span>
+                <a href="/productions/" class="small">Voir tout →</a>
+            </div>
+            <% if (productions_recentes.length) { %>
+                <div class="table-responsive">
+                    <table class="table table-sm" style="margin-bottom: 0;">
+                        <tbody>
+                            <% productions_recentes.forEach(function(p) { %>
+                                <tr style="cursor: pointer;" onclick="location='/productions/<%= p.id %>'">
+                                    <td>
+                                        <a href="/productions/<%= p.id %>"><code style="font-weight: 700;"><%= p.numero %></code></a>
+                                        <div class="small text-muted"><%= h.formatDate(p.date_production, true) %></div>
+                                    </td>
+                                    <td>
+                                        <strong><%= p.produit_nom %></strong>
+                                        <div class="small text-muted"><%= h.formatDecimal(p.quantite_produite, 2) %> <%= p.produit_unite %></div>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <span class="pill pill-<%= p.statut || 'TERMINEE' %>"><%= p.statut || 'TERMINEE' %></span>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="card-body" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                    Aucune production pour le moment
+                    <br><a href="/productions/nouveau" class="btn btn-primary btn-sm mt-3">Lancer la première</a>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Top produits fabriqués -->
+    <div class="col-md-12 mb-3">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-trophy" style="color: var(--gold);"></i> Top 5 produits fabriqués — 30 derniers jours</div>
+            <% if (top_fabriques.length) { %>
+                <div class="table-responsive">
+                    <table class="table" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th style="text-align: right;">Nombre d'ordres</th>
+                                <th style="text-align: right;">Quantité totale</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% top_fabriques.forEach(function(p, i) { %>
+                                <tr>
+                                    <td>
+                                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: <%= i === 0 ? 'var(--gold)' : 'var(--bg-soft)' %>; color: <%= i === 0 ? '#fff' : 'var(--text-muted)' %>; font-weight: 700; font-size: 0.7rem; margin-right: 8px;"><%= i + 1 %></span>
+                                        <strong><%= p.designation %></strong>
+                                        <small class="text-muted"><%= p.reference %></small>
+                                    </td>
+                                    <td style="text-align: right;"><%= p.nb_ordres %></td>
+                                    <td style="text-align: right; font-weight: 700;"><%= h.formatDecimal(p.qte_totale, 2) %> <span class="small text-muted"><%= p.unite %></span></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="card-body" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="bi bi-bar-chart" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
+                    Pas encore de production terminée sur les 30 derniers jours
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,284 @@
+<%- include('layout_header') %>
+
+<style>
+.suivi-hero { background: linear-gradient(135deg, var(--marron) 0%, #4A2F1E 100%); color: #fff; padding: 36px 20px 22px; text-align: center; }
+.suivi-hero .code-tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); padding: 6px 16px; border-radius: 999px; font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+.suivi-hero h1 { font-size: 1.7rem; color: #fff; }
+
+.suivi-container { max-width: 700px; margin: 0 auto; padding: 40px 20px 60px; }
+
+/* Progress bar statut */
+.progress-track {
+    background: var(--surface); border-radius: 20px;
+    padding: 30px 24px; box-shadow: var(--shadow);
+    margin-bottom: 24px; position: relative;
+    border: 1px solid var(--border);
+}
+.progress-title { font-family: 'Playfair Display', serif; font-size: 1.35rem; color: var(--marron); margin-bottom: 8px; }
+.progress-status { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 24px; }
+.progress-status strong { color: var(--marron); font-weight: 700; }
+
+.steps-progress { display: flex; justify-content: space-between; position: relative; }
+.steps-progress::before {
+    content: ''; position: absolute; top: 24px; left: 24px; right: 24px; height: 3px;
+    background: var(--border); z-index: 0;
+}
+.steps-progress::after {
+    content: ''; position: absolute; top: 24px; left: 24px; height: 3px;
+    background: var(--success); z-index: 1; transition: width 0.5s;
+    width: var(--progress, 0%);
+}
+.step-node { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; flex: 1; }
+.step-node .circle {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: var(--surface); border: 3px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 1.2rem;
+    margin-bottom: 8px; transition: all 0.3s;
+}
+.step-node .label { font-size: 0.72rem; text-align: center; color: var(--text-muted); font-weight: 600; }
+.step-node.done .circle { background: var(--success); border-color: var(--success); color: #fff; }
+.step-node.done .label { color: var(--success); font-weight: 700; }
+/* Étape en cours : verte comme les étapes finies + animation pour montrer où on en est */
+.step-node.current .circle { background: var(--success); border-color: var(--success); color: #fff; box-shadow: 0 0 0 6px rgba(5,150,105,0.2); animation: pulse-green 2s infinite; }
+.step-node.current .label { color: var(--success); font-weight: 800; }
+@keyframes pulse-green {
+    0%,100% { box-shadow: 0 0 0 6px rgba(5,150,105,0.15); }
+    50%     { box-shadow: 0 0 0 12px rgba(5,150,105,0.28); }
+}
+
+.info-card { background: var(--surface); border-radius: 18px; padding: 22px; margin-bottom: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+.info-card h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--marron); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
+.info-row .label { color: var(--text-muted); }
+.info-row .val { font-weight: 600; color: var(--marron); }
+
+.article-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
+.article-line .qty { color: var(--text-muted); font-weight: 600; margin-right: 8px; }
+
+.total-final { display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 2px dashed var(--border); align-items: baseline; }
+.total-final .amount { font-family: 'Playfair Display', serif; font-weight: 900; color: var(--marron); font-size: 1.3rem; }
+
+.annule-card { background: #FEF2F2; border: 1px solid #FCA5A5; padding: 18px; border-radius: 14px; color: var(--danger); text-align: center; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.actions .btn { flex: 1; min-width: 140px; }
+
+.pill {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.pill-nouv { background: #FEF3C7; color: #92400E; }
+.pill-conf { background: #DBEAFE; color: #1E40AF; }
+.pill-prete { background: #D1FAE5; color: #065F46; }
+.pill-fin { background: var(--marron); color: var(--or-clair); }
+.pill-annul { background: #FEE2E2; color: #991B1B; }
+</style>
+
+<%
+const S = commande.statut;
+const isAnnulee = S === 'ANNULEE';
+// Progression : NOUVELLE(0%) -> CONFIRMEE(33%) -> PRETE(66%) -> RECUP/LIVR(100%)
+const progressMap = { NOUVELLE: 5, CONFIRMEE: 33, PRETE: 66, RECUPEREE: 100, LIVREE: 100, ANNULEE: 0 };
+const pctProgress = progressMap[S] !== undefined ? progressMap[S] : 5;
+const stateMap = {
+  NOUVELLE:    { pill: 'pill-nouv',  label: 'Reçue',       msg: 'Nous avons bien reçu votre commande. Elle va être confirmée par la caisse.' },
+  CONFIRMEE:   { pill: 'pill-conf',  label: 'Confirmée',   msg: 'Votre commande est confirmée ! Nos cuisiniers la préparent.' },
+  PRETE:       { pill: 'pill-prete', label: 'Prête',       msg: commande.mode_recuperation === 'LIVRAISON' ? 'Votre commande est prête, le livreur va partir.' : 'Votre commande est prête ! Vous pouvez venir la récupérer.' },
+  RECUPEREE:   { pill: 'pill-fin',   label: 'Récupérée',   msg: 'Merci ! Votre commande a bien été récupérée. À bientôt !' },
+  LIVREE:      { pill: 'pill-fin',   label: 'Livrée',      msg: 'Livrée ! Merci pour votre commande, à bientôt.' },
+  ANNULEE:     { pill: 'pill-annul', label: 'Annulée',     msg: 'Cette commande a été annulée. Contactez-nous si c\'est une erreur.' },
+};
+const state = stateMap[S] || stateMap.NOUVELLE;
+const isDone = S === 'RECUPEREE' || S === 'LIVREE';
+%>
+
+<section class="suivi-hero">
+    <div class="code-tag">🎫 <%= commande.code_suivi %></div>
+    <h1>Suivi de votre commande</h1>
+</section>
+
+<div class="suivi-container">
+    <% if (isAnnulee) { %>
+        <div class="annule-card">
+            <i class="bi bi-x-circle-fill" style="font-size: 2rem;"></i>
+            <h3 style="margin: 10px 0;">Commande annulée</h3>
+            <p><%= state.msg %></p>
+            <% if (commande.motif_annulation) { %>
+                <div style="margin-top: 14px; padding: 12px 16px; background: rgba(255,255,255,0.7); border-radius: 10px; text-align: left; font-size: 0.85rem;">
+                    <strong>Motif :</strong> <%= commande.motif_annulation %>
+                    <% if (commande.annulee_par === 'CLIENT') { %>
+                        <div style="color: var(--text-muted); font-size: 0.78rem; margin-top: 4px;">Annulée par vous</div>
+                    <% } %>
+                </div>
+            <% } %>
+        </div>
+    <% } else { %>
+    <!-- Progression -->
+    <div class="progress-track">
+        <div class="progress-title">Statut : <span class="pill <%= state.pill %>"><%= state.label %></span></div>
+        <div class="progress-status"><%= state.msg %></div>
+        <div class="steps-progress" style="--progress: <%= pctProgress %>%;">
+            <div class="step-node <%= pctProgress >= 5 ? (S === 'NOUVELLE' ? 'current' : 'done') : '' %>">
+                <div class="circle"><i class="bi bi-inbox-fill"></i></div>
+                <div class="label">Reçue</div>
+            </div>
+            <div class="step-node <%= pctProgress >= 33 ? (S === 'CONFIRMEE' ? 'current' : 'done') : '' %>">
+                <div class="circle"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="label">Confirmée</div>
+            </div>
+            <div class="step-node <%= pctProgress >= 66 ? (S === 'PRETE' ? 'current' : 'done') : '' %>">
+                <div class="circle"><i class="bi bi-fire"></i></div>
+                <div class="label">Prête</div>
+            </div>
+            <div class="step-node <%= pctProgress >= 100 ? 'done' : '' %>">
+                <div class="circle"><i class="bi bi-<%= commande.mode_recuperation === 'LIVRAISON' ? 'scooter' : 'bag-check' %>"></i></div>
+                <div class="label"><%= commande.mode_recuperation === 'LIVRAISON' ? 'Livrée' : 'Récupérée' %></div>
+            </div>
+        </div>
+    </div>
+    <% } %>
+
+    <!-- Récap -->
+    <div class="info-card">
+        <h3><i class="bi bi-receipt"></i> Votre commande</h3>
+        <% commande.lignes.forEach(function(l) { %>
+            <div class="article-line">
+                <div><span class="qty"><%= l.quantite %>×</span> <%= l.designation %></div>
+                <div style="font-weight: 700;"><%= Math.round(l.prix_unitaire * l.quantite).toLocaleString('fr-FR').replace(/,/g, ' ') %> F</div>
+            </div>
+        <% }); %>
+        <div class="total-final">
+            <span style="font-family: 'Playfair Display', serif; font-weight: 700; color: var(--marron);">Total</span>
+            <span class="amount"><%= commande.total.toLocaleString('fr-FR').replace(/,/g, ' ') %> F</span>
+        </div>
+    </div>
+
+    <!-- Récupération -->
+    <div class="info-card">
+        <h3><i class="bi bi-<%= commande.mode_recuperation === 'LIVRAISON' ? 'scooter' : 'shop' %>"></i> <%= commande.mode_recuperation === 'LIVRAISON' ? 'Livraison' : 'Retrait sur place' %></h3>
+        <div class="info-row"><span class="label">Client</span><span class="val"><%= commande.client_nom %></span></div>
+        <div class="info-row"><span class="label">Téléphone</span><span class="val"><%= commande.client_tel %></span></div>
+        <% if (commande.mode_recuperation === 'LIVRAISON') { %>
+            <div class="info-row"><span class="label">Quartier</span><span class="val"><%= commande.quartier %></span></div>
+            <div class="info-row"><span class="label">Adresse</span><span class="val" style="max-width: 60%; text-align: right;"><%= commande.adresse %></span></div>
+        <% } %>
+    </div>
+
+    <div class="actions">
+        <a href="https://wa.me/237690000000?text=Bonjour%2C%20j%27ai%20une%20question%20sur%20ma%20commande%20<%= commande.code_suivi %>" target="_blank" class="btn btn-primary">
+            <i class="bi bi-whatsapp"></i> Nous contacter
+        </a>
+        <a href="/commander/" class="btn btn-outline">
+            <i class="bi bi-arrow-repeat"></i> Nouvelle commande
+        </a>
+    </div>
+
+    <% if (commande.statut === 'NOUVELLE') { %>
+    <!-- Modification & annulation possibles tant que le caissier n'a pas confirmé -->
+    <div style="margin-top: 30px; padding: 20px; background: var(--or-pale); border: 1px solid var(--or-clair); border-radius: 14px;">
+        <p style="color: var(--marron); font-size: 0.9rem; margin-bottom: 12px;">
+            <i class="bi bi-clock-history"></i>
+            Le restaurant n'a pas encore confirmé votre commande — vous pouvez encore la modifier ou l'annuler.
+        </p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="/commander/modifier/<%= commande.code_suivi %>"
+               style="background: var(--marron); color: var(--or-clair); padding: 10px 20px; border-radius: 999px; font-weight: 700; font-size: 0.88rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="bi bi-pencil-square"></i> Modifier ma commande
+            </a>
+            <button type="button" onclick="document.getElementById('modal-annuler').style.display='flex'"
+                    style="background: transparent; color: var(--danger); border: 1.5px solid var(--danger); padding: 10px 20px; border-radius: 999px; font-weight: 700; font-size: 0.88rem; cursor: pointer;">
+                <i class="bi bi-x-circle"></i> Annuler ma commande
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal d'annulation -->
+    <div id="modal-annuler" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #fff; border-radius: 18px; max-width: 460px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <form method="post" action="/commander/annuler/<%= commande.code_suivi %>">
+                <div style="padding: 24px 24px 8px;">
+                    <h3 style="font-family: 'Playfair Display', serif; color: var(--danger); font-size: 1.3rem; margin-bottom: 8px;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Annuler la commande ?
+                    </h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+                        Merci d'indiquer la raison de l'annulation. Le restaurant en sera informé.
+                    </p>
+                    <label style="display: block; font-weight: 600; color: var(--marron); margin-bottom: 6px; font-size: 0.85rem;">
+                        Motif <span style="color: var(--danger);">*</span>
+                    </label>
+                    <textarea name="motif" rows="3" required minlength="3" maxlength="300"
+                              placeholder="Ex : Erreur de commande, plus le temps, indisponible…"
+                              style="width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.95rem; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; padding: 16px 24px 24px;">
+                    <button type="button" onclick="document.getElementById('modal-annuler').style.display='none'"
+                            style="flex: 1; padding: 12px; background: transparent; border: 1.5px solid var(--border); border-radius: 10px; font-weight: 700; color: var(--text); cursor: pointer;">
+                        Non, garder
+                    </button>
+                    <button type="submit"
+                            style="flex: 1; padding: 12px; background: var(--danger); border: none; color: #fff; border-radius: 10px; font-weight: 700; cursor: pointer;">
+                        Oui, annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        document.getElementById('modal-annuler').addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    </script>
+    <% } else if (commande.statut === 'CONFIRMEE' || commande.statut === 'PRETE') { %>
+    <!-- Trop tard pour annuler soi-même -->
+    <div style="margin-top: 20px; padding: 12px 16px; background: var(--creme-fonce); border-radius: 10px; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+        <i class="bi bi-lock-fill"></i> Votre commande est en préparation. Pour toute modification, contactez-nous au <a href="tel:+237690000000" style="color: var(--marron); font-weight: 700;">+237 690 00 00 00</a>.
+    </div>
+    <% } %>
+</div>
+
+<!-- Mise à jour de l'entrée localStorage (au cas où le montant a changé suite à modification) -->
+<script>
+if (typeof window.memoriserCommande === 'function') {
+    window.memoriserCommande(
+        '<%= commande.code_suivi %>',
+        <%= commande.total %>,
+        <%= commande.lignes.reduce((s, l) => s + l.quantite, 0) %>
+    );
+}
+</script>
+
+<!-- Polling automatique du statut toutes les 5s -->
+<script>
+(function() {
+    let statutCurrent = '<%= commande.statut %>';
+    const CODE = '<%= commande.code_suivi %>';
+
+    async function verifierStatut() {
+        try {
+            const r = await fetch('/commander/api/statut/' + encodeURIComponent(CODE) + '?_=' + Date.now(), { cache: 'no-store' });
+            if (!r.ok) return;
+            const data = await r.json();
+            if (data.statut !== statutCurrent) {
+                // Statut changé ! Animation puis rechargement de la page
+                const track = document.querySelector('.progress-track');
+                if (track) {
+                    track.style.transition = 'all 0.4s';
+                    track.style.transform = 'scale(1.02)';
+                    track.style.boxShadow = '0 0 0 6px rgba(202,138,4,0.2)';
+                }
+                // Notification visuelle
+                const notif = document.createElement('div');
+                notif.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:14px 26px;border-radius:999px;box-shadow:0 8px 24px rgba(5,150,105,0.4);z-index:200;font-weight:700;';
+                notif.innerHTML = '<i class="bi bi-check-circle-fill"></i> Statut mis à jour : ' + (data.statut === 'CONFIRMEE' ? 'Commande confirmée !' : data.statut === 'PRETE' ? 'Votre commande est prête !' : data.statut === 'RECUPEREE' ? 'Récupérée. Merci !' : data.statut === 'LIVREE' ? 'Livrée. Merci !' : data.statut === 'ANNULEE' ? 'Commande annulée' : data.statut);
+                document.body.appendChild(notif);
+                setTimeout(() => location.reload(), 2500);
+            }
+        } catch(e) {}
+    }
+    setInterval(verifierStatut, 5000);
+})();
+</script>
+
+<%- include('layout_footer') %>

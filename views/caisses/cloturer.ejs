@@ -1,0 +1,148 @@
+<%- include('../partials/header') %>
+<style>
+.compte-row { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); gap: 12px; }
+.compte-row:last-child { border-bottom: none; }
+.compte-label { flex: 1; }
+.compte-label .titre { font-weight: 600; font-size: 1rem; }
+.compte-label .sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.theorique-val { font-weight: 600; font-size: 1.1rem; min-width: 110px; text-align: right; color: var(--text-muted); }
+.compte-input { width: 140px; }
+.ecart-val { min-width: 110px; text-align: right; font-weight: 700; }
+.recap-panel { background: linear-gradient(135deg, rgba(202,138,4,0.08), transparent); padding: 20px; border-radius: 8px; border: 1px solid var(--gold); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Clôture de caisse</h1>
+        <p class="page-subtitle">Session <strong><%= cloture.numero %></strong> · Ouverte le <%= h.formatDate(cloture.date_ouverture, true) %></p>
+    </div>
+    <a href="/caisses/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Annuler</a>
+</div>
+
+<form method="post" id="form-cloture">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-cash-stack"></i> Décompte des recettes</div>
+                <div class="card-body" style="padding: 0;">
+                    <!-- Espèces -->
+                    <div class="compte-row" style="background: rgba(16, 185, 129, 0.04);">
+                        <div class="compte-label">
+                            <div class="titre"><i class="bi bi-cash"></i> Espèces en caisse</div>
+                            <div class="sub">
+                                Fond initial : <strong><%= h.formatNombre(cloture.fond_ouverture) %></strong>
+                                + Ventes espèces : <strong><%= h.formatNombre(theorique.ESPECES) %></strong>
+                            </div>
+                        </div>
+                        <div class="theorique-val">
+                            Attendu<br>
+                            <span style="color: var(--text);"><%= h.formatNombre(theorique.especes_theorique) %></span>
+                        </div>
+                        <div>
+                            <label class="form-label small" style="margin-bottom: 2px;">Comptage réel</label>
+                            <input type="number" name="total_compte_especes" step="1" min="0" value="<%= theorique.especes_theorique %>" class="form-control compte-input" style="text-align: right; font-weight: 700; font-size: 1.05rem;" required oninput="calculerEcart()">
+                        </div>
+                        <div class="ecart-val" id="ecart-especes">—</div>
+                    </div>
+
+                    <!-- Carte de crédit -->
+                    <div class="compte-row">
+                        <div class="compte-label">
+                            <div class="titre"><i class="bi bi-credit-card-fill"></i> Carte de crédit</div>
+                            <div class="sub">Total attendu selon les ventes du jour</div>
+                        </div>
+                        <div class="theorique-val"><%= h.formatNombre(theorique.CARTE_CREDIT) %></div>
+                        <div>
+                            <label class="form-label small" style="margin-bottom: 2px;">Confirmé (TPE)</label>
+                            <input type="number" name="total_carte_credit" step="1" min="0" value="<%= theorique.CARTE_CREDIT %>" class="form-control compte-input" style="text-align: right;">
+                        </div>
+                        <div class="ecart-val" style="color: var(--text-muted);">✓</div>
+                    </div>
+
+                    <!-- Orange Money -->
+                    <div class="compte-row">
+                        <div class="compte-label">
+                            <div class="titre"><i class="bi bi-phone" style="color: #FF6B00;"></i> Orange Money</div>
+                            <div class="sub">Confirmez via votre historique OM Marchand</div>
+                        </div>
+                        <div class="theorique-val"><%= h.formatNombre(theorique.ORANGE) %></div>
+                        <div>
+                            <label class="form-label small" style="margin-bottom: 2px;">Confirmé</label>
+                            <input type="number" name="total_orange" step="1" min="0" value="<%= theorique.ORANGE %>" class="form-control compte-input" style="text-align: right;">
+                        </div>
+                        <div class="ecart-val" style="color: var(--text-muted);">✓</div>
+                    </div>
+
+                    <!-- MTN Mobile Money -->
+                    <div class="compte-row">
+                        <div class="compte-label">
+                            <div class="titre"><i class="bi bi-phone-fill" style="color: #FFCC00;"></i> MTN Mobile Money</div>
+                            <div class="sub">Confirmez via votre historique MoMo Marchand</div>
+                        </div>
+                        <div class="theorique-val"><%= h.formatNombre(theorique.MTN) %></div>
+                        <div>
+                            <label class="form-label small" style="margin-bottom: 2px;">Confirmé</label>
+                            <input type="number" name="total_mtn" step="1" min="0" value="<%= theorique.MTN %>" class="form-control compte-input" style="text-align: right;">
+                        </div>
+                        <div class="ecart-val" style="color: var(--text-muted);">✓</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-chat-square-text"></i> Observations</div>
+                <div class="card-body">
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Motif d'un éventuel écart (rendu de monnaie, don, perte, erreur de saisie...) ou toute observation utile."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="recap-panel" style="position: sticky; top: 16px;">
+                <h5 style="margin-bottom: 16px; color: var(--gold-dark);"><i class="bi bi-clipboard-check"></i> Récapitulatif</h5>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Nombre de ventes</div>
+                    <div style="font-size: 1.5rem; font-weight: 700;"><%= theorique.nb_ventes %></div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">CA total théorique</div>
+                    <div style="font-size: 1.6rem; font-weight: 700; color: var(--success);"><%= h.formatNombre(theorique.ca_total) %> <span class="small"><%= devise %></span></div>
+                </div>
+                <hr>
+                <div style="margin-bottom: 8px;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Écart en caisse</div>
+                    <div id="recap-ecart" style="font-size: 1.4rem; font-weight: 700;">0 <span class="small"><%= devise %></span></div>
+                </div>
+                <div id="ecart-alerte" class="alert alert-warning small" style="display: none; margin-top: 12px;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Écart significatif détecté. Expliquez-le dans les observations.
+                </div>
+
+                <button type="submit" class="btn btn-warning btn-lg" style="width: 100%; margin-top: 20px;" data-confirm="Confirmer la clôture ? Cette action est définitive.">
+                    <i class="bi bi-lock-fill"></i> Confirmer la clôture
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+const theoriqueEsp = <%= theorique.especes_theorique %>;
+function calculerEcart() {
+    const compte = Number(document.querySelector('input[name="total_compte_especes"]').value) || 0;
+    const ecart = compte - theoriqueEsp;
+    const el = document.querySelector('#ecart-especes');
+    const recap = document.querySelector('#recap-ecart');
+    const alerte = document.querySelector('#ecart-alerte');
+    const format = n => (n > 0 ? '+' : '') + Math.round(n).toLocaleString('fr-FR');
+    const color = ecart < 0 ? 'var(--danger)' : ecart > 0 ? 'var(--gold-dark)' : 'var(--success)';
+    el.style.color = color;
+    el.textContent = ecart === 0 ? '✓ Équilibré' : format(ecart);
+    recap.style.color = color;
+    recap.innerHTML = format(ecart) + ' <span class="small"><%= devise %></span>';
+    alerte.style.display = Math.abs(ecart) > 500 ? 'block' : 'none';
+}
+calculerEcart();
+</script>
+<%- include('../partials/footer') %>

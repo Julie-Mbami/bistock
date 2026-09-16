@@ -1,0 +1,149 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Aperçu général</h1>
+        <p class="page-subtitle">Vue synthétique des performances commerciales et de l'état du stock</p>
+    </div>
+    <% if (user.est_gestionnaire) { %>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/tableau-de-bord/export/ventes.csv" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export ventes</a>
+        <a href="/tableau-de-bord/export/stocks.csv" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export stocks</a>
+    </div>
+    <% } %>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card success">
+            <div class="kpi-icon"><i class="bi bi-cash-coin"></i></div>
+            <div class="kpi-label">Chiffre d'affaires (jour)</div>
+            <div class="kpi-value"><%= h.formatNombre(ca_jour) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta"><%= nb_ventes_jour %> vente<%= h.pluralize(nb_ventes_jour) %> aujourd'hui</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card primary">
+            <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+            <div class="kpi-label">Chiffre d'affaires (mois)</div>
+            <div class="kpi-value"><%= h.formatNombre(ca_mois) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta"><%= nb_ventes_mois %> vente<%= h.pluralize(nb_ventes_mois) %> ce mois</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card info">
+            <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
+            <div class="kpi-label">Valeur du stock</div>
+            <div class="kpi-value"><%= h.formatNombre(valeur_stock) %><span class="unit"><%= devise %></span></div>
+            <div class="kpi-meta"><%= nb_produits %> produit<%= h.pluralize(nb_produits) %> actif<%= h.pluralize(nb_produits) %></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="kpi-card <%= nb_alertes_ouvertes > 0 ? 'danger' : 'success' %>">
+            <div class="kpi-icon"><i class="bi bi-bell"></i></div>
+            <div class="kpi-label">Alertes ouvertes</div>
+            <div class="kpi-value"><%= nb_alertes_ouvertes %></div>
+            <div class="kpi-meta">
+                <% if (nb_rupture) { %><span style="color: var(--danger); font-weight: 600;"><%= nb_rupture %> en rupture</span><% } %>
+                <% if (nb_rupture && nb_alerte) { %> · <% } %>
+                <% if (nb_alerte) { %><span style="color: var(--gold-dark); font-weight: 600;"><%= nb_alerte %> en alerte</span><% } %>
+                <% if (!nb_rupture && !nb_alerte) { %>Tout est en ordre<% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+                    <h5 style="margin: 0; color: var(--navy);"><i class="bi bi-graph-up" style="color: var(--gold);"></i> Évolution du chiffre d'affaires</h5>
+                    <span class="badge bg-secondary">30 derniers jours</span>
+                </div>
+                <div style="position: relative; height: 340px;"><canvas id="chartVentes"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="margin-bottom: 18px; color: var(--navy);"><i class="bi bi-pie-chart" style="color: var(--gold);"></i> Répartition par catégorie</h5>
+                <div style="position: relative; height: 340px;"><canvas id="chartCategories"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="margin-bottom: 18px; color: var(--navy);"><i class="bi bi-trophy" style="color: var(--gold);"></i> Top 5 produits ce mois</h5>
+                <div style="position: relative; height: 360px;"><canvas id="chartTop"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h5 style="margin-bottom: 18px; color: var(--navy);"><i class="bi bi-lightning-charge" style="color: var(--gold);"></i> Accès rapides</h5>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <% if (user.est_caissier) { %>
+                    <a href="/ventes/caisse/" class="btn btn-primary"><i class="bi bi-cart-plus"></i> Ouvrir la caisse</a>
+                    <% } %>
+                    <% if (user.est_gestionnaire) { %>
+                    <a href="/stocks/mouvements/nouveau" class="btn btn-secondary"><i class="bi bi-plus-circle"></i> Enregistrer une réception</a>
+                    <a href="/intelligence/recommandations/" class="btn btn-secondary"><i class="bi bi-lightbulb"></i> Voir les recommandations</a>
+                    <a href="/stocks/alertes/" class="btn btn-secondary"><i class="bi bi-bell"></i> Traiter les alertes</a>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+Chart.defaults.font.family = "'Inter', -apple-system, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#e2e8f0';
+
+const labelsJ = <%- jours_labels %>;
+const dataCA = <%- ca_data %>;
+const dataN = <%- nb_ventes_data %>;
+const topLabels = <%- top_labels %>;
+const topQtes = <%- top_qtes %>;
+const catLabels = <%- cat_labels %>;
+const catValues = <%- cat_values %>;
+
+const PALETTE = ['#1e3a8a', '#ca8a04', '#047857', '#0e7490', '#b91c1c', '#ea580c', '#475569', '#14b8a6'];
+const NAVY = '#1e3a8a', GOLD = '#ca8a04';
+
+new Chart(document.getElementById('chartVentes'), {
+    type: 'line',
+    data: { labels: labelsJ, datasets: [
+        { label: 'CA (<%= devise %>)', data: dataCA, borderColor: NAVY, backgroundColor: 'rgba(30,58,138,0.08)', fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 6, pointBackgroundColor: GOLD, borderWidth: 3, yAxisID: 'y' },
+        { label: 'Nombre de ventes', data: dataN, borderColor: GOLD, backgroundColor: 'transparent', borderDash: [6,4], pointRadius: 0, borderWidth: 2, yAxisID: 'y1' },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom' }, tooltip: { backgroundColor: NAVY } },
+        scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true, position: 'left', ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0) + 'k' : v } },
+            y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } },
+        }
+    }
+});
+new Chart(document.getElementById('chartCategories'), {
+    type: 'doughnut',
+    data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: PALETTE, borderWidth: 3, borderColor: '#fff', hoverOffset: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('chartTop'), {
+    type: 'bar',
+    data: { labels: topLabels, datasets: [{ label: 'Quantités vendues', data: topQtes, backgroundColor: NAVY, hoverBackgroundColor: GOLD, borderRadius: 8, barThickness: 38 }]},
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true }, y: { grid: { display: false } } } }
+});
+</script>
+<%- include('../partials/footer') %>

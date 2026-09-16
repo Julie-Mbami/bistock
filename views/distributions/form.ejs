@@ -1,0 +1,122 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Nouvelle distribution</h1>
+        <p class="page-subtitle">Depuis achat <code><%= achat.numero %></code> · <%= achat.fournisseur_affichage %></p>
+    </div>
+    <a href="/achats/<%= achat.id %>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+</div>
+
+<form method="post" id="form-dist">
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Destination</h5>
+            <div class="row mt-3">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Activité destinataire *</label>
+                    <select class="form-select" name="activite_id" id="activite-select" required>
+                        <option value="">Choisir...</option>
+                        <% activites.forEach(function(a) { %>
+                            <option value="<%= a.id %>"><%= a.nom %> (<%= a.code %>)</option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Notes</label>
+                    <input type="text" class="form-control" name="notes" placeholder="Ex : livrer avant 15h">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0;">Ventilation vers cette activité</h5>
+                <span class="text-muted small">Choisissez le produit du catalogue de l'activité pour chaque ligne d'achat</span>
+            </div>
+
+            <div class="table-responsive mt-3">
+                <table class="table table-sm" id="table-dist">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"></th>
+                            <th>Achat (libellé)</th>
+                            <th style="text-align: right;">Restant à distribuer</th>
+                            <th style="min-width: 220px;">Produit destination *</th>
+                            <th style="width: 100px; text-align: right;">Quantité à distribuer *</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dist-body">
+                    <% lignesAchat.forEach(function(la) { %>
+                        <% var restant = la.quantite - la.qte_dej_dist; %>
+                        <tr data-ligne-achat="<%= la.id %>" data-restant="<%= restant %>">
+                            <td><input type="checkbox" class="row-select" checked></td>
+                            <td>
+                                <strong><%= la.designation %></strong>
+                                <% if (la.activite_pressentie_nom) { %><br><small class="text-muted">pressenti : <%= la.activite_pressentie_nom %></small><% } %>
+                            </td>
+                            <td style="text-align: right; font-weight: 700;"><%= restant %> <%= la.unite %></td>
+                            <td>
+                                <select class="form-select form-select-sm produit-select">
+                                    <option value="">— Choisir le produit dans l'activité destinataire —</option>
+                                </select>
+                            </td>
+                            <td><input type="number" step="0.01" min="0" max="<%= restant %>" value="<%= restant %>" class="form-control form-control-sm qte-input" style="text-align: right;"></td>
+                        </tr>
+                    <% }); %>
+                    </tbody>
+                </table>
+            </div>
+            <input type="hidden" name="lignes" id="lignes-json" value="[]">
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin: 20px 0;">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-check-lg"></i> Créer la distribution</button>
+        <a href="/achats/<%= achat.id %>" class="btn btn-outline-secondary btn-lg">Annuler</a>
+    </div>
+</form>
+
+<script>
+const PRODUITS = <%- JSON.stringify(produits) %>;
+
+// Filtrer les produits par activité sélectionnée
+document.getElementById('activite-select').addEventListener('change', function() {
+    const actId = Number(this.value);
+    document.querySelectorAll('.produit-select').forEach(sel => {
+        const current = sel.value;
+        sel.innerHTML = '<option value="">— Choisir un produit —</option>';
+        PRODUITS.filter(p => p.activite_id === actId).forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.designation + ' (' + p.reference + ')';
+            sel.appendChild(opt);
+        });
+        sel.value = current;
+    });
+    collect();
+});
+function collect() {
+    const lignes = [];
+    document.querySelectorAll('#dist-body tr').forEach(tr => {
+        if (!tr.querySelector('.row-select').checked) return;
+        const produit_id = tr.querySelector('.produit-select').value;
+        const quantite = parseFloat(tr.querySelector('.qte-input').value) || 0;
+        if (!produit_id || quantite <= 0) return;
+        lignes.push({
+            ligne_achat_id: tr.dataset.ligneAchat,
+            produit_id: Number(produit_id),
+            quantite,
+        });
+    });
+    document.getElementById('lignes-json').value = JSON.stringify(lignes);
+}
+document.querySelectorAll('#dist-body input, #dist-body select').forEach(el => el.addEventListener('change', collect));
+document.getElementById('form-dist').addEventListener('submit', function(e) {
+    collect();
+    const lignes = JSON.parse(document.getElementById('lignes-json').value);
+    if (!lignes.length) { e.preventDefault(); toastError('Sélectionnez au moins une ligne avec un produit destination et une quantité.'); }
+});
+</script>
+<%- include('../partials/footer') %>

@@ -1,0 +1,428 @@
+<%- include('../partials/header') %>
+<style>
+.abc-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+.abc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-sm);
+    overflow: hidden;
+    border-top: 4px solid;
+}
+.abc-card.a { border-top-color: var(--danger); }
+.abc-card.b { border-top-color: var(--gold); }
+.abc-card.c { border-top-color: var(--success); }
+
+.abc-card-head {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+.abc-letter {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+}
+.abc-card.a .abc-letter { background: var(--danger); }
+.abc-card.b .abc-letter { background: var(--gold); }
+.abc-card.c .abc-letter { background: var(--success); }
+
+.abc-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.abc-card-body { padding: 18px 20px; }
+.abc-main-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.abc-stat-block {
+    background: var(--surface-muted);
+    padding: 10px 12px;
+    border-radius: 10px;
+}
+.abc-stat-block.highlight { background: var(--surface); border: 2px solid var(--border); }
+.abc-card.a .abc-stat-block.highlight { border-color: var(--danger); background: var(--danger-50); }
+.abc-card.b .abc-stat-block.highlight { border-color: var(--gold); background: var(--gold-50); }
+.abc-card.c .abc-stat-block.highlight { border-color: var(--success); background: var(--success-50); }
+.abc-stat-label {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+.abc-stat-val {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.abc-card.a .abc-stat-block.highlight .abc-stat-val { color: var(--danger); }
+.abc-card.b .abc-stat-block.highlight .abc-stat-val { color: var(--gold-dark); }
+.abc-card.c .abc-stat-block.highlight .abc-stat-val { color: var(--success); }
+.abc-stat-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+.abc-desc {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--surface-muted);
+}
+.abc-desc i { font-size: 1.1rem; margin-top: 1px; flex-shrink: 0; }
+.abc-card.a .abc-desc i { color: var(--danger); }
+.abc-card.b .abc-desc i { color: var(--gold); }
+.abc-card.c .abc-desc i { color: var(--success); }
+
+.top-a-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+}
+.top-a-row:last-child { border-bottom: none; }
+.rank {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--danger-50);
+    color: var(--danger);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+.top-info { min-width: 0; flex: 1; }
+.top-nom a { font-weight: 600; color: var(--navy); text-decoration: none; font-size: 0.88rem; }
+.top-meta { font-size: 0.72rem; color: var(--text-muted); }
+.top-ca {
+    text-align: right;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+}
+.top-ca small { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); }
+
+.reco-strat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+.reco-strat {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border-left: 4px solid;
+}
+.reco-strat.a { border-left-color: var(--danger); }
+.reco-strat.b { border-left-color: var(--gold); }
+.reco-strat.c { border-left-color: var(--success); }
+.reco-strat-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.4rem;
+}
+.reco-strat.a .reco-strat-icon { background: var(--danger-50); color: var(--danger); }
+.reco-strat.b .reco-strat-icon { background: var(--gold-50); color: var(--gold-dark); }
+.reco-strat.c .reco-strat-icon { background: var(--success-50); color: var(--success); }
+.reco-strat-title { font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+.reco-strat-list {
+    margin: 0; padding-left: 18px;
+    font-size: 0.84rem;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+/* Bandeau insight clé */
+.insight-banner {
+    background: linear-gradient(95deg, var(--navy-50) 0%, var(--gold-50) 100%);
+    border: 1px solid var(--gold);
+    border-radius: var(--r-lg);
+    padding: 16px 20px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.insight-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: var(--gold);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+.insight-headline { font-size: 1.02rem; color: var(--text); line-height: 1.4; }
+.insight-sub { font-size: 0.86rem; color: var(--text-muted); margin-top: 4px; }
+.conc-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 11px;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-right: 6px;
+}
+.conc-pill.critique  { background: var(--danger); color: #fff; }
+.conc-pill.elevee    { background: var(--gold); color: #fff; }
+.conc-pill.moderee   { background: var(--info); color: #fff; }
+.conc-pill.faible    { background: var(--success); color: #fff; }
+
+/* Deltas sur les cartes ABC */
+.delta {
+    margin-left: auto;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.delta.up { background: var(--success-50); color: var(--success); }
+.delta.down { background: var(--danger-50); color: var(--danger); }
+
+/* Étoiles montantes / descendantes */
+.movement-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 18px;
+    border-bottom: 1px solid var(--border);
+}
+.movement-row:last-child { border-bottom: none; }
+.mvt-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.movement-row.up .mvt-icon { background: var(--success-50); color: var(--success); }
+.movement-row.down .mvt-icon { background: var(--danger-50); color: var(--danger); }
+.movement-row.new .mvt-icon { background: var(--info-50); color: var(--info); }
+
+.mvt-body { min-width: 0; flex: 1; }
+.mvt-nom a { font-weight: 600; color: var(--navy); text-decoration: none; font-size: 0.86rem; }
+.mvt-trans { font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.cls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.72rem;
+    color: #fff;
+}
+.cls-a { background: var(--danger); }
+.cls-b { background: var(--gold); }
+.cls-c { background: var(--success); }
+.mvt-evol { font-weight: 700; }
+.mvt-evol.up { color: var(--success); }
+.mvt-evol.down { color: var(--danger); }
+
+.empty-block {
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--text-muted);
+    font-size: 0.86rem;
+}
+.empty-block i { font-size: 1.8rem; color: var(--text-faint); display: block; margin-bottom: 6px; }
+.empty-block p { margin: 0; }
+
+/* Top catégories / fournisseurs */
+.topbar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+.topbar-row:last-child { border-bottom: none; }
+.topbar-rank {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--gold-50);
+    color: var(--gold-dark);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+.topbar-info { flex: 1; min-width: 0; }
+.topbar-nom { font-weight: 600; color: var(--text); font-size: 0.88rem; margin-bottom: 4px; }
+.topbar-nom a { color: var(--navy); text-decoration: none; }
+.topbar-bar {
+    height: 6px;
+    background: var(--surface-muted);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.topbar-fill {
+    height: 100%;
+    background: var(--gold);
+    transition: width 0.5s ease-out;
+}
+.topbar-val {
+    text-align: right;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+    line-height: 1.1;
+    min-width: 80px;
+}
+
+.dep-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--danger-50);
+    border-left: 3px solid var(--danger);
+    color: var(--danger);
+    padding: 10px 13px;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+.dep-alert i { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+</style>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Classification ABC</h1>
+        <p class="page-subtitle">Loi de Pareto — <%= total_produits_classes %> produits classés sur <%= periode %> jours</p>
+    </div>
+    <form method="get">
+        <select name="periode" class="form-select" onchange="this.form.submit()">
+            <% [30, 90, 180, 365].forEach(function(p) { %>
+                <option value="<%= p %>" <%= periode === p ? 'selected' : '' %>>Sur <%= p %> jours</option>
+            <% }); %>
+        </select>
+    </form>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4 mb-3">
+        <div class="kpi-card danger">
+            <div class="kpi-label">Classe A (stratégiques)</div>
+            <div class="kpi-value"><%= repartition.A %></div>
+            <div class="kpi-meta"><%= pct_produits.A %>% des produits · <%= pct_ca.A %>% du CA</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="kpi-card primary">
+            <div class="kpi-label">Classe B (intermédiaires)</div>
+            <div class="kpi-value"><%= repartition.B %></div>
+            <div class="kpi-meta"><%= pct_produits.B %>% des produits · <%= pct_ca.B %>% du CA</div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="kpi-card info">
+            <div class="kpi-label">Classe C (marginaux)</div>
+            <div class="kpi-value"><%= repartition.C %></div>
+            <div class="kpi-meta"><%= pct_produits.C %>% des produits · <%= pct_ca.C %>% du CA</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h5><i class="bi bi-bar-chart"></i> Diagramme Pareto — Top 30 produits</h5>
+        <div style="position: relative; height: 400px;"><canvas id="chartPareto"></canvas></div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card"><div class="card-body">
+            <h5>Concentration</h5>
+            <p><%= nb_produits_80 %> produits réalisent 80% du CA (<%= pct_produits_80 %>% du catalogue)</p>
+            <p>Concentration : <strong><%= concentration_label %></strong></p>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card"><div class="card-body">
+            <h5>Top catégories</h5>
+            <ul style="list-style: none; padding: 0;">
+            <% top_categories.forEach(function(c) { %>
+                <li style="padding: 6px 0; border-bottom: 1px solid var(--border);">
+                    <strong><%= c.categorie.nom %></strong> — <%= h.formatNombre(c.ca) %> <%= devise %> (<%= c.pct %>%)
+                </li>
+            <% }); %>
+            </ul>
+        </div></div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5>Détail par produit</h5>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Produit</th><th>Catégorie</th><th style="text-align: right;">CA</th><th style="text-align: right;">%</th><th style="text-align: right;">Cumul %</th><th style="text-align: center;">Classe</th></tr></thead>
+                <tbody>
+                <% classes.forEach(function(c) { %>
+                    <tr>
+                        <td><a href="/produits/<%= c.produit.id %>"><%= c.produit.designation %></a></td>
+                        <td class="text-muted small"><%= c.produit.categorie_nom %></td>
+                        <td style="text-align: right;"><%= h.formatNombre(c.ca_total) %></td>
+                        <td style="text-align: right;"><%= c.part_pct %>%</td>
+                        <td style="text-align: right;"><%= c.cumul_pct %>%</td>
+                        <td style="text-align: center;">
+                            <span class="badge <%= c.classe === 'A' ? 'badge-rupture' : (c.classe === 'B' ? 'badge-alerte' : 'bg-secondary') %>"><%= c.classe %></span>
+                        </td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+const paretoLabels = <%- pareto_labels %>;
+const paretoCA = <%- pareto_ca %>;
+const paretoCumul = <%- pareto_cumul %>;
+new Chart(document.getElementById('chartPareto'), {
+    type: 'bar',
+    data: { labels: paretoLabels, datasets: [
+        { type: 'bar', label: 'CA', data: paretoCA, backgroundColor: '#1e3a8a', yAxisID: 'y' },
+        { type: 'line', label: 'Cumul %', data: paretoCumul, borderColor: '#ca8a04', backgroundColor: '#ca8a04', yAxisID: 'y1', tension: 0.2, pointRadius: 3 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, position: 'left' }, y1: { beginAtZero: true, max: 100, position: 'right', grid: { drawOnChartArea: false } } } }
+});
+</script>
+<%- include('../partials/footer') %>

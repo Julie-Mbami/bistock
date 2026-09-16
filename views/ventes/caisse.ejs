@@ -1,0 +1,691 @@
+<%- include('../partials/header') %>
+<style>
+/* Styles spécifiques caisse (portage du template Django) */
+.produit-card { position: relative; transition: all 0.18s; }
+.produit-card.produit-rupture { opacity: 0.55; cursor: not-allowed; background: var(--surface-muted); }
+.produit-card.produit-rupture:hover { border-color: var(--border); box-shadow: var(--sh-xs); transform: none; }
+.img-placeholder { position: relative; color: rgba(255, 255, 255, 0.95); font-size: 2.6rem; }
+.img-placeholder .categorie-tag {
+    position: absolute; bottom: 8px; left: 10px;
+    background: rgba(255, 255, 255, 0.18); color: #fff;
+    padding: 2px 9px; border-radius: 9999px;
+    font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    backdrop-filter: blur(4px);
+}
+.rupture-badge, .alerte-badge {
+    position: absolute; top: 10px; right: 10px;
+    padding: 3px 9px; border-radius: 9999px;
+    font-size: 0.7rem; font-weight: 700; z-index: 2;
+    display: inline-flex; align-items: center; gap: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.rupture-badge { background: var(--danger); color: #fff; }
+.alerte-badge  { background: var(--gold); color: #fff; }
+.stock-indicator {
+    font-size: 0.72rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 9999px;
+    display: inline-flex; align-items: center; gap: 3px;
+}
+.stock-indicator.ok      { background: var(--success-50); color: var(--success); }
+.stock-indicator.bas     { background: var(--gold-50);    color: var(--gold-dark); }
+.stock-indicator.rupture { background: var(--danger-50);  color: var(--danger); }
+
+/* Quantité dans le panier */
+.qte-control { display: inline-flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 6px; overflow: hidden; background: #fff; }
+.qte-control button { background: #fff; border: none; width: 26px; height: 28px; cursor: pointer; color: var(--navy); font-weight: 700; font-size: 0.9rem; transition: background 0.12s; }
+.qte-control button:hover:not(:disabled) { background: var(--navy-50); }
+.qte-control button:disabled { color: var(--text-faint); cursor: not-allowed; background: var(--surface-muted); }
+.qte-control input {
+    width: 40px; height: 28px; border: none;
+    border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+    text-align: center; font-weight: 700; color: var(--navy);
+    font-size: 0.85rem; font-variant-numeric: tabular-nums; background: var(--surface-muted);
+}
+.qte-control input:focus { outline: none; background: #fff; }
+.qte-stock { display: block; font-size: 0.66rem; color: var(--text-muted); margin-top: 2px; text-align: center; }
+
+/* Toggle Particulier / Entreprise dans la modale nouveau client */
+.nc-type-btn {
+    flex: 1; padding: 12px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    border-radius: var(--r);
+    font-weight: 600; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.15s;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; font-family: inherit;
+}
+.nc-type-btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.nc-type-btn.nc-active { border-color: var(--navy); background: var(--navy-50); color: var(--navy); }
+.nc-type-btn i { font-size: 1.1rem; }
+
+/* Modes de paiement — cards visuelles */
+.mode-paiement-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.mode-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px;
+    padding: 12px 6px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    min-width: 0;
+    text-align: center;
+}
+.mode-btn i { font-size: 1.5rem; }
+.mode-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.mode-btn:hover { border-color: #94a3b8; background: #f8fafc; transform: translateY(-1px); }
+.mode-btn[data-color="green"] i { color: #059669; }
+.mode-btn[data-color="blue"] i { color: #2563EB; }
+.mode-btn[data-color="orange"] i { color: #EA580C; }
+.mode-btn[data-color="yellow"] i { color: #CA8A04; }
+.mode-btn.selected {
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.08);
+    color: var(--text);
+}
+.mode-btn[data-color="green"].selected  { border-color: #059669; background: #ECFDF5; }
+.mode-btn[data-color="blue"].selected   { border-color: #2563EB; background: #EFF6FF; }
+.mode-btn[data-color="orange"].selected { border-color: #EA580C; background: #FFF7ED; }
+.mode-btn[data-color="yellow"].selected { border-color: #CA8A04; background: #FEF9C3; }
+
+/* Statut de paiement */
+.statut-paiement {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; border-radius: var(--r);
+    margin-bottom: 14px; font-size: 0.86rem;
+    border-left: 3px solid;
+}
+.statut-paiement i { font-size: 1.1rem; margin-top: 1px; }
+.statut-paiement.statut-complet { background: var(--success-50); border-left-color: var(--success); color: var(--success); }
+.statut-paiement.statut-partiel { background: var(--gold-50); border-left-color: var(--gold); color: var(--gold-dark); }
+.statut-paiement.statut-impaye  { background: var(--danger-50); border-left-color: var(--danger); color: var(--danger); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Point de vente</h1>
+        <p class="page-subtitle">Sélectionnez les produits, validez et imprimez le ticket</p>
+    </div>
+</div>
+
+<% if (locals.nb_commandes_web && locals.nb_commandes_web > 0) { %>
+<div class="alert" style="background: #FEF3C7; border: 1px solid #FCD34D; color: #92400E; display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 16px;">
+    <i class="bi bi-basket-fill" style="font-size: 1.4rem;"></i>
+    <div style="flex: 1;">
+        <strong><%= locals.nb_commandes_web %> commande<%= locals.nb_commandes_web > 1 ? 's' : '' %> en ligne à traiter</strong>
+        <br><small>Des clients ont commandé via le site web. Confirmez, préparez et remettez.</small>
+    </div>
+    <a href="/ventes-web/" class="btn btn-warning btn-sm"><i class="bi bi-eye"></i> Voir les commandes</a>
+</div>
+<% } %>
+
+<div class="row">
+    <!-- Liste produits -->
+    <div class="col-md-8">
+        <div class="card" style="margin-bottom: 16px;">
+            <div class="card-body" style="padding: 14px;">
+                <div style="position: relative;">
+                    <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-faint);"></i>
+                    <input type="text" id="recherche" class="form-control" placeholder="Rechercher un produit par nom ou référence..." style="padding-left: 40px;" autofocus>
+                </div>
+            </div>
+        </div>
+        <div class="row" id="grille-produits">
+            <% produits.forEach(function(p) { %>
+            <div class="col-md-4 col-sm-6 produit-item mb-3" data-nom="<%= (p.designation || '').toLowerCase() %>" data-ref="<%= (p.reference || '').toLowerCase() %>">
+                <div class="produit-card <%= p.stock_actuel <= 0 ? 'produit-rupture' : '' %>"
+                     <% if (p.stock_actuel > 0) { %>onclick="ajouterAuPanier(<%= p.id %>, '<%= h.escapeJs(p.designation) %>', <%= p.prix_vente %>, <%= p.stock_actuel %>)"<% } else { %>onclick="toastWarning('« <%= h.escapeJs(p.designation) %> » est en rupture de stock', 'Indisponible')"<% } %>>
+                    <% if (p.image) { %>
+                        <img src="/media<%= p.image %>" class="img-thumb">
+                    <% } else { %>
+                        <div class="img-placeholder" style="background: <%= p.couleur_hex %>;">
+                            <i class="bi <%= p.icone %>"></i>
+                            <span class="categorie-tag"><%= p.categorie_nom || '' %></span>
+                        </div>
+                    <% } %>
+                    <% if (p.stock_actuel <= 0) { %>
+                        <span class="rupture-badge"><i class="bi bi-x-octagon-fill"></i> Rupture</span>
+                    <% } else if (p.stock_actuel <= p.stock_minimum) { %>
+                        <span class="alerte-badge"><i class="bi bi-exclamation-triangle-fill"></i> Stock bas</span>
+                    <% } %>
+                    <div class="card-body">
+                        <h6><%= h.truncate(p.designation, 38) %></h6>
+                        <div class="ref"><%= p.reference %></div>
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px;">
+                            <span class="price"><%= h.formatNombre(p.prix_vente) %> <span style="font-weight: 500; font-size: 0.72rem; color: var(--text-muted);"><%= devise %></span></span>
+                            <span class="stock-indicator <%= p.stock_actuel <= 0 ? 'rupture' : (p.stock_actuel <= p.stock_minimum ? 'bas' : 'ok') %>">
+                                <% if (p.stock_actuel > 0) { %>
+                                    <i class="bi bi-box-seam"></i> <%= p.stock_actuel %> en stock
+                                <% } else { %>
+                                    <i class="bi bi-x-circle"></i> Indisponible
+                                <% } %>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <% }); %>
+            <% if (!produits.length) { %>
+                <div class="col-12"><div class="alert alert-info"><i class="bi bi-info-circle"></i> Aucun produit actif.</div></div>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Panier -->
+    <div class="col-md-4">
+        <div class="card caisse-panier">
+            <div class="card-header">
+                <h5><i class="bi bi-cart3"></i> Panier <span id="panier-count" style="background: var(--gold); color: #fff; padding: 1px 8px; border-radius: 9999px; font-size: 0.72rem; margin-left: 6px; display: none;">0</span></h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" id="panier-table-wrapper" style="display: none;">
+                    <table class="table table-sm" id="panier-table" style="font-size: 0.82rem;">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th style="text-align: center; width: 110px;">Quantité</th>
+                                <th style="text-align: right;">Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="panier-body"></tbody>
+                    </table>
+                </div>
+                <div id="panier-vide" style="padding: 30px 10px; text-align: center; color: var(--text-muted);">
+                    <i class="bi bi-cart-x" style="font-size: 2.5rem; opacity: 0.5; display: block; margin-bottom: 8px;"></i>
+                    <span style="font-size: 0.85rem;">Cliquez sur un produit pour l'ajouter</span>
+                </div>
+
+                <hr>
+
+                <div class="mb-3">
+                    <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+                        <span>Client</span>
+                        <button type="button" onclick="ouvrirModaleClient()" style="background: var(--gold); color: #fff; border: none; border-radius: 9999px; padding: 1px 10px; font-size: 0.7rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="bi bi-plus-lg"></i> Nouveau
+                        </button>
+                    </label>
+                    <select id="client-select" class="form-select form-select-sm">
+                        <option value="">— Sans client —</option>
+                        <% clients.forEach(function(c) { %>
+                            <option value="<%= c.id %>"><%= c.nom %><% if (c.telephone) { %> · <%= c.telephone %><% } %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mode de paiement</label>
+                    <input type="hidden" id="mode-paiement" value="ESPECES">
+                    <div class="mode-paiement-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <button type="button" class="mode-btn selected" data-mode="ESPECES" data-color="green" title="Espèces">
+                            <i class="bi bi-cash-coin"></i>
+                            <span>Espèces</span>
+                        </button>
+                        <button type="button" class="mode-btn" data-mode="CARTE_CREDIT" data-color="blue" title="Carte de crédit">
+                            <i class="bi bi-credit-card-fill"></i>
+                            <span>Carte de crédit</span>
+                        </button>
+                        <button type="button" class="mode-btn" data-mode="ORANGE" data-color="orange" title="Orange Money">
+                            <i class="bi bi-phone-fill"></i>
+                            <span>Orange Money</span>
+                        </button>
+                        <button type="button" class="mode-btn" data-mode="MTN" data-color="yellow" title="MTN Mobile Money">
+                            <i class="bi bi-phone-fill"></i>
+                            <span>MTN Money</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <label class="form-label">Remise</label>
+                        <input type="number" id="remise" value="0" min="0" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">
+                            Montant payé
+                            <span title="Pré-rempli avec le net à payer. Modifiez pour un paiement partiel." style="color: var(--gold); font-size: 0.7rem; cursor: help;"><i class="bi bi-info-circle"></i> auto</span>
+                        </label>
+                        <input type="number" id="montant-paye" value="0" min="0" class="form-control form-control-sm">
+                    </div>
+                </div>
+
+                <div id="statut-paiement" class="statut-paiement" style="display: none;"></div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--surface-muted); border-radius: var(--r); margin-bottom: 12px; border: 1px solid var(--border);">
+                    <label style="display: flex; align-items: center; gap: 9px; margin: 0; cursor: pointer; flex: 1;">
+                        <input type="checkbox" id="appliquer-tva" style="width: 18px; height: 18px; accent-color: var(--navy); cursor: pointer;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.86rem; color: var(--navy);">Appliquer la TVA</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Taux : <%= taux_tva %> % (Cameroun)</div>
+                        </div>
+                    </label>
+                    <i class="bi bi-percent" style="color: var(--gold); font-size: 1.3rem;"></i>
+                </div>
+
+                <div style="background: var(--surface-muted); border-radius: var(--r); padding: 14px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                        <span class="text-muted">Sous-total</span>
+                        <span id="recap-soustotal" style="font-variant-numeric: tabular-nums;">0 <%= devise %></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                        <span class="text-muted">Remise</span>
+                        <span id="recap-remise" style="font-variant-numeric: tabular-nums;">0 <%= devise %></span>
+                    </div>
+                    <div id="recap-tva-row" style="display: none; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                        <span class="text-muted">TVA (<%= taux_tva %>%)</span>
+                        <span id="recap-tva" style="font-variant-numeric: tabular-nums; color: var(--gold-dark); font-weight: 600;">0 <%= devise %></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; border-top: 1px solid var(--border);">
+                        <span style="font-weight: 600;">Net à payer</span>
+                        <span id="recap-net" style="font-weight: 700; font-size: 1.3rem; color: var(--navy); font-variant-numeric: tabular-nums;">0 <%= devise %></span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-lg" id="btn-valider" onclick="validerVente()" style="width: 100%;">
+                    <i class="bi bi-check-circle"></i> Valider la vente
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="viderPanier()" style="width: 100%; margin-top: 8px;">
+                    <i class="bi bi-x"></i> Vider le panier
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const panier = new Map();
+const DEVISE = '<%= devise %>';
+const TAUX_TVA = <%= taux_tva %>;
+
+// ---------- Modale rapide « Nouveau client » ----------
+async function ouvrirModaleClient() {
+    const overlay = document.createElement('div');
+    overlay.className = 'app-modal-overlay show';
+    overlay.innerHTML = `
+        <div class="app-modal" style="max-width: 540px;">
+            <div class="app-modal-icon info"><i class="bi bi-person-plus-fill"></i></div>
+            <div class="app-modal-body" style="text-align: left; padding: 0 28px 8px;">
+                <h3 class="app-modal-title" style="text-align: center;">Nouveau client</h3>
+                <p class="app-modal-message" style="text-align: center;">Création rapide depuis la caisse</p>
+                <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                    <button type="button" id="nc-type-PART" class="nc-type-btn nc-active" data-type="PART"><i class="bi bi-person"></i> Particulier</button>
+                    <button type="button" id="nc-type-ENTR" class="nc-type-btn" data-type="ENTR"><i class="bi bi-building"></i> Entreprise</button>
+                </div>
+                <form id="form-nouveau-client" autocomplete="off">
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <span id="nc-label-PART">Nom complet</span>
+                            <span id="nc-label-ENTR" style="display:none;">Raison sociale</span>
+                            <span style="color: var(--danger);">*</span>
+                        </label>
+                        <input type="text" id="nc-nom" class="form-control" required autofocus>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Téléphone</label><input type="text" id="nc-telephone" class="form-control" placeholder="+237 690 00 00 00"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Email</label><input type="email" id="nc-email" class="form-control" placeholder="email@ex.cm"></div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Adresse</label><input type="text" id="nc-adresse" class="form-control" placeholder="Quartier, ville"></div>
+                    <div id="nc-bloc-entreprise" style="display: none; padding-top: 8px; border-top: 1px solid var(--border);">
+                        <div class="mb-3"><label class="form-label">Personne à contacter</label><input type="text" id="nc-contact" class="form-control" placeholder="Ex : M. NDONGO — Responsable Achats"></div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3"><label class="form-label">NIU</label><input type="text" id="nc-niu" class="form-control" placeholder="P123456789012K"></div>
+                            <div class="col-md-6 mb-3"><label class="form-label">RCCM</label><input type="text" id="nc-rccm" class="form-control" placeholder="RC/DLA/2024/B/00123"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="app-modal-footer">
+                <button type="button" class="btn btn-secondary" data-action="cancel">Annuler</button>
+                <button type="button" class="btn btn-primary" data-action="ok"><i class="bi bi-check-lg"></i> Créer le client</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector('[data-action="cancel"]').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    let typeActuel = 'PART';
+    const placeholders = { PART: 'Ex : MBARGA Albert', ENTR: 'Ex : Société COBIN SARL' };
+    function appliquerType(t) {
+        typeActuel = t;
+        overlay.querySelectorAll('.nc-type-btn').forEach(b => b.classList.toggle('nc-active', b.dataset.type === t));
+        document.getElementById('nc-label-PART').style.display = t === 'PART' ? '' : 'none';
+        document.getElementById('nc-label-ENTR').style.display = t === 'ENTR' ? '' : 'none';
+        document.getElementById('nc-bloc-entreprise').style.display = t === 'ENTR' ? '' : 'none';
+        document.getElementById('nc-nom').placeholder = placeholders[t];
+    }
+    overlay.querySelectorAll('.nc-type-btn').forEach(b => b.addEventListener('click', () => appliquerType(b.dataset.type)));
+    appliquerType('PART');
+
+    overlay.querySelector('[data-action="ok"]').addEventListener('click', async () => {
+        const nom = document.getElementById('nc-nom').value.trim();
+        if (!nom) {
+            toastWarning(typeActuel === 'ENTR' ? 'La raison sociale est obligatoire' : 'Le nom du client est obligatoire', 'Champ requis');
+            return;
+        }
+        const payload = {
+            type_client: typeActuel, nom: nom,
+            telephone: document.getElementById('nc-telephone').value.trim(),
+            email: document.getElementById('nc-email').value.trim(),
+            adresse: document.getElementById('nc-adresse').value.trim(),
+            contact_personne: typeActuel === 'ENTR' ? document.getElementById('nc-contact').value.trim() : '',
+            niu: typeActuel === 'ENTR' ? document.getElementById('nc-niu').value.trim() : '',
+            rccm: typeActuel === 'ENTR' ? document.getElementById('nc-rccm').value.trim() : '',
+        };
+        try {
+            const r = await fetch('/ventes/clients/api/creer/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload),
+            });
+            const data = await r.json();
+            if (!r.ok) { toastError(data.erreur || 'Erreur lors de la création', 'Échec'); return; }
+            const sel = document.getElementById('client-select');
+            const opt = document.createElement('option');
+            opt.value = data.id;
+            opt.textContent = data.nom + (payload.telephone ? ' · ' + payload.telephone : '');
+            sel.appendChild(opt);
+            sel.value = data.id;
+            close();
+            if (data.deja_existant) toastInfo(`Client « ${data.nom} » déjà existant, sélectionné`, 'Doublon évité');
+            else toastSuccess(`${typeActuel === 'ENTR' ? 'Entreprise' : 'Client'} « ${data.nom} » créé et sélectionné`, 'Succès');
+        } catch (e) { toastError('Erreur réseau : ' + e, 'Échec'); }
+    });
+}
+
+function ajouterAuPanier(id, nom, prix, stock) {
+    if (stock <= 0) { toastWarning(`« ${nom} » est en rupture de stock`, 'Indisponible'); return; }
+    if (panier.has(id)) {
+        const item = panier.get(id);
+        if (item.quantite >= stock) {
+            toastWarning(`Stock maximum atteint pour « ${nom} » (${stock} unité${stock > 1 ? 's' : ''} disponible${stock > 1 ? 's' : ''})`, 'Stock épuisé');
+            return;
+        }
+        item.quantite += 1;
+    } else {
+        panier.set(id, { id, nom, prix: parseFloat(prix), quantite: 1, stock });
+    }
+    rafraichir();
+}
+
+function modifierQuantite(id, delta) {
+    const item = panier.get(id);
+    if (!item) return;
+    const nouveau = item.quantite + delta;
+    if (nouveau > item.stock) { toastWarning(`Stock maximum : ${item.stock} unité${item.stock > 1 ? 's' : ''} disponible${item.stock > 1 ? 's' : ''}`, 'Limite atteinte'); return; }
+    if (nouveau <= 0) panier.delete(id);
+    else item.quantite = nouveau;
+    rafraichir();
+}
+
+function setQuantite(id, valeur) {
+    const item = panier.get(id);
+    if (!item) return;
+    let qte = parseInt(valeur, 10);
+    if (isNaN(qte) || qte < 1) qte = 1;
+    if (qte > item.stock) { toastWarning(`Stock disponible : ${item.stock} unité${item.stock > 1 ? 's' : ''}. Quantité ajustée automatiquement.`, 'Quantité ajustée'); qte = item.stock; }
+    item.quantite = qte;
+    rafraichir();
+}
+
+function supprimerLigne(id) { panier.delete(id); rafraichir(); }
+
+async function viderPanier() {
+    if (panier.size === 0) return;
+    const ok = await showConfirm({
+        type: 'warning',
+        title: 'Vider le panier ?',
+        message: `Tous les articles du panier (${panier.size} produit${panier.size > 1 ? 's' : ''}) seront retirés. Cette action est irréversible.`,
+        okText: 'Vider', cancelText: 'Annuler', danger: true,
+    });
+    if (ok) { panier.clear(); rafraichir(); toastInfo('Panier vidé'); }
+}
+
+function fmt(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n)); }
+
+function rafraichir() {
+    const tbody = document.getElementById('panier-body');
+    tbody.innerHTML = '';
+    let total = 0, nb_items = 0;
+    panier.forEach(it => {
+        const ligne = it.prix * it.quantite;
+        total += ligne; nb_items += it.quantite;
+        const atMax = it.quantite >= it.stock;
+        tbody.innerHTML += `<tr>
+            <td>
+                <div style="font-weight: 500; font-size: 0.82rem; line-height: 1.3;">${it.nom}</div>
+                <div class="text-muted" style="font-size: 0.7rem;">${fmt(it.prix)} ${DEVISE}/u</div>
+            </td>
+            <td style="text-align: center;">
+                <div class="qte-control">
+                    <button type="button" onclick="modifierQuantite(${it.id},-1)" title="Diminuer">−</button>
+                    <input type="number" value="${it.quantite}" min="1" max="${it.stock}"
+                           onchange="setQuantite(${it.id}, this.value)"
+                           onclick="this.select()">
+                    <button type="button" onclick="modifierQuantite(${it.id},1)" ${atMax ? 'disabled' : ''} title="${atMax ? 'Stock maximum atteint' : 'Augmenter'}">+</button>
+                </div>
+                <span class="qte-stock">${atMax ? '⚠ max ' + it.stock : 'max ' + it.stock}</span>
+            </td>
+            <td style="text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--navy);">${fmt(ligne)}</td>
+            <td><button class="btn btn-sm btn-link" onclick="supprimerLigne(${it.id})" style="color: var(--danger); padding: 2px;" title="Retirer"><i class="bi bi-x-lg"></i></button></td>
+        </tr>`;
+    });
+    const vide = panier.size === 0;
+    document.getElementById('panier-vide').style.display = vide ? '' : 'none';
+    document.getElementById('panier-table-wrapper').style.display = vide ? 'none' : '';
+    const cnt = document.getElementById('panier-count');
+    if (nb_items > 0) { cnt.textContent = nb_items; cnt.style.display = 'inline-block'; }
+    else cnt.style.display = 'none';
+
+    const remise = parseFloat(document.getElementById('remise').value) || 0;
+    const ht = Math.max(total - remise, 0);
+    const appliquerTva = document.getElementById('appliquer-tva').checked;
+    const tva = appliquerTva ? Math.round(ht * TAUX_TVA / 100) : 0;
+    const net = ht + tva;
+
+    document.getElementById('recap-soustotal').textContent = fmt(total) + ' ' + DEVISE;
+    document.getElementById('recap-remise').textContent = fmt(remise) + ' ' + DEVISE;
+    document.getElementById('recap-tva').textContent = fmt(tva) + ' ' + DEVISE;
+    document.getElementById('recap-tva-row').style.display = appliquerTva ? 'flex' : 'none';
+    document.getElementById('recap-net').textContent = fmt(net) + ' ' + DEVISE;
+
+    const paye = document.getElementById('montant-paye');
+    if (!paye.dataset.touched || paye.dataset.touched === 'false') paye.value = net;
+    afficherStatutPaiement(net);
+}
+
+function afficherStatutPaiement(net) {
+    const paye = parseFloat(document.getElementById('montant-paye').value) || 0;
+    const statut = document.getElementById('statut-paiement');
+    if (net === 0) { statut.style.display = 'none'; return; }
+    statut.style.display = 'block';
+    if (paye >= net) {
+        const monnaie = paye - net;
+        statut.className = 'statut-paiement statut-complet';
+        statut.innerHTML = `<i class="bi bi-check-circle-fill"></i>
+            <div><div style="font-weight: 700;">Paiement complet</div>
+            ${monnaie > 0 ? `<div style="font-size: 0.8rem;">Monnaie à rendre : <strong>${fmt(monnaie)} ${DEVISE}</strong></div>` : ''}</div>`;
+    } else if (paye > 0) {
+        const reste = net - paye;
+        statut.className = 'statut-paiement statut-partiel';
+        statut.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i>
+            <div><div style="font-weight: 700;">Paiement partiel</div>
+            <div style="font-size: 0.8rem;">Reste à payer : <strong>${fmt(reste)} ${DEVISE}</strong></div></div>`;
+    } else {
+        statut.className = 'statut-paiement statut-impaye';
+        statut.innerHTML = `<i class="bi bi-x-octagon-fill"></i>
+            <div><div style="font-weight: 700;">Impayé (crédit total)</div>
+            <div style="font-size: 0.8rem;">Le client ne paie rien à la livraison</div></div>`;
+    }
+}
+
+document.getElementById('remise').addEventListener('input', rafraichir);
+document.getElementById('appliquer-tva').addEventListener('change', rafraichir);
+const inputPaye = document.getElementById('montant-paye');
+inputPaye.addEventListener('focus', () => { inputPaye.dataset.touched = 'true'; });
+inputPaye.addEventListener('input', () => {
+    inputPaye.dataset.touched = 'true';
+    let total = 0; panier.forEach(it => total += it.prix * it.quantite);
+    const remise = parseFloat(document.getElementById('remise').value) || 0;
+    const ht = Math.max(total - remise, 0);
+    const appliquerTva = document.getElementById('appliquer-tva').checked;
+    const tva = appliquerTva ? Math.round(ht * TAUX_TVA / 100) : 0;
+    afficherStatutPaiement(ht + tva);
+});
+document.getElementById('recherche').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.produit-item').forEach(el => {
+        const ok = el.dataset.nom.includes(q) || el.dataset.ref.includes(q);
+        el.style.display = ok ? '' : 'none';
+    });
+});
+
+// Sélection du mode de paiement via les cards
+document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        document.getElementById('mode-paiement').value = btn.dataset.mode;
+    });
+});
+
+async function validerVente() {
+    if (panier.size === 0) { toastWarning('Veuillez ajouter au moins un produit avant de valider', 'Panier vide'); return; }
+
+    const remise = parseFloat(document.getElementById('remise').value) || 0;
+    const montantPaye = parseFloat(document.getElementById('montant-paye').value) || 0;
+    const appliquerTva = document.getElementById('appliquer-tva').checked;
+    const modePaiement = document.getElementById('mode-paiement').value;
+    const clientSelect = document.getElementById('client-select');
+    const clientId = clientSelect.value || null;
+    const clientNom = clientId ? clientSelect.options[clientSelect.selectedIndex].text : null;
+
+    let total = 0;
+    panier.forEach(it => total += it.prix * it.quantite);
+    const ht = Math.max(total - remise, 0);
+    const tva = appliquerTva ? Math.round(ht * TAUX_TVA / 100) : 0;
+    const net = ht + tva;
+
+    if (!clientId) {
+        const ok = await showConfirm({
+            type: 'warning',
+            title: 'Aucun client sélectionné',
+            message: `Vous êtes sur le point de valider une <strong>vente anonyme</strong> (sans client identifié).<br><br>Souhaitez-vous continuer ou revenir choisir un client ?`,
+            okText: 'Continuer sans client', cancelText: 'Revenir',
+        });
+        if (!ok) { clientSelect.focus(); return; }
+    }
+
+    if (montantPaye <= 0) {
+        await showError('Montant payé manquant',
+            `Veuillez saisir le <strong>montant payé par le client</strong>.<br><br>Net à payer : <strong style="color: var(--navy);">${fmt(net)} ${DEVISE}</strong>`);
+        document.getElementById('montant-paye').focus();
+        return;
+    }
+
+    if (montantPaye < net && modePaiement !== 'CREDIT') {
+        const reste = net - montantPaye;
+        const ok = await showConfirm({
+            type: 'warning',
+            title: 'Montant payé insuffisant',
+            message: `Le montant payé (<strong>${fmt(montantPaye)} ${DEVISE}</strong>) est inférieur au net à payer (<strong>${fmt(net)} ${DEVISE}</strong>).<br>Reste à payer : <strong style="color: var(--danger);">${fmt(reste)} ${DEVISE}</strong>.<br><br>Voulez-vous enregistrer cette vente comme un <strong>paiement partiel</strong> ?`,
+            okText: 'Enregistrer en partiel', cancelText: 'Modifier le montant',
+        });
+        if (!ok) { document.getElementById('montant-paye').focus(); return; }
+    }
+
+    const monnaie = montantPaye > net ? montantPaye - net : 0;
+    const confirme = await showConfirm({
+        type: 'confirm',
+        title: 'Confirmer la vente ?',
+        message: `
+            <div style="text-align: left; background: var(--surface-2); padding: 14px; border-radius: 10px; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.86rem;">
+                    <span class="text-muted">Client</span><strong>${clientNom || 'Vente anonyme'}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.86rem;">
+                    <span class="text-muted">Articles</span><strong>${panier.size} produit${panier.size > 1 ? 's' : ''}</strong>
+                </div>
+                ${appliquerTva ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.86rem;">
+                    <span class="text-muted">TVA (${TAUX_TVA} %)</span><strong style="color: var(--gold-dark);">${fmt(tva)} ${DEVISE}</strong></div>` : ''}
+                <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.95rem;">
+                    <strong>Net à payer</strong><strong style="color: var(--navy); font-size: 1.05rem;">${fmt(net)} ${DEVISE}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.86rem;">
+                    <span class="text-muted">Montant reçu</span><strong>${fmt(montantPaye)} ${DEVISE}</strong>
+                </div>
+                ${monnaie > 0 ? `<div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.86rem;">
+                    <span class="text-muted">Monnaie à rendre</span><strong style="color: var(--success);">${fmt(monnaie)} ${DEVISE}</strong></div>` : ''}
+            </div>`,
+        okText: 'Valider la vente', cancelText: 'Modifier',
+    });
+    if (!confirme) return;
+
+    const btn = document.getElementById('btn-valider');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite;"></span> Enregistrement en cours...';
+
+    const payload = {
+        lignes: Array.from(panier.values()).map(it => ({ produit_id: it.id, quantite: it.quantite, prix_unitaire: it.prix })),
+        mode_paiement: modePaiement,
+        remise: remise,
+        montant_paye: montantPaye,
+        appliquer_tva: appliquerTva,
+        client_id: clientId,
+    };
+
+    try {
+        const r = await fetch('/ventes/enregistrer/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload),
+        });
+        const data = await r.json();
+        if (!r.ok) {
+            await showError('Échec de la vente',
+                `<strong>${escapeForHtml(data.erreur || 'Erreur inconnue')}</strong><br><br>Aucune vente n'a été enregistrée. Vérifiez les informations puis réessayez.`);
+            btn.disabled = false; btn.innerHTML = originalHtml;
+            return;
+        }
+        const imprimer = await showConfirm({
+            type: 'success',
+            title: 'Vente enregistrée avec succès',
+            message: `
+                <div style="background: var(--success-50); border-radius: 10px; padding: 14px; margin: 8px 0 14px;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Numéro de vente</div>
+                    <div style="font-weight: 700; font-size: 1.05rem; color: var(--navy); font-family: monospace;">${data.numero}</div>
+                    <div style="margin-top: 10px; font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Montant net</div>
+                    <div style="font-weight: 800; font-size: 1.4rem; color: var(--success);">${fmt(data.net || net)} ${DEVISE}</div>
+                    ${monnaie > 0 ? `<div style="margin-top: 6px; font-size: 0.85rem; color: var(--text-muted);">Monnaie à rendre : <strong style="color: var(--success);">${fmt(monnaie)} ${DEVISE}</strong></div>` : ''}
+                </div>
+                Souhaitez-vous imprimer le ticket maintenant ?`,
+            okHtml: '<i class="bi bi-printer"></i> Imprimer le ticket', cancelText: 'Plus tard',
+        });
+        if (imprimer) window.open('/ventes/' + data.id + '/ticket.pdf', '_blank');
+        toastSuccess(`Vente ${data.numero} enregistrée`, 'Succès');
+        setTimeout(() => window.location.reload(), 800);
+    } catch (e) {
+        await showError('Problème de connexion',
+            `Une erreur réseau a empêché l'enregistrement de la vente.<br><br><small style="color: var(--text-muted);">${escapeForHtml(String(e))}</small>`);
+        btn.disabled = false; btn.innerHTML = originalHtml;
+    }
+}
+
+function escapeForHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+</script>
+<%- include('../partials/footer') %>

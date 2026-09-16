@@ -1,0 +1,12 @@
+<%- include('layout_header') %>
+<div style="max-width: 500px; margin: 60px auto; padding: 30px; text-align: center;">
+    <i class="bi bi-search" style="font-size: 4rem; color: var(--text-muted); opacity: 0.4;"></i>
+    <h1 style="font-family: 'Playfair Display', serif; color: var(--marron); margin: 20px 0 10px;">Commande introuvable</h1>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">
+        Nous ne trouvons pas de commande avec le code <strong style="font-family: 'Playfair Display', serif; color: var(--marron);"><%= code %></strong>.
+        Vérifiez que vous avez saisi le bon code (les lettres et chiffres exacts).
+    </p>
+    <a href="/commander/suivi" class="btn btn-primary" style="margin-right: 10px;"><i class="bi bi-search"></i> Réessayer</a>
+    <a href="/commander/" class="btn btn-outline">Voir le menu</a>
+</div>
+<%- include('layout_footer') %>

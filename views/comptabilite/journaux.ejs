@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Journaux comptables</h1>
+        <p class="page-subtitle">Vue par journal — écritures OHADA</p>
+    </div>
+</div>
+
+<div class="row">
+    <% journaux.forEach(function(j) { %>
+        <div class="col-md-4 mb-3">
+            <a href="/comptabilite/journaux/<%= j.code %>" style="text-decoration: none; color: inherit;">
+                <div class="card" style="border-left: 4px solid <%= j.couleur %>; height: 100%; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; font-weight: 700;">Journal</div>
+                                <div style="font-size: 1.6rem; font-weight: 800; color: <%= j.couleur %>; line-height: 1;"><%= j.code %></div>
+                                <div style="color: var(--navy); font-weight: 600; margin-top: 4px;"><%= j.libelle %></div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.8rem; font-weight: 800; color: var(--navy);"><%= j.nb_ecritures %></div>
+                                <div class="small text-muted">écritures</div>
+                            </div>
+                        </div>
+                        <% if (j.derniere) { %>
+                            <div class="small text-muted" style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px;">
+                                Dernière : <strong><%= h.formatDate(j.derniere, true) %></strong>
+                            </div>
+                        <% } else { %>
+                            <div class="small text-muted" style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; font-style: italic;">
+                                Aucune écriture pour l'instant
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </a>
+        </div>
+    <% }); %>
+</div>
+<%- include('../partials/footer') %>
